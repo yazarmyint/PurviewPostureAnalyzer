@@ -51,6 +51,7 @@ across snapshots.
 | AdaptiveScopeSummary     | Get-PpaRetention        | adaptiveScopes  |
 | RetentionLegacySummary   | Get-PpaDspmAi           | retentionLegacy |
 | LabelContainerSummary    | Get-PpaSensitivityLabels| containers      |
+| DspmAiSummary            | Get-PpaDspmAi           | copilotPolicies.thirdPartyAiDlpPolicies (Part B: carrier list would otherwise be lost to delta) |
 
 ## Caveats recorded for design review
 

@@ -1,4 +1,5 @@
 {
+  "outcome": "Populated",
   "_comment": "Sparse shape observed on a real tenant (2026-07-01): Get-DlpCompliancePolicy returned 6 policies but Get-DlpComplianceRule returned 0 objects, so every policy has an empty SIT list. Regression fixture for empty/zero handling.",
   "policies": {
     "status": "Ok",

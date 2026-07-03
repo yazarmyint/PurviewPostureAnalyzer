@@ -1,0 +1,17 @@
+{
+  "_comment": "Posture denylist (Wave 4 spec 3.6) - reviewed data file, applied at COMPARE time by the Part C differ using the CURRENT tool's list. The version string is recorded in every snapshot as information only. global lists property names whose changes are churn, never posture. perType extends per snapshot type. candidates records entries under review - the differ ignores them until promoted.",
+  "version": "1.0",
+  "global": [
+    "WhenChanged",
+    "WhenCreated",
+    "WhenChangedUTC",
+    "WhenCreatedUTC",
+    "ObjectVersion",
+    "DistinguishedName",
+    "ExchangeObjectId"
+  ],
+  "perType": {},
+  "candidates": {
+    "DspmPolicy": ["props-bag entry n='Guid' (duplicates the top-level identity field; decide at Part C when the differ lands)"]
+  }
+}

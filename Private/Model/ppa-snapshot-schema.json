@@ -1,0 +1,25 @@
+{
+  "_comment": "Snapshot schema manifest (Wave 4 spec 3.2/3.4) - reviewed data file. schemaVersion is the snapshot wire-format version. types maps every snapshot object type to its section, its source inside the collector output (kind items = per-object array at path; kind singleton = one object built from the block at path, empty path = collector root), the declared ARRAY properties the loader coerces after ConvertFrom-Json, and for singletons an optional fields subset. Key sources per type live in docs/KEY_SOURCES.md.",
+  "schemaVersion": { "major": 1, "minor": 0 },
+  "types": {
+    "AdaptiveScopeSummary":   { "section": "Retention",                "kind": "singleton", "path": "adaptiveScopes",  "arrays": [] },
+    "AppRetentionPolicy":     { "section": "DSPM_for_AI",              "kind": "items",     "path": "appRetention.items",    "arrays": ["applications"] },
+    "AuditConfig":            { "section": "Audit",                    "kind": "singleton", "path": "",                "arrays": [] },
+    "AutoLabelPolicy":        { "section": "Sensitivity_Labels",       "kind": "items",     "path": "autoLabels.items",      "arrays": ["sits"] },
+    "CcCopilotPolicy":        { "section": "DSPM_for_AI",              "kind": "items",     "path": "ccCopilot.items",       "arrays": ["workloads"] },
+    "CommsComplianceSummary": { "section": "Communication_Compliance", "kind": "singleton", "path": "policies",        "arrays": [] },
+    "CopilotDlpPolicy":       { "section": "DSPM_for_AI",              "kind": "items",     "path": "copilotPolicies.items", "arrays": ["sits", "labelRefs", "copilotLocations"] },
+    "DlpPolicy":              { "section": "Data_Loss_Prevention",     "kind": "items",     "path": "policies.items",        "arrays": [] },
+    "DlpRule":                { "section": "Data_Loss_Prevention",     "kind": "items",     "path": "rules.items",           "arrays": ["sits"] },
+    "DspmAiSummary":          { "section": "DSPM_for_AI",              "kind": "singleton", "path": "copilotPolicies", "arrays": ["thirdPartyAiDlpPolicies"], "fields": ["thirdPartyAiDlpPolicies"] },
+    "DspmPolicy":             { "section": "DSPM_for_AI",              "kind": "items",     "path": "dspmPolicies.items",    "arrays": ["props"] },
+    "EdiscoveryCase":         { "section": "eDiscovery",               "kind": "items",     "path": "cases.items",           "arrays": [] },
+    "InsiderRiskPolicy":      { "section": "Insider_Risk",             "kind": "items",     "path": "policies.items",        "arrays": [] },
+    "LabelContainerSummary":  { "section": "Sensitivity_Labels",       "kind": "singleton", "path": "containers",      "arrays": [] },
+    "LabelPolicy":            { "section": "Sensitivity_Labels",       "kind": "items",     "path": "policies.items",        "arrays": ["labels"] },
+    "RetentionLabel":         { "section": "Retention",                "kind": "items",     "path": "labels.items",          "arrays": [] },
+    "RetentionLegacySummary": { "section": "DSPM_for_AI",              "kind": "singleton", "path": "retentionLegacy", "arrays": ["teamsChatPolicies"] },
+    "RetentionPolicy":        { "section": "Retention",                "kind": "items",     "path": "policies.items",        "arrays": ["locations", "labels"] },
+    "SensitivityLabel":       { "section": "Sensitivity_Labels",       "kind": "items",     "path": "labels.items",          "arrays": ["scopes"] }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "_comment": "Snapshot writer torture fixture (Wave 4 Part B, pinned test 6.2 #2). Shaped like a Sensitivity_Labels collector output. Exercises: hostile strings (quotes, angle brackets, backslashes), unicode, a no-guid item (Name fallback), empty and single-item arrays, and a depth-canary nested to the writer's max expected nesting to prove ConvertTo-Json -Depth 16 loses nothing. Never fed to analyzers.",
+  "outcome": "Populated",
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Hostile \"quoted\" <angle> & back\\slash label", "guid": "guid-hostile-1", "priority": 0, "scopes": ["File"], "parentId": "" },
+      { "name": "Unicode – en–dash — em—dash éü✓", "guid": "guid-hostile-2", "priority": 1, "scopes": [], "parentId": "" }
+    ]
+  },
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "NoGuidPolicy", "labels": ["single-item"], "enabled": true, "scope": "" }
+    ]
+  },
+  "autoLabels": {
+    "status": "Ok",
+    "error": null,
+    "items": []
+  },
+  "containers": {
+    "status": "Collected",
+    "groups": { "d1": { "d2": { "d3": { "d4": { "d5": { "d6": { "d7": { "d8": { "d9": { "canary": "reached" } } } } } } } } } },
+    "sites": null
+  }
+}

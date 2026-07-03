@@ -73,6 +73,41 @@ $sel = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_f
 $profNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $sel.Sections -Observations $dense.observations
 Write-PpaSampleReport -Name 'sample-dense-profile.html' -Html (Export-PpaHtmlReport -Normalized $profNorm -IsSample -ExcludedSections $sel.ExcludedTitles)
 
+# ---- 6. Dense snapshot sample (Wave 4 Part B: raw fixtures -> analyzers -> snapshot) ----
+# FIXTURE TENANT ID: sample snapshots have no session, so the tenantId is this
+# constant - a fixture token, not a real tenant. Snapshot filenames derive their
+# tenantIdShort ('contosod') from it. Tests use the same value (Snapshot.Tests.ps1).
+$fixtureTenantId = 'contoso-dense-fixture'
+$snapRawMap = @{
+    Sensitivity_Labels       = Read-PpaFixture 'Samples\sample-raw\labels.json'
+    Data_Loss_Prevention     = Read-PpaFixture 'Samples\sample-raw\dlp.json'
+    Retention                = Read-PpaFixture 'Samples\sample-raw\retention.json'
+    Insider_Risk             = Read-PpaFixture 'Samples\sample-raw\insiderrisk.json'
+    Audit                    = Read-PpaFixture 'Samples\sample-raw\audit.json'
+    eDiscovery               = Read-PpaFixture 'Samples\sample-raw\ediscovery.json'
+    Communication_Compliance = Read-PpaFixture 'Samples\sample-raw\commscompliance.json'
+    DSPM_for_AI              = Read-PpaFixture 'Samples\sample-raw\dspm.json'
+}
+$snapAsOf = [datetime]'2026-06-24'
+$sitMap = Read-PpaFixture 'Data\dlp-sit-tiers.json'
+$snapSections = @(
+    Invoke-PpaLabelAnalyzer -Raw $snapRawMap.Sensitivity_Labels -AsOf $snapAsOf -LicenseMap $licMap
+    Invoke-PpaDlpAnalyzer -Raw $snapRawMap.Data_Loss_Prevention -AsOf $snapAsOf -LicenseMap $licMap -SitTierMap $sitMap
+    Invoke-PpaRetentionAnalyzer -Raw $snapRawMap.Retention -LicenseMap $licMap
+    Invoke-PpaInsiderRiskAnalyzer -Raw $snapRawMap.Insider_Risk -LicenseMap $licMap
+    Invoke-PpaAuditAnalyzer -Raw $snapRawMap.Audit -LicenseMap $licMap
+    Invoke-PpaEdiscoveryAnalyzer -Raw $snapRawMap.eDiscovery -LicenseMap $licMap
+    Invoke-PpaCommsComplianceAnalyzer -Raw $snapRawMap.Communication_Compliance -LicenseMap $licMap
+    Invoke-PpaDspmAiAnalyzer -Raw $snapRawMap.DSPM_for_AI -LicenseMap $licMap -HasSiteLabels:$false
+)
+$snapModel = New-PpaSnapshotModel `
+    -RawMap $snapRawMap -Sections $snapSections `
+    -Meta ([pscustomobject]@{ version = '2.0'; tenantId = $fixtureTenantId }) `
+    -CapturedAt ([datetime]::new(2026, 7, 3, 14, 15, 0, [System.DateTimeKind]::Utc)) `
+    -SnapshotId ([guid]::NewGuid().ToString())
+$snapResult = Export-PpaSnapshot -Model $snapModel -Directory $OutDir
+$written.Add($snapResult.SnapshotPath)
+
 # ---- Done ----
 Write-Host ''
 Write-Host 'Sample reports written:'

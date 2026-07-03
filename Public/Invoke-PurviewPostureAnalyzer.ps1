@@ -24,7 +24,12 @@ function Invoke-PurviewPostureAnalyzer {
         # additionally, policy/label name pseudonymization (-RedactNames, implies
         # -Redact). The JSON export and in-memory findings are never modified.
         [switch]$Redact,
-        [switch]$RedactNames
+        [switch]$RedactNames,
+        # Snapshot (Wave 4): a versioned UNREDACTED JSON snapshot is written alongside
+        # the HTML by default; -NoSnapshot suppresses it. -IncludeRawCapture also
+        # writes the raw collector outputs to a separate debug file outside the schema.
+        [switch]$NoSnapshot,
+        [switch]$IncludeRawCapture
     )
 
     # Resolve the output directory to an ABSOLUTE path against the caller's PowerShell location.
@@ -162,6 +167,31 @@ function Invoke-PurviewPostureAnalyzer {
     [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames), (New-Object System.Text.UTF8Encoding($false)))
     [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
 
+    # ---- SNAPSHOT (Wave 4 Part B): versioned JSON capture alongside the HTML ----
+    # Post-selection scope: only the selected sections' objects/findings are captured;
+    # excluded sections' collectors record 'Skipped', a crashed collector 'NotRun'.
+    $snapshotPath = $null
+    if (-not $NoSnapshot) {
+        $rawMap = @{
+            Sensitivity_Labels       = $rawLabels
+            Data_Loss_Prevention     = $rawDlp
+            Retention                = $rawRet
+            Insider_Risk             = $rawIrm
+            Audit                    = $rawAud
+            eDiscovery               = $rawEd
+            Communication_Compliance = $rawCc
+            DSPM_for_AI              = $rawDspm
+        }
+        $profileName = if ([string]::IsNullOrWhiteSpace($Profile)) { $null } else { [System.IO.Path]::GetFileNameWithoutExtension($Profile) }
+        $snapModel = New-PpaSnapshotModel `
+            -RawMap $rawMap -Sections $sections -Meta $meta `
+            -CapturedAt $AsOf -SnapshotId ([guid]::NewGuid().ToString()) `
+            -ProfileName $profileName `
+            -SectionIds @($sections | ForEach-Object { [string]$_.id })
+        $snapResult = Export-PpaSnapshot -Model $snapModel -Directory $reportsDir -RawMap $rawMap -IncludeRawCapture:$IncludeRawCapture
+        $snapshotPath = $snapResult.SnapshotPath
+    }
+
     # Only report success once both files are actually on disk. If a write failed, let the failure
     # surface instead of returning paths that do not exist.
     if (-not (Test-Path -LiteralPath $htmlPath) -or -not (Test-Path -LiteralPath $jsonPath)) {
@@ -170,5 +200,5 @@ function Invoke-PurviewPostureAnalyzer {
 
     Write-Host "Report : $htmlPath"
     Write-Host "JSON   : $jsonPath"
-    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; Normalized = $normalized }
+    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; SnapshotPath = $snapshotPath; Normalized = $normalized }
 }

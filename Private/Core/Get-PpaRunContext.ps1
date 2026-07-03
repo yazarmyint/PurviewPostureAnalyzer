@@ -24,10 +24,16 @@ function Get-PpaRunContext {
         if ($default.Count -gt 0 -and $default[0].DomainName) { $tenant = [string]$default[0].DomainName }
     }
 
-    # Operator from the Exchange Online / S&C connection.
+    # Operator + tenant id from the Exchange Online / S&C connection. TenantID is
+    # identity the SAME existing read already exposes (Wave 4 snapshot metadata) -
+    # no new cmdlets, property-presence checked.
+    $tenantId = ''
     $conn = Invoke-PpaReadCmdlet -Name 'Get-ConnectionInformation'
-    if ($conn.Status -eq 'Ok' -and @($conn.Data).Count -gt 0 -and $conn.Data[0].UserPrincipalName) {
-        $operator = [string]$conn.Data[0].UserPrincipalName
+    if ($conn.Status -eq 'Ok' -and @($conn.Data).Count -gt 0) {
+        if ($conn.Data[0].UserPrincipalName) { $operator = [string]$conn.Data[0].UserPrincipalName }
+        if ($conn.Data[0].PSObject.Properties.Name -contains 'TenantID' -and $conn.Data[0].TenantID) {
+            $tenantId = [string]$conn.Data[0].TenantID
+        }
     }
 
     $org = if ($Organization) { $Organization } else { $tenant }
@@ -39,6 +45,7 @@ function Get-PpaRunContext {
         dateDisplay = ($now.ToString('dd-MMM-yyyy HH:mm') + ' UTC')
         organization = $org
         tenant      = $tenant
+        tenantId    = $tenantId
         operator    = $operator
         mode        = "Read-only $mid configuration metadata only"
     }

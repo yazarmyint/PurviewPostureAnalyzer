@@ -24,7 +24,7 @@ BeforeAll {
         foreach ($m in [regex]::Matches($Content, "\b(?:$script:PpaMutatingVerbs)-[A-Za-z][A-Za-z0-9]*")) {
             $cmd = $m.Value
             if ($script:PpaGuardAllow -contains $cmd) { continue }
-            if ($cmd -match '^(New|Set|Get|Remove|Test|Write|Convert|Export|Import)-Ppa') { continue }  # our own functions
+            if ($cmd -match '^(New|Set|Get|Remove|Test|Write|Convert|Export|Import|Clear)-Ppa') { continue }  # our own functions (Clear-PpaRedaction is in-memory render state)
             $found.Add($cmd)
         }
         return $found.ToArray()
@@ -55,8 +55,10 @@ Describe 'Read-only guard - detection logic' {
 }
 
 Describe 'Read-only guard - tenant-facing surface' {
-    It 'has no mutating cmdlets in Private/Collect, Private/Analyze, or Public' {
-        $scanDirs = @('Private\Collect', 'Private\Analyze', 'Public') |
+    It 'has no mutating cmdlets anywhere in Private or Public (Wave 4: whole tree)' {
+        # Wave 4 extended the scan from Collect/Analyze/Public to ALL of Private so
+        # the snapshot writer/loader (Private\Model) and every future file is covered.
+        $scanDirs = @('Private', 'Public') |
             ForEach-Object { Join-Path $script:RepoRoot $_ } |
             Where-Object { Test-Path -LiteralPath $_ }
 

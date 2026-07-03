@@ -47,6 +47,11 @@ BeforeAll {
     $script:SparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing ([pscustomobject]@{ note = 'n' }) -Sections $sparseSections
     $script:SparseHtml = Export-PpaHtmlReport -Normalized $script:SparseNorm
 
+    # Profile-filtered dense variant (P5): DSPM_for_AI and Audit excluded at render time.
+    $script:ProfSelection = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_for_AI', 'Audit')
+    $script:ProfNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $script:ProfSelection.Sections -Observations $dense.observations
+    $script:ProfHtml = Export-PpaHtmlReport -Normalized $script:ProfNorm -IsSample -ExcludedSections $script:ProfSelection.ExcludedTitles
+
     $script:AllVariants = @(
         @{ Name = 'standard'; Html = $script:StdHtml }
         @{ Name = 'dense';    Html = $script:DenseHtml }
@@ -201,6 +206,69 @@ Describe 'P4 - per-finding anchors' {
     It 'renders one copy-link affordance per finding (dense)' {
         ([regex]::Matches($script:DenseHtml, 'class="anchor-link"')).Count |
             Should -Be ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count
+    }
+}
+
+Describe 'P5 - run profile: section include/exclude' {
+    It 'omits excluded sections from the body entirely' {
+        $script:ProfHtml | Should -Not -Match 'id="DSPM_for_AI"'
+        $script:ProfHtml | Should -Not -Match 'id="Audit"'
+        ([regex]::Matches($script:ProfHtml, 'class="card mt-3 seccard"')).Count | Should -Be 6
+    }
+    It 'lists the excluded sections in a single footer line' {
+        $script:ProfHtml | Should -Match 'Sections excluded by run profile: Audit, DSPM for AI - Copilot Data Security'
+        ([regex]::Matches($script:ProfHtml, 'profile-note')).Count | Should -Be 2  # CSS rule + the note itself
+    }
+    It 'renders no profile note when nothing is excluded' {
+        $script:DenseHtml | Should -Not -Match 'Sections excluded by run profile'
+    }
+    It 'adjusts exec-summary tile counts to the included sections only' {
+        $body = Get-PpaBodyStatusCounts $script:ProfNorm
+        $tiles = [regex]::Matches($script:ProfHtml, 'es-num">(\d+)</span>') | ForEach-Object { [int]$_.Groups[1].Value }
+        $tiles[0] | Should -Be ([int]$body['Recommendation'])
+        $tiles[1] | Should -Be ([int]$body['Improvement'])
+        # Dense body has 26 findings; Audit (3) + DSPM (6) excluded -> 17 remain.
+        ($tiles | Measure-Object -Sum).Sum | Should -Be 17
+    }
+    It 'include means "only these"' {
+        $sel = Select-PpaSections -Sections $script:DenseNorm.sections -IncludeSection @('Audit', 'eDiscovery')
+        @($sel.Sections).Count | Should -Be 2
+        @($sel.ExcludedTitles).Count | Should -Be 6
+    }
+    It 'throws on an unknown section key, naming the valid keys' {
+        { Select-PpaSections -Sections $script:DenseNorm.sections -ExcludeSection @('Nope_Section') } |
+            Should -Throw '*Nope_Section*Sensitivity_Labels*'
+    }
+}
+
+Describe 'P5 - entry-script parameter plumbing (no tenant, graceful degradation)' {
+    BeforeAll {
+        foreach ($p in (Get-ChildItem (Join-Path $script:RepoRoot 'Public') -Filter '*.ps1')) { . $p.FullName }
+        $script:P5Out = Join-Path ([System.IO.Path]::GetTempPath()) ('ppa-p5-' + [guid]::NewGuid().ToString('N'))
+    }
+    AfterAll {
+        if ($script:P5Out -and (Test-Path -LiteralPath $script:P5Out)) {
+            Remove-Item -LiteralPath $script:P5Out -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    It '-ExcludeSection removes the section and the report carries the footer note' {
+        $r = Invoke-PurviewPostureAnalyzer -OutputDirectory $script:P5Out -ExcludeSection 'Audit' -WarningAction SilentlyContinue
+        @($r.Normalized.sections).Count | Should -Be 7
+        @($r.Normalized.sections | Where-Object { $_.id -eq 'Audit' }).Count | Should -Be 0
+        [System.IO.File]::ReadAllText($r.HtmlPath) | Should -Match 'Sections excluded by run profile: Audit'
+    }
+    It '-Profile (psd1) expresses the same exclusions; explicit parameters override it' {
+        $prof = Join-Path $TestDrive 'thin.psd1'
+        Set-Content -LiteralPath $prof -Value "@{ ExcludeSection = @('Audit', 'eDiscovery') }" -Encoding Ascii
+        $r = Invoke-PurviewPostureAnalyzer -OutputDirectory $script:P5Out -Profile $prof -WarningAction SilentlyContinue
+        @($r.Normalized.sections).Count | Should -Be 6
+        $r2 = Invoke-PurviewPostureAnalyzer -OutputDirectory $script:P5Out -Profile $prof -ExcludeSection 'Retention' -WarningAction SilentlyContinue
+        @($r2.Normalized.sections).Count | Should -Be 7
+        @($r2.Normalized.sections | Where-Object { $_.id -eq 'Audit' }).Count | Should -Be 1
+    }
+    It 'throws fast on an unknown section key (before any collection)' {
+        { Invoke-PurviewPostureAnalyzer -OutputDirectory $script:P5Out -IncludeSection 'Not_A_Section' } |
+            Should -Throw '*Not_A_Section*'
     }
 }
 

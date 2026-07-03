@@ -314,6 +314,8 @@ function Get-PpaReportHead {
   .es-sec{ color:#8a97a4; font-size:11.5px; margin-left:auto; padding-left:12px; white-space:nowrap; }
   .es-more{ color:#5a6b7b; font-size:12.5px; padding:4px 0 0 16px; font-style:italic; }
   .es-none{ color:#5a6b7b; font-size:13px; margin:0; }
+  /* run-profile exclusion note */
+  .profile-note{ color:#5a6b7b; font-size:12.5px; margin:1rem 2px 0; padding:8px 12px; background:#f1f5f9; border:1px solid #e3e9ef; border-radius:6px; }
   /* per-finding anchor affordance */
   .anchor-link{ margin-left:8px; color:#b7c6d6; text-decoration:none; font-weight:600; opacity:0; transition:opacity .12s ease; }
   .finding-head:hover .anchor-link{ opacity:1; }

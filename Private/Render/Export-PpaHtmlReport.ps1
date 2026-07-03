@@ -8,7 +8,10 @@ function Export-PpaHtmlReport {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)] $Normalized,
-        [switch] $IsSample
+        [switch] $IsSample,
+        # Titles of sections removed by the run profile (P5) - rendered as a single
+        # footer line so a thin report never looks like a silent failure.
+        [string[]] $ExcludedSections = @()
     )
 
     $meta      = $Normalized.meta
@@ -199,6 +202,14 @@ function Export-PpaHtmlReport {
         }
         [void]$sb.AppendLine('    </div>')
         [void]$sb.AppendLine('  </div>')
+        [void]$sb.AppendLine('')
+    }
+
+    # ---- run-profile note (P5): a thin report must never look like a silent failure ----
+    $excludedList = @($ExcludedSections | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($excludedList.Count -gt 0) {
+        [void]$sb.Append('  <p class="profile-note">Sections excluded by run profile: ')
+        [void]$sb.Append((ConvertTo-PpaHtmlText ($excludedList -join ', '))).AppendLine('</p>')
         [void]$sb.AppendLine('')
     }
 

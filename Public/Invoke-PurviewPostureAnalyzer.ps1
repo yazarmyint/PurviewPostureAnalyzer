@@ -11,7 +11,15 @@ function Invoke-PurviewPostureAnalyzer {
     param(
         [string]$OutputDirectory,
         [string]$Organization,
-        [datetime]$AsOf = (Get-Date)
+        [datetime]$AsOf = (Get-Date),
+        # Run profile (P5): -IncludeSection means "only these"; -ExcludeSection removes.
+        # Keys are the top-level section ids (e.g. Audit, DSPM_for_AI). -Profile points
+        # to a .psd1/.json file with IncludeSection/ExcludeSection keys expressing the
+        # same; explicit parameters override the file. (This parameter intentionally
+        # shadows the automatic $Profile variable inside this function only.)
+        [string[]]$IncludeSection,
+        [string[]]$ExcludeSection,
+        [string]$Profile
     )
 
     # Resolve the output directory to an ABSOLUTE path against the caller's PowerShell location.
@@ -23,6 +31,27 @@ function Invoke-PurviewPostureAnalyzer {
         $OutputDirectory = Join-Path -Path (Get-Location).Path -ChildPath $OutputDirectory
     }
     $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+
+    # ---- RUN PROFILE (P5): resolve and validate BEFORE any collection (fail fast) ----
+    $knownSectionIds = @('Sensitivity_Labels', 'Data_Loss_Prevention', 'Retention', 'Insider_Risk', 'Audit', 'eDiscovery', 'Communication_Compliance', 'DSPM_for_AI')
+    if (-not [string]::IsNullOrWhiteSpace($Profile)) {
+        $profilePath = $Profile
+        if (-not [System.IO.Path]::IsPathRooted($profilePath)) { $profilePath = Join-Path -Path (Get-Location).Path -ChildPath $profilePath }
+        if (-not (Test-Path -LiteralPath $profilePath)) { throw "Run profile file not found: '$profilePath'." }
+        $profileData = switch ([System.IO.Path]::GetExtension($profilePath).ToLower()) {
+            '.psd1' { Import-PowerShellDataFile -LiteralPath $profilePath }
+            '.json' { [System.IO.File]::ReadAllText($profilePath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+            default { throw "Run profile '$profilePath' must be a .psd1 or .json file." }
+        }
+        # Explicit parameters override the profile file. (Filter before counting: an
+        # unbound [string[]] parameter wraps to @($null), whose Count is 1, not 0.)
+        if (@($IncludeSection | Where-Object { $_ }).Count -eq 0 -and $profileData.IncludeSection) { $IncludeSection = @($profileData.IncludeSection) }
+        if (@($ExcludeSection | Where-Object { $_ }).Count -eq 0 -and $profileData.ExcludeSection) { $ExcludeSection = @($profileData.ExcludeSection) }
+    }
+    $badKeys = @(@($IncludeSection) + @($ExcludeSection) | Where-Object { $_ -and ($knownSectionIds -notcontains $_) })
+    if ($badKeys.Count -gt 0) {
+        throw ("Unknown section key(s): {0}. Valid keys: {1}" -f (($badKeys | Select-Object -Unique) -join ', '), ($knownSectionIds -join ', '))
+    }
 
     $meta = Get-PpaRunContext -Organization $Organization -AsOf $AsOf
 
@@ -97,6 +126,11 @@ function Invoke-PurviewPostureAnalyzer {
         & $analyze 'DSPM_for_AI' 'DSPM for AI - Copilot Data Security' 'AI Security' 'fas fa-robot' 'NEW' $rawDspm { Invoke-PpaDspmAiAnalyzer -Raw $Raw -LicenseMap $licMap -HasSiteLabels:$hasSiteLabels }
     )
 
+    # ---- RUN PROFILE FILTER (P5): applied after analysis, before assembly, so all
+    # collectors/analyzers ran identically and only the report/export thins out ----
+    $selection = Select-PpaSections -Sections $sections -IncludeSection $IncludeSection -ExcludeSection $ExcludeSection
+    $sections  = @($selection.Sections)
+
     # ---- DEGRADED-SECTION SUMMARY (visible without -Verbose) ----
     $degraded = @($sections | Where-Object { @($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0 })
     if ($degraded.Count -gt 0) {
@@ -120,7 +154,7 @@ function Invoke-PurviewPostureAnalyzer {
 
     $htmlPath = Join-Path $reportsDir 'posture-report.html'
     $jsonPath = Join-Path $reportsDir 'posture-report.json'
-    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized), (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles), (New-Object System.Text.UTF8Encoding($false)))
     [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
 
     # Only report success once both files are actually on disk. If a write failed, let the failure

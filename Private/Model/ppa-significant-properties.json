@@ -1,0 +1,16 @@
+{
+  "_comment": "Significant-property registry (Wave 4 spec 4.4) - reviewed data file. Properties whose change is PROMOTED to the delta report's headline tier (enforcement flips, enable/disable, workload or location membership). Everything else renders in the detail tier. Property names are the normalized (camelCase) projection names.",
+  "DlpPolicy": ["mode", "locations"],
+  "DlpRule": ["disabled"],
+  "LabelPolicy": ["enabled"],
+  "AutoLabelPolicy": ["mode"],
+  "RetentionPolicy": ["locations", "adaptive"],
+  "RetentionLabel": ["autoApply"],
+  "InsiderRiskPolicy": ["scenario", "workloads"],
+  "AuditConfig": ["unifiedAuditEnabled"],
+  "CommsComplianceSummary": ["count"],
+  "EdiscoveryCase": ["caseStatus"],
+  "CopilotDlpPolicy": ["mode", "copilotLocations"],
+  "AppRetentionPolicy": ["enabled", "applications"],
+  "CcCopilotPolicy": ["enabled", "workloads"]
+}

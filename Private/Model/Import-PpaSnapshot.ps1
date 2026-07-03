@@ -25,7 +25,13 @@ function Import-PpaSnapshot {
         throw "Snapshot file not found: '$Path'."
     }
     $text = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
-    try { $snap = $text | ConvertFrom-Json }
+    # PS 7 ConvertFrom-Json auto-converts full ISO-8601 strings (capturedAt,
+    # denylisted When* artifacts) to DateTime objects, silently breaking the
+    # leaves-are-strings contract on load. -DateKind String (7.5+) keeps them
+    # verbatim; Windows PowerShell 5.1 never converts, so no parameter needed.
+    $parseArgs = @{}
+    if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $parseArgs['DateKind'] = 'String' }
+    try { $snap = ConvertFrom-Json -InputObject $text @parseArgs }
     catch { throw "Snapshot file is not valid JSON: '$Path'. $($_.Exception.Message)" }
 
     if ($null -eq $snap -or $snap.PSObject.Properties.Name -notcontains 'schemaVersion' -or $null -eq $snap.schemaVersion) {

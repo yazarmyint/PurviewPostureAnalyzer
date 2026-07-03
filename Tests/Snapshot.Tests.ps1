@@ -276,10 +276,13 @@ Describe 'Round-trip deep-compare (6.2 #2)' {
     AfterAll { Remove-Item -LiteralPath $script:TmpDir -Recurse -Force -ErrorAction SilentlyContinue }
 
     It 'dense fixture: export -> load -> deep-compare equals the source model' {
+        # Compare the in-memory model DIRECTLY against the loaded snapshot: the
+        # loader preserves date-like strings verbatim (-DateKind String on 7+),
+        # so every leaf must round-trip exactly - values, order, and structure.
         $m = New-PpaGoldenModel
         $r = Export-PpaSnapshot -Model $m -Directory $script:TmpDir 6>$null
         $loaded = Import-PpaSnapshot -Path $r.SnapshotPath
-        $violations = Compare-PpaSnapshotNode -A (ConvertTo-Json -InputObject $m -Depth 16 | ConvertFrom-Json) -B $loaded
+        $violations = Compare-PpaSnapshotNode -A $m -B $loaded
         ($violations -join "`n") | Should -BeNullOrEmpty
     }
     It 'torture fixture: hostile strings, unicode and the depth canary survive intact' {
@@ -290,7 +293,7 @@ Describe 'Round-trip deep-compare (6.2 #2)' {
             -SnapshotId 'abcdefab-1111-2222-3333-444444444444' -SectionIds @('Sensitivity_Labels')
         $r = Export-PpaSnapshot -Model $m -Directory $script:TmpDir 6>$null
         $loaded = Import-PpaSnapshot -Path $r.SnapshotPath
-        $violations = Compare-PpaSnapshotNode -A (ConvertTo-Json -InputObject $m -Depth 16 | ConvertFrom-Json) -B $loaded
+        $violations = Compare-PpaSnapshotNode -A $m -B $loaded
         ($violations -join "`n") | Should -BeNullOrEmpty
         @($loaded.objects.SensitivityLabel)[0].name | Should -Be 'Hostile "quoted" <angle> & back\slash label'
         @($loaded.objects.LabelContainerSummary)[0].groups.d1.d2.d3.d4.d5.d6.d7.d8.d9.canary | Should -Be 'reached'

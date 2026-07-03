@@ -31,7 +31,7 @@ function Get-PpaDlp {
                 teams      = (Test-PpaLocationInScope $p.TeamsLocation)
                 endpoint   = (Test-PpaLocationInScope $p.EndpointDlpLocation)
             }
-            testModeSince = [string]$p.LastStatusChangeDate
+            testModeSince = ConvertTo-PpaIso8601 $p.LastStatusChangeDate
         }
     }
 
@@ -50,6 +50,7 @@ function Get-PpaDlp {
     }
 
     return [pscustomobject]@{
+        outcome  = Resolve-PpaCollectorOutcome -ReadStatuses @($rawPols.Status, $rawRules.Status) -ItemCount (@($policyItems).Count + @($ruleItems).Count)
         policies = [pscustomobject]@{ status = $rawPols.Status;  error = $rawPols.Error;  items = @($policyItems) }
         rules    = [pscustomobject]@{ status = $rawRules.Status; error = $rawRules.Error; items = @($ruleItems) }
     }

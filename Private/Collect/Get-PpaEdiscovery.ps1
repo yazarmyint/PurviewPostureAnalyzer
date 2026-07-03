@@ -14,6 +14,7 @@ function Get-PpaEdiscovery {
     }
 
     return [pscustomobject]@{
-        cases = [pscustomobject]@{ status = $raw.Status; error = $raw.Error; items = @($cases) }
+        outcome = Resolve-PpaCollectorOutcome -ReadStatuses @($raw.Status) -ItemCount (@($cases).Count)
+        cases   = [pscustomobject]@{ status = $raw.Status; error = $raw.Error; items = @($cases) }
     }
 }

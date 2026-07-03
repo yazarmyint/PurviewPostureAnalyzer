@@ -39,6 +39,7 @@ function Get-PpaInsiderRisk {
     $count = if ($raw.Status -eq 'Ok') { $items.Count } else { $null }
 
     return [pscustomobject]@{
+        outcome  = Resolve-PpaCollectorOutcome -ReadStatuses @($raw.Status) -ItemCount $items.Count
         policies = [pscustomobject]@{ status = $raw.Status; error = $raw.Error; count = $count; items = $items.ToArray() }
     }
 }

@@ -59,12 +59,15 @@ function Get-PpaSensitivityLabels {
             name                = [string]$a.Name
             mode                = [string]$a.Mode
             sits                = @($a.SensitiveInformationTypeNames | ForEach-Object { [string]$_ })
-            simulationStartDate = [string]$a.SimulationStartDate
+            simulationStartDate = ConvertTo-PpaIso8601 $a.SimulationStartDate
             simulationItemCount = [int]($a.SimulationItemCount)
         }
     }
 
+    # Outcome from the three real reads only - the containers block is NotCollected
+    # by design (no read-only cmdlet exists) and must not degrade the outcome.
     return [pscustomobject]@{
+        outcome    = Resolve-PpaCollectorOutcome -ReadStatuses @($rawLabels.Status, $rawPols.Status, $rawAuto.Status) -ItemCount (@($labelItems).Count + @($policyItems).Count + @($autoItems).Count)
         labels     = [pscustomobject]@{ status = $rawLabels.Status; error = $rawLabels.Error; items = @($labelItems) }
         policies   = [pscustomobject]@{ status = $rawPols.Status;   error = $rawPols.Error;   items = @($policyItems) }
         autoLabels = [pscustomobject]@{ status = $rawAuto.Status;   error = $rawAuto.Error;   items = @($autoItems) }

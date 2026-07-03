@@ -11,8 +11,10 @@ BeforeAll {
         . (Join-Path $script:RepoRoot "Private\Analyze\$a.ps1")
     }
     # Collector-level tests (TenantSetting exclusion, Copilot DLP detection) need the
-    # wrapper + collectors in scope.
+    # wrapper + collectors in scope. PpaNormalize.ps1 carries the collect-side
+    # contract helpers (ISO dates, outcome enum) every collector now depends on.
     . (Join-Path $script:RepoRoot 'Private\Collect\Invoke-PpaReadCmdlet.ps1')
+    . (Join-Path $script:RepoRoot 'Private\Collect\PpaNormalize.ps1')
     . (Join-Path $script:RepoRoot 'Private\Collect\Get-PpaInsiderRisk.ps1')
     . (Join-Path $script:RepoRoot 'Private\Collect\Get-PpaDspmAi.ps1')
     function RawOf($n) { [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot "Samples\sample-raw\$n.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json }

@@ -39,6 +39,7 @@ function Get-PpaRetention {
     }
 
     return [pscustomobject]@{
+        outcome        = Resolve-PpaCollectorOutcome -ReadStatuses @($rawPols.Status, $rawRules.Status, $rawScopes.Status) -ItemCount (@($policyItems).Count + @($labelItems).Count + @($rawScopes.Data).Count)
         policies       = [pscustomobject]@{ status = $rawPols.Status;  error = $rawPols.Error;  items = @($policyItems) }
         labels         = [pscustomobject]@{ status = $rawRules.Status; error = $rawRules.Error; items = @($labelItems) }
         adaptiveScopes = [pscustomobject]@{ status = $rawScopes.Status; count = @($rawScopes.Data).Count }

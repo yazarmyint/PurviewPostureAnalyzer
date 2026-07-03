@@ -133,12 +133,15 @@ function Get-PpaDspmPolicyItems {
     # 'collection' keyword but is legacy DLP rule-collection import tooling - ignored.)
     param($Data)
     $items = New-Object System.Collections.Generic.List[object]
+    $artifactNames = Get-PpaSessionArtifactNames
     foreach ($o in @($Data)) {
         if ($null -eq $o) { continue }
         $name = ''
         if ($o.PSObject.Properties.Name -contains 'Name') { $name = [string]$o.Name }
         $props = New-Object System.Collections.Generic.List[object]
         foreach ($pr in $o.PSObject.Properties) {
+            # Generic projection: remoting session artifacts must not survive (A.3).
+            if ($artifactNames -contains $pr.Name) { continue }
             $v = ''
             if ($null -ne $pr.Value) { $v = ("" + ($pr.Value | Out-String)).Trim() }
             if ($v.Length -gt 120) { $v = $v.Substring(0, 117) + '...' }
@@ -266,7 +269,7 @@ function Get-PpaDspmAi {
         $signals = Get-PpaCopilotDlpSignals $p
         if (-not $signals.isCopilot) { continue }
         $rules = @($rawRules.Data | Where-Object { $_.ParentPolicyName -eq $p.Name -or $_.Policy -eq $p.Guid })
-        $sits = @($rules | ForEach-Object { $_.ContentContainsSensitiveInformation } | ForEach-Object { $_.Name } | Where-Object { $_ } | Select-Object -Unique)
+        $sits = @($rules | ForEach-Object { $_.ContentContainsSensitiveInformation } | ForEach-Object { $_.Name } | Where-Object { $_ } | ForEach-Object { [string]$_ } | Select-Object -Unique)
         $labelNames = New-Object System.Collections.Generic.List[string]
         $hasLabelCondition = $false
         foreach ($r in $rules) {
@@ -289,18 +292,28 @@ function Get-PpaDspmAi {
         })
     }
 
+    $dspmItems   = @($(if ($rawDspm.Status -eq 'Ok') { Get-PpaDspmPolicyItems $rawDspm.Data } else { @() }))
+    $appRetItems = @($(if ($rawAppRet.Status -eq 'Ok') { Get-PpaAppRetentionItems $rawAppRet.Data } else { @() }))
+    $ccItems     = @($(if ($rawCcPols.Status -eq 'Ok' -and $rawCcRules.Status -eq 'Ok') {
+        Get-PpaCcCopilotItems $rawCcPols.Data $rawCcRules.Data
+    } else { @() }))
+    $outcome = Resolve-PpaCollectorOutcome `
+        -ReadStatuses @($rawPols.Status, $rawRules.Status, $rawDspm.Status, $rawAppRet.Status, $rawRet.Status, $rawCcPols.Status, $rawCcRules.Status) `
+        -ItemCount ($items.Count + $dspmItems.Count + $appRetItems.Count + @($rawRet.Data).Count + $ccItems.Count)
+
     return [pscustomobject]@{
+        outcome         = $outcome
         copilotPolicies = [pscustomobject]@{
             status = $rawPols.Status; error = $rawPols.Error; items = $items.ToArray()
             thirdPartyAiDlpPolicies = @($thirdPartyAiDlp | Select-Object -Unique)
         }
         dspmPolicies = [pscustomobject]@{
             status = $rawDspm.Status; error = $rawDspm.Error
-            items = @($(if ($rawDspm.Status -eq 'Ok') { Get-PpaDspmPolicyItems $rawDspm.Data } else { @() }))
+            items = $dspmItems
         }
         appRetention = [pscustomobject]@{
             status = $rawAppRet.Status; error = $rawAppRet.Error
-            items = @($(if ($rawAppRet.Status -eq 'Ok') { Get-PpaAppRetentionItems $rawAppRet.Data } else { @() }))
+            items = $appRetItems
         }
         # Classic retention family: only the legacy pre-split combined "Teams chats and
         # Copilot interactions" signal (TeamsChatLocation populated) plus a total count -
@@ -315,9 +328,7 @@ function Get-PpaDspmAi {
         ccCopilot = [pscustomobject]@{
             policiesStatus = $rawCcPols.Status; policiesError = $rawCcPols.Error
             rulesStatus = $rawCcRules.Status; rulesError = $rawCcRules.Error
-            items = @($(if ($rawCcPols.Status -eq 'Ok' -and $rawCcRules.Status -eq 'Ok') {
-                Get-PpaCcCopilotItems $rawCcPols.Data $rawCcRules.Data
-            } else { @() }))
+            items = $ccItems
         }
     }
 }

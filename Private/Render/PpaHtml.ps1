@@ -336,6 +336,20 @@ function Get-PpaReportHead {
   .ssparent td{ font-weight:700; color:#33445a; letter-spacing:.01em; }
   .sschild a{ color:#0078D4; text-decoration:none; }
   @media (prefers-reduced-motion:reduce){ .chev{ transition:none; } .glance .cell{ transition:none; } }
+  /* print / PDF (P3): exec summary is page one, sections start clean, drill-downs
+     expanded (beforeprint JS opens them; the .collapse rule is the CSS fallback),
+     interactive-only affordances hidden, severity colors preserved. */
+  @media print{
+    *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    body{ background:#fff; }
+    .filterbar, .anchor-link, .backlink, .navbar-custom .btn, .mock-flag, .chev{ display:none !important; }
+    .collapse{ display:block !important; height:auto !important; }
+    .execsum{ break-after:page; page-break-after:always; }
+    .seccard{ break-before:page; page-break-before:always; }
+    .finding, .glance .cell, .bd-callout{ break-inside:avoid; page-break-inside:avoid; }
+    .finding-head{ cursor:default; }
+    .card{ border:1px solid #d7e0ea; }
+  }
 </style>
 <title>Configuration Analyzer for Microsoft Purview</title>
 </head>
@@ -422,6 +436,26 @@ function Get-PpaPolishScript {
     search.addEventListener('input', function () { if (debounce) { clearTimeout(debounce); } debounce = setTimeout(applyFilter, 120); });
     reset.addEventListener('click', function () { chips.forEach(function (c) { c.classList.add('active'); }); search.value = ''; applyFilter(); });
   }
+
+  // P3 print: expand every drill-down before printing, restore afterwards. The
+  // @media print .collapse rule remains as a CSS fallback.
+  var printOpened = [];
+  window.addEventListener('beforeprint', function () {
+    printOpened = [];
+    [].slice.call(document.querySelectorAll('.collapse:not(.show)')).forEach(function (el) {
+      el.classList.add('show'); printOpened.push(el);
+    });
+    [].slice.call(document.querySelectorAll('details:not([open])')).forEach(function (el) {
+      el.setAttribute('open', ''); el.setAttribute('data-print-opened', '');
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    printOpened.forEach(function (el) { el.classList.remove('show'); });
+    printOpened = [];
+    [].slice.call(document.querySelectorAll('details[data-print-opened]')).forEach(function (el) {
+      el.removeAttribute('open'); el.removeAttribute('data-print-opened');
+    });
+  });
 })();
 </script>
 '@

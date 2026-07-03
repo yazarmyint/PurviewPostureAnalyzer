@@ -173,7 +173,7 @@ function Export-PpaHtmlReport {
             [void]$sb.AppendLine('')
         }
 
-        [void]$sb.AppendLine('      <div class="text-right" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>')
+        [void]$sb.AppendLine('      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>')
         [void]$sb.AppendLine('    </div>')
         [void]$sb.AppendLine('  </div>')
         [void]$sb.AppendLine('')

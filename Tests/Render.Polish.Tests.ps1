@@ -156,6 +156,26 @@ Describe 'P2 - severity filters + text search' {
     }
 }
 
+Describe 'P3 - print / PDF stylesheet' {
+    It 'ships an @media print block that expands drill-downs and hides interactive chrome' {
+        $script:DenseHtml | Should -Match '@media print\{'
+        $script:DenseHtml | Should -Match '\.collapse\{ display:block !important'
+        $script:DenseHtml | Should -Match '\.filterbar, \.anchor-link, \.backlink'
+    }
+    It 'keeps the exec summary as page one and starts each section cleanly' {
+        $script:DenseHtml | Should -Match '\.execsum\{ break-after:page'
+        $script:DenseHtml | Should -Match '\.seccard\{ break-before:page'
+        $script:DenseHtml | Should -Match '\.finding, \.glance \.cell, \.bd-callout\{ break-inside:avoid'
+    }
+    It 'preserves severity colors with print-color-adjust:exact' {
+        $script:DenseHtml | Should -Match 'print-color-adjust:exact'
+    }
+    It 'expands drill-downs via beforeprint and restores them via afterprint' {
+        $script:DenseHtml | Should -Match "addEventListener\('beforeprint'"
+        $script:DenseHtml | Should -Match "addEventListener\('afterprint'"
+    }
+}
+
 Describe 'P4 - per-finding anchors' {
     It 'gives every finding card an id derived from its check ID (<Name>)' -ForEach @(
         @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }

@@ -11,7 +11,8 @@ BeforeAll {
     $script:PpaGuardAllow = @(
         'New-Object', 'New-Item', 'New-Variable', 'New-Guid', 'New-TimeSpan',
         'Set-Content', 'Set-Variable', 'Set-StrictMode', 'Set-Location',
-        'Add-Content', 'Add-Member', 'Add-Type'
+        'Add-Content', 'Add-Member', 'Add-Type',
+        'Clear-PpaRedaction'   # in-memory render redaction state - exact name, never a prefix (B-fix 2)
     )
 
     # Verbs that indicate a state change on the tenant when applied to a Purview/EXO/Graph noun.
@@ -24,7 +25,7 @@ BeforeAll {
         foreach ($m in [regex]::Matches($Content, "\b(?:$script:PpaMutatingVerbs)-[A-Za-z][A-Za-z0-9]*")) {
             $cmd = $m.Value
             if ($script:PpaGuardAllow -contains $cmd) { continue }
-            if ($cmd -match '^(New|Set|Get|Remove|Test|Write|Convert|Export|Import|Clear)-Ppa') { continue }  # our own functions (Clear-PpaRedaction is in-memory render state)
+            if ($cmd -match '^(New|Set|Get|Remove|Test|Write|Convert|Export|Import)-Ppa') { continue }  # our own functions
             $found.Add($cmd)
         }
         return $found.ToArray()
@@ -51,6 +52,10 @@ Describe 'Read-only guard - detection logic' {
     }
     It 'allows Set-Content / Set-StrictMode' {
         (Get-PpaMutatingReference 'Set-StrictMode -Off; Set-Content -Path x -Value y').Count | Should -Be 0
+    }
+    It 'allows exactly Clear-PpaRedaction but flags any other Clear-Ppa* (no prefix entries)' {
+        (Get-PpaMutatingReference 'Clear-PpaRedaction').Count | Should -Be 0
+        (Get-PpaMutatingReference 'Clear-PpaMailbox -Identity x').Count | Should -Be 1
     }
 }
 

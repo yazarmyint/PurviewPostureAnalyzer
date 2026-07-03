@@ -11,7 +11,7 @@
     "ExchangeObjectId"
   ],
   "perType": {},
-  "candidates": {
-    "DspmPolicy": ["props-bag entry n='Guid' (duplicates the top-level identity field; decide at Part C when the differ lands)"]
+  "resolved": {
+    "DspmPolicy props-bag Guid": "RESOLVED at Part C review (2026-07-03): excluded at NORMALIZE time (Get-PpaDspmPolicyItems skips the raw Guid property because A.5 already projects it as the top-level guid identity field). Not denylisted - the compare-time denylist stays property-name-based, and an element-level filter inside the props array would have needed new denylist machinery for a value that carries no independent signal."
   }
 }

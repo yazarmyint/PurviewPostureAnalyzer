@@ -169,7 +169,8 @@ function Invoke-PurviewPostureAnalyzer {
 
     # ---- SNAPSHOT (Wave 4 Part B): versioned JSON capture alongside the HTML ----
     # Post-selection scope: only the selected sections' objects/findings are captured;
-    # excluded sections' collectors record 'Skipped', a crashed collector 'NotRun'.
+    # excluded sections' collectors record 'Skipped', a crashed collector 'Failed'
+    # (attempted-and-errored; 'NotRun' is reserved for never-attempted).
     $snapshotPath = $null
     if (-not $NoSnapshot) {
         $rawMap = @{

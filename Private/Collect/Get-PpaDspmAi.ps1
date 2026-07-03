@@ -142,6 +142,9 @@ function Get-PpaDspmPolicyItems {
         foreach ($pr in $o.PSObject.Properties) {
             # Generic projection: remoting session artifacts must not survive (A.3).
             if ($artifactNames -contains $pr.Name) { continue }
+            # Guid is projected as the top-level guid identity field (A.5); keeping it
+            # in the bag would double-report identity in delta (ruled at Part C review).
+            if ($pr.Name -eq 'Guid') { continue }
             $v = ''
             if ($null -ne $pr.Value) { $v = ("" + ($pr.Value | Out-String)).Trim() }
             if ($v.Length -gt 120) { $v = $v.Substring(0, 117) + '...' }

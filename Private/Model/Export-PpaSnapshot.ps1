@@ -44,7 +44,7 @@ function Export-PpaSnapshot {
     $snapshotPath = Join-Path $Directory ('PPA-Snapshot_' + $suffix)
     $json = ConvertTo-Json -InputObject $Model -Depth 16
     [System.IO.File]::WriteAllText($snapshotPath, $json, (New-Object System.Text.UTF8Encoding($false)))
-    Write-Host ("Snapshot : {0} (UNREDACTED - contains UPNs and scope identities; engagement-confidential. The redacted HTML report is the artifact that travels.)" -f $snapshotPath)
+    Write-Host ("Snapshot : {0} (contains unredacted UPNs and scope identities; treat as engagement-confidential - the redacted HTML report is the artifact that travels)" -f $snapshotPath)
 
     $rawPath = $null
     if ($IncludeRawCapture) {

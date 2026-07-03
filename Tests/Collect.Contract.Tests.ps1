@@ -353,6 +353,14 @@ Describe 'Opportunistic Guid capture (A.5)' {
         (Get-PpaEdiscovery).cases.items[0].guid | Should -Be ''
     }
 
+    It 'DspmPolicy props bag excludes Guid - it duplicates the top-level guid identity field' {
+        # Denylist candidate resolved at Part C: excluded at normalize time rather
+        # than denylisted, so the compare-time denylist stays property-name-based.
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $item = (Get-PpaDspmAi).dspmPolicies.items[0]
+        $item.guid | Should -Be 'aaaaaaaa-0000-0000-0000-000000000008'
+        @($item.props | ForEach-Object { $_.n }) | Should -Not -Contain 'Guid'
+    }
     It 'guid values are primitive strings (leaf walk stays green)' {
         $script:PpaReadStubMap = Get-PpaRichStubMap
         $violations = @()

@@ -81,14 +81,17 @@ function New-PpaSnapshotModel {
     }
 
     # ---- collectorOutcomes: every known collector, alphabetical ----
+    # Failed = attempted-and-errored (the orchestrator always attempts every
+    # collector and hands a $null raw when one crashed); NotRun = never attempted
+    # (no RawMap entry at all - reserved for future orchestration paths).
     $outcomes = [ordered]@{}
     foreach ($id in (@($knownIds + $runIds) | Select-Object -Unique | Sort-Object)) {
         if ($runIds -notcontains $id) { $outcomes[$id] = 'Skipped'; continue }
-        $raw = $null
-        if ($RawMap.ContainsKey($id)) { $raw = $RawMap[$id] }
-        if ($null -eq $raw) { $outcomes[$id] = 'NotRun'; continue }
+        if (-not $RawMap.ContainsKey($id)) { $outcomes[$id] = 'NotRun'; continue }
+        $raw = $RawMap[$id]
+        if ($null -eq $raw) { $outcomes[$id] = 'Failed'; continue }
         $o = [string]$raw.outcome
-        $outcomes[$id] = $(if ([string]::IsNullOrEmpty($o)) { 'NotRun' } else { $o })
+        $outcomes[$id] = $(if ([string]::IsNullOrEmpty($o)) { 'Failed' } else { $o })
     }
 
     # ---- objects: alphabetical type order; keys stamped per KEY_SOURCES.md ----

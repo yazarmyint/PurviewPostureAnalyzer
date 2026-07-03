@@ -147,6 +147,16 @@ Describe 'Snapshot model - schema v1.0 shape (3.2)' {
     It 'records sectionsRun in orchestration order' {
         @($script:M.sectionsRun) | Should -Be $script:SectionIds
     }
+    It 'a crashed collector (attempted, raw is null) records Failed; never-attempted records NotRun' {
+        # B-fix 1: Failed = attempted-and-errored (RawMap carries the id with $null);
+        # NotRun = never attempted (RawMap has no entry for the id at all).
+        $m = New-PpaSnapshotModel -RawMap @{ eDiscovery = $null } -Sections @() `
+            -Meta ([pscustomobject]@{ version = '2.0'; tenantId = 't' }) `
+            -CapturedAt ([datetime]::new(2026, 1, 1, 0, 0, 0, [System.DateTimeKind]::Utc)) `
+            -SnapshotId '00000000-1111-2222-3333-444444444444' -SectionIds @('eDiscovery', 'Audit')
+        $m.collectorOutcomes['eDiscovery'] | Should -Be 'Failed'
+        $m.collectorOutcomes['Audit'] | Should -Be 'NotRun'
+    }
     It 'records every collector outcome from the fixtures, keys alphabetical' {
         $keys = @((Get-PpaNodeProperty $script:M.collectorOutcomes) | ForEach-Object { $_.Name })
         $keys | Should -Be @($script:SectionIds | Sort-Object)
@@ -360,11 +370,11 @@ Describe 'Snapshot emission (3.1)' {
         $r = Export-PpaSnapshot -Model $m -Directory $script:TmpDir3 6>$null
         [System.IO.Path]::GetFileName($r.SnapshotPath) | Should -Be 'PPA-Snapshot_unknown_20260101T000000Z_abcdefab.json'
     }
-    It 'emits the one-line UNREDACTED console notice' {
+    It 'emits the one-line unredacted-contents console notice naming what it contains' {
         $notice = Export-PpaSnapshot -Model (New-PpaGoldenModel) -Directory $script:TmpDir3 6>&1 |
-            Where-Object { "$_" -match 'UNREDACTED' }
+            Where-Object { "$_" -match 'unredacted UPNs and scope identities' }
         @($notice).Count | Should -Be 1
-        "$notice" | Should -Match 'engagement-confidential'
+        "$notice" | Should -Match 'treat as engagement-confidential'
     }
     It '-IncludeRawCapture writes a separate PPA-RawCapture_ debug file' {
         $rawMap = New-PpaDenseRawMap

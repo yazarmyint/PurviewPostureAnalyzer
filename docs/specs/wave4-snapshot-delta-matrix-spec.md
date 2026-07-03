@@ -145,6 +145,13 @@ Top level:
   (append #2, #3 in stable input order) and emits a console warning naming
   the type and colliding key. Pinned test.
 
+ADDENDUM (A.5 review, 2026-07-03) - opaque identity contract: guid and
+_key values are opaque strings end-to-end. The writer stamps them as-is;
+no GUID format parsing or validation exists anywhere in writer, loader,
+or differ. (Format normalization - all-zeros Guid, DateTime.MinValue -
+lives at the normalizer only.) Fixture guid slugs (guid-<name-slug>) are
+therefore first-class test inputs. Pinned test lands in Part C.
+
 ### 3.4 Loader (PS 7 side, used by delta only)
 - ConvertFrom-Json; coerce every declared array field to array (schema
   carries a declared-arrays manifest per type, maintained as a data file in
@@ -170,6 +177,9 @@ Top level:
   compare uses the current list). If the two snapshots record different
   denylist versions, the delta report shows an informational note.
 - A change ONLY in denylisted properties classifies as Unchanged.
+- Per-type extension candidates (decide when the denylist file exists):
+  DspmPolicy props-bag entry n='Guid' (the generic property bag duplicates
+  the top-level identity field; diffing it would double-report identity).
 
 ---
 
@@ -199,6 +209,9 @@ Top level:
 - Join: objects joined on _key within type; then a GUID-equality
   reconciliation pass catches rename-with-same-Guid (classified Modified
   with a rename annotation), so renames never appear as Removed+Added.
+  ADDENDUM (A.5 review, 2026-07-03): "GUID-equality" is defined as
+  NON-EMPTY STRING EQUALITY on the guid field - opaque comparison, no
+  format parsing or validation (see 3.3 addendum). Pinned test in Part C.
 - Property comparison: denylist-filtered (current list); declared array
   fields compared order-insensitively; all other values compared as
   primitives (guaranteed by the normalizer contract).

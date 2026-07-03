@@ -15,15 +15,15 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Northwind Global Label Policy", "labels": ["Public", "General", "Confidential", "Highly Confidential", "Legal", "Finance"], "enabled": true, "scope": "All users" },
-      { "name": "Executive Protection Policy", "labels": ["Confidential", "Highly Confidential"], "enabled": true, "scope": "Executives (grp)" }
+      { "name": "Northwind Global Label Policy", "guid": "guid-northwind-global-label-policy", "labels": ["Public", "General", "Confidential", "Highly Confidential", "Legal", "Finance"], "enabled": true, "scope": "All users" },
+      { "name": "Executive Protection Policy", "guid": "guid-executive-protection-policy", "labels": ["Confidential", "Highly Confidential"], "enabled": true, "scope": "Executives (grp)" }
     ]
   },
   "autoLabels": {
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Auto-label PHI & PII", "mode": "TestWithoutNotifications", "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
+      { "name": "Auto-label PHI & PII", "guid": "guid-auto-label-phi-pii", "mode": "TestWithoutNotifications", "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
     ]
   },
   "containers": {

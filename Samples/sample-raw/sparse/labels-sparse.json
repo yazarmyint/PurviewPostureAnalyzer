@@ -14,7 +14,7 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Default Label Policy", "labels": [], "enabled": true, "scope": "" }
+      { "name": "Default Label Policy", "guid": "guid-default-label-policy", "labels": [], "enabled": true, "scope": "" }
     ]
   },
   "autoLabels": { "status": "Ok", "error": null, "items": [] },

@@ -147,7 +147,7 @@ function Get-PpaDspmPolicyItems {
             if ($v.Length -gt 120) { $v = $v.Substring(0, 117) + '...' }
             $props.Add([pscustomobject]@{ n = [string]$pr.Name; v = $v })
         }
-        $items.Add([pscustomobject]@{ name = $name; props = $props.ToArray() })
+        $items.Add([pscustomobject]@{ name = $name; guid = Get-PpaOptionalGuid $o; props = $props.ToArray() })
     }
     return $items.ToArray()
 }
@@ -170,6 +170,7 @@ function Get-PpaAppRetentionItems {
         if ($p.PSObject.Properties.Name -contains 'Enabled') { $enabled = [string]$p.Enabled }
         $items.Add([pscustomobject]@{
             name            = [string]$p.Name
+            guid            = Get-PpaOptionalGuid $p
             enabled         = $enabled
             hasApplications = $hasApplications
             applications    = $apps
@@ -231,6 +232,7 @@ function Get-PpaCcCopilotItems {
         if ($p.PSObject.Properties.Name -contains 'Enabled') { $enabled = [string]$p.Enabled }
         $items.Add([pscustomobject]@{
             name          = [string]$p.Name
+            guid          = Get-PpaOptionalGuid $p
             enabled       = $enabled
             workloads     = @($workloads | Select-Object -Unique)
             unifiedGenAI  = $unified
@@ -282,7 +284,7 @@ function Get-PpaDspmAi {
             if ($p.PSObject.Properties.Name -contains $prop -and $p.$prop) { $created = ([datetime]$p.$prop).ToString('yyyy-MM-dd'); break }
         }
         $items.Add([pscustomobject]@{
-            name = [string]$p.Name; mode = [string]$p.Mode; sits = @($sits)
+            name = [string]$p.Name; guid = Get-PpaOptionalGuid $p; mode = [string]$p.Mode; sits = @($sits)
             hasLabelCondition = $hasLabelCondition
             labelRefs = @($labelNames | Select-Object -Unique)
             copilotLocations = @($signals.copilotLocations)

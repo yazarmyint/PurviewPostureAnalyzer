@@ -48,6 +48,7 @@ function Get-PpaSensitivityLabels {
         $scope = if ($locs -contains 'All') { 'All users' } elseif ($locs.Count -gt 0) { ($locs -join ', ') } else { '' }
         [pscustomobject]@{
             name    = [string]$p.Name
+            guid    = Get-PpaOptionalGuid $p
             labels  = @($p.Labels | ForEach-Object { [string]$_ })
             enabled = [bool]($p.Enabled -ne $false)
             scope   = $scope
@@ -57,6 +58,7 @@ function Get-PpaSensitivityLabels {
     $autoItems = foreach ($a in @($rawAuto.Data)) {
         [pscustomobject]@{
             name                = [string]$a.Name
+            guid                = Get-PpaOptionalGuid $a
             mode                = [string]$a.Mode
             sits                = @($a.SensitiveInformationTypeNames | ForEach-Object { [string]$_ })
             simulationStartDate = ConvertTo-PpaIso8601 $a.SimulationStartDate

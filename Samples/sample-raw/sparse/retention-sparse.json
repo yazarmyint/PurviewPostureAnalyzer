@@ -4,8 +4,8 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Default retention", "adaptive": false, "locations": ["Exchange"], "labels": [] },
-      { "name": "Teams chat retention", "adaptive": false, "locations": [], "labels": [] }
+      { "name": "Default retention", "guid": "guid-default-retention", "adaptive": false, "locations": ["Exchange"], "labels": [] },
+      { "name": "Teams chat retention", "guid": "guid-teams-chat-retention", "adaptive": false, "locations": [], "labels": [] }
     ]
   },
   "labels": { "status": "Ok", "error": null, "items": [] },

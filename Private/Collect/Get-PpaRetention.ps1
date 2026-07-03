@@ -27,6 +27,7 @@ function Get-PpaRetention {
         $ruleLabels = @($rawRules.Data | Where-Object { $_.Policy -eq $p.Guid -or $_.ParentPolicyName -eq $p.Name } | ForEach-Object { [string]$_.Name })
         [pscustomobject]@{
             name      = [string]$p.Name
+            guid      = Get-PpaOptionalGuid $p
             adaptive  = (@($p.AdaptiveScopeLocation).Count -gt 0)
             locations = @($locs)
             labels    = @($ruleLabels)
@@ -35,7 +36,7 @@ function Get-PpaRetention {
 
     $labelItems = foreach ($r in @($rawRules.Data)) {
         $auto = (-not [string]::IsNullOrEmpty([string]$r.ContentMatchQuery)) -or (@($r.ContentContainsSensitiveInformation).Count -gt 0)
-        [pscustomobject]@{ name = [string]$r.Name; autoApply = [bool]$auto }
+        [pscustomobject]@{ name = [string]$r.Name; guid = Get-PpaOptionalGuid $r; autoApply = [bool]$auto }
     }
 
     return [pscustomobject]@{

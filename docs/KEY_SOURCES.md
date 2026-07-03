@@ -7,25 +7,34 @@ array). Duplicate keys within a type are disambiguated deterministically
 (`#2`, `#3` in stable input order) with a console warning.
 
 None of the current normalized projections carry an `Identity` property, so the
-effective sources today are Guid (one type) and Name (everything else).
+effective sources are Guid (when the cmdlet provides one) with Name fallback.
+
+**A.5 addendum (opportunistic Guid capture):** every item-type normalizer
+projects the raw object's documented `Guid` property into a `guid` field via a
+property-presence check (`Get-PpaOptionalGuid`, Private/Collect/PpaNormalize.ps1)
+- no new reads, no new cmdlets. Provenance: **documented-only** (the Guid
+property is documented on these cmdlets but not on the live-verified list).
+Absent, null, or all-zeros Guids normalize to `''`, and the key falls back to
+Name. This makes the spec 4.3 rename-reconciliation (GUID-equality) pass
+operative for every type, not just SensitivityLabel.
 
 ## Item types (one snapshot object per policy/label/case/...)
 
-| Snapshot type        | Collector                | Source list                    | Key source | Key property |
-|----------------------|--------------------------|--------------------------------|------------|--------------|
-| SensitivityLabel     | Get-PpaSensitivityLabels | labels.items                   | Guid       | `guid`       |
-| LabelPolicy          | Get-PpaSensitivityLabels | policies.items                 | Name       | `name`       |
-| AutoLabelPolicy      | Get-PpaSensitivityLabels | autoLabels.items               | Name       | `name`       |
-| DlpPolicy            | Get-PpaDlp               | policies.items                 | Name       | `name`       |
-| DlpRule              | Get-PpaDlp               | rules.items                    | Name       | `name`       |
-| RetentionPolicy      | Get-PpaRetention         | policies.items                 | Name       | `name`       |
-| RetentionLabel       | Get-PpaRetention         | labels.items                   | Name       | `name`       |
-| InsiderRiskPolicy    | Get-PpaInsiderRisk       | policies.items                 | Name       | `name`       |
-| EdiscoveryCase       | Get-PpaEdiscovery        | cases.items                    | Name       | `name`       |
-| CopilotDlpPolicy     | Get-PpaDspmAi            | copilotPolicies.items          | Name       | `name`       |
-| DspmPolicy           | Get-PpaDspmAi            | dspmPolicies.items             | Name       | `name` (see caveat 1) |
-| AppRetentionPolicy   | Get-PpaDspmAi            | appRetention.items             | Name       | `name`       |
-| CcCopilotPolicy      | Get-PpaDspmAi            | ccCopilot.items                | Name       | `name`       |
+| Snapshot type        | Collector                | Source list                    | Key source          | Key property     |
+|----------------------|--------------------------|--------------------------------|---------------------|------------------|
+| SensitivityLabel     | Get-PpaSensitivityLabels | labels.items                   | Guid                | `guid`           |
+| LabelPolicy          | Get-PpaSensitivityLabels | policies.items                 | Guid -> Name        | `guid` -> `name` |
+| AutoLabelPolicy      | Get-PpaSensitivityLabels | autoLabels.items               | Guid -> Name        | `guid` -> `name` |
+| DlpPolicy            | Get-PpaDlp               | policies.items                 | Guid -> Name        | `guid` -> `name` |
+| DlpRule              | Get-PpaDlp               | rules.items                    | Guid -> Name        | `guid` -> `name` |
+| RetentionPolicy      | Get-PpaRetention         | policies.items                 | Guid -> Name        | `guid` -> `name` |
+| RetentionLabel       | Get-PpaRetention         | labels.items                   | Guid -> Name        | `guid` -> `name` |
+| InsiderRiskPolicy    | Get-PpaInsiderRisk       | policies.items                 | Guid -> Name        | `guid` -> `name` |
+| EdiscoveryCase       | Get-PpaEdiscovery        | cases.items                    | Guid -> Name        | `guid` -> `name` |
+| CopilotDlpPolicy     | Get-PpaDspmAi            | copilotPolicies.items          | Guid -> Name        | `guid` -> `name` |
+| DspmPolicy           | Get-PpaDspmAi            | dspmPolicies.items             | Guid -> Name        | `guid` -> `name` (see caveat 1) |
+| AppRetentionPolicy   | Get-PpaDspmAi            | appRetention.items             | Guid -> Name        | `guid` -> `name` |
+| CcCopilotPolicy      | Get-PpaDspmAi            | ccCopilot.items                | Guid -> Name        | `guid` -> `name` |
 
 ## Singleton summary types (tenant-level state, exactly one object per snapshot)
 
@@ -46,16 +55,17 @@ across snapshots.
 ## Caveats recorded for design review
 
 1. **DspmPolicy** - `Get-DspmPolicy`'s schema is unverified (0 objects observed in
-   the 2026-07-02 sandbox; projection is generic name + property bag). If a live
-   object ever arrives without a `Name` property, the item's key is the empty
-   string and the writer's duplicate-key disambiguation (`#2`, `#3`...) plus
-   console warning applies. That fallback is deterministic within one snapshot
-   but NOT stable across snapshots; if TEST-day probing shows real DspmPolicy
-   objects without names, keying for this type goes back to design review.
-2. **DlpRule** - keyed by `name` alone (rule names are tenant-unique in the
-   Microsoft 365 compliance store). `policyName` is carried as a property, not as
-   part of the key, so a rule moved between policies classifies as Modified
-   rather than Removed+Added.
+   the 2026-07-02 sandbox; projection is generic name + property bag, now with an
+   opportunistic `guid`). If a live object ever arrives without BOTH `Guid` and
+   `Name`, the item's key is the empty string and the writer's duplicate-key
+   disambiguation (`#2`, `#3`...) plus console warning applies. That fallback is
+   deterministic within one snapshot but NOT stable across snapshots; if TEST-day
+   probing shows real DspmPolicy objects without names, keying for this type goes
+   back to design review.
+2. **DlpRule** - keyed by `guid` when present, `name` fallback (rule names are
+   tenant-unique in the Microsoft 365 compliance store). `policyName` is carried
+   as a property, not as part of the key, so a rule moved between policies
+   classifies as Modified rather than Removed+Added.
 3. **SensitivityLabel** - the only type with a Guid today; `parentId` references
    another label's Guid and remains a plain property (never part of the key).
 

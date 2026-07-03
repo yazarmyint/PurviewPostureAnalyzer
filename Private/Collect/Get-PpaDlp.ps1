@@ -23,6 +23,7 @@ function Get-PpaDlp {
     $policyItems = foreach ($p in @($rawPols.Data)) {
         [pscustomobject]@{
             name         = [string]$p.Name
+            guid         = Get-PpaOptionalGuid $p
             mode         = [string]$p.Mode
             locations    = [pscustomobject]@{
                 exchange   = (Test-PpaLocationInScope $p.ExchangeLocation)
@@ -44,6 +45,7 @@ function Get-PpaDlp {
         [pscustomobject]@{
             policyName = $parentPolicy
             name       = [string]$r.Name
+            guid       = Get-PpaOptionalGuid $r
             disabled   = [bool]($r.Disabled -eq $true)
             sits       = @($sitNames)
         }

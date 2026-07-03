@@ -5,6 +5,7 @@
     "items": [
       {
         "name": "Detect sensitive info in AI prompts",
+        "guid": "guid-detect-sensitive-info-in-ai-prompts",
         "mode": "AuditAndNotify",
         "sits": ["U.S. SSN", "Credit Card", "U.S. HIPAA"],
         "hasLabelCondition": false,

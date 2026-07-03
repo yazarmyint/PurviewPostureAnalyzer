@@ -3,8 +3,8 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Litigation-2025-Contoso", "caseStatus": "Active" },
-      { "name": "HR-Investigation-Q1-2026", "caseStatus": "Closed" }
+      { "name": "Litigation-2025-Contoso", "guid": "guid-litigation-2025-contoso", "caseStatus": "Active" },
+      { "name": "HR-Investigation-Q1-2026", "guid": "guid-hr-investigation-q1-2026", "caseStatus": "Closed" }
     ]
   }
 }

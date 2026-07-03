@@ -30,6 +30,7 @@ function Get-PpaInsiderRisk {
             }
             $items.Add([pscustomobject]@{
                 name      = [string]$p.Name
+                guid      = Get-PpaOptionalGuid $p
                 scenario  = $scenario
                 workloads = $workloads
                 created   = $created

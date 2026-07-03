@@ -10,7 +10,7 @@ function Get-PpaEdiscovery {
 
     $raw = Invoke-PpaReadCmdlet -Name 'Get-ComplianceCase'
     $cases = foreach ($c in @($raw.Data)) {
-        [pscustomobject]@{ name = [string]$c.Name; caseStatus = [string]$c.Status }
+        [pscustomobject]@{ name = [string]$c.Name; guid = Get-PpaOptionalGuid $c; caseStatus = [string]$c.Status }
     }
 
     return [pscustomobject]@{

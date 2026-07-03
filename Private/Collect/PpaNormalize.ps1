@@ -28,6 +28,22 @@ function ConvertTo-PpaIso8601 {
     return [string]$Value
 }
 
+function Get-PpaOptionalGuid {
+    # A.5 opportunistic Guid capture: project the raw object's Guid when the cmdlet
+    # provides one, so the snapshot keying rule (Guid -> Identity -> Name) and the
+    # delta rename-reconciliation pass can operate. Property-presence check only -
+    # no new reads, no new cmdlets. Provenance: documented-only (the Guid property
+    # is documented on these cmdlets but not on the live-verified list).
+    # Returns '' when the property is absent, null, or the all-zeros placeholder,
+    # letting the keying rule fall back to Name.
+    param($Object)
+    if ($null -eq $Object) { return '' }
+    if ($Object.PSObject.Properties.Name -notcontains 'Guid') { return '' }
+    $g = [string]$Object.Guid
+    if ([string]::IsNullOrEmpty($g) -or $g -eq '00000000-0000-0000-0000-000000000000') { return '' }
+    return $g
+}
+
 function Get-PpaSessionArtifactNames {
     # Property names PowerShell remoting stamps on deserialized objects. Generic
     # projections (ones that copy every property) must skip these; explicit

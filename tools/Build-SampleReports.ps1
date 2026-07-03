@@ -1,0 +1,71 @@
+# Build-SampleReports.ps1 - render every fixture-driven sample report for browser review.
+# The human validation loop for the render layer: no tenant, no network, just fixtures
+# through the real assemble -> render pipeline. Output goes to a gitignored folder and
+# the script prints every file path it wrote at the end.
+#
+#   pwsh -File tools/Build-SampleReports.ps1
+#
+# ASCII-only source (Windows PowerShell 5.1).
+#Requires -Version 5.1
+[CmdletBinding()]
+param(
+    [string]$OutDir
+)
+
+$ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($OutDir)) { $OutDir = Join-Path $root 'Samples\sample-reports' }
+
+# Dot-source the whole Private tree (same approach as the module loader) so this script
+# always sees the current render/model surface without maintaining an import list.
+foreach ($file in (Get-ChildItem -Path (Join-Path $root 'Private') -Recurse -Filter '*.ps1')) { . $file.FullName }
+
+if (-not (Test-Path -LiteralPath $OutDir)) { New-Item -ItemType Directory -Path $OutDir -Force | Out-Null }
+$written = New-Object System.Collections.Generic.List[string]
+
+function Read-PpaFixture([string]$RelPath) {
+    [System.IO.File]::ReadAllText((Join-Path $root $RelPath), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+}
+
+function Write-PpaSampleReport {
+    param([string]$Name, [string]$Html)
+    $path = Join-Path $OutDir $Name
+    [System.IO.File]::WriteAllText($path, $Html, (New-Object System.Text.UTF8Encoding($false)))
+    $written.Add($path)
+}
+
+# ---- 1. Standard fixture (the Wave 1/2 sample: Northwind Health, 21 findings) ----
+$std = Read-PpaFixture 'Samples\sample-normalized.json'
+$stdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections -Observations $std.observations
+Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample)
+
+# ---- 2. Dense fixture (Contoso Pharmaceuticals, 26 findings, every severity) ----
+$dense = Read-PpaFixture 'Samples\sample-normalized-dense.json'
+$denseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations
+Write-PpaSampleReport -Name 'sample-dense.html' -Html (Export-PpaHtmlReport -Normalized $denseNorm -IsSample)
+
+# ---- 3. Sparse fixture (raw sparse JSON through the real analyzers - graceful absence) ----
+$licMap = Get-PpaLicenseRequirements -Path (Join-Path $root 'Data\license-requirements.json')
+$sparseSections = @(
+    Invoke-PpaLabelAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\sparse\labels-sparse.json') -AsOf ([datetime]'2026-07-01')
+    Invoke-PpaDlpAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\sparse\dlp-sparse.json') -AsOf ([datetime]'2026-07-01') -LicenseMap $licMap
+    Invoke-PpaRetentionAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\sparse\retention-sparse.json')
+)
+$sparseMeta = [pscustomobject]@{
+    reportTitle  = 'Configuration Analyzer for Microsoft Purview'
+    version      = '2.0'
+    versionDate  = 'June 2026'
+    dateDisplay  = '01-Jul-2026 10:15 UTC'
+    organization = 'Fabrikam Robotics (sparse fixture)'
+    tenant       = 'fabrikamrobotics.onmicrosoft.com'
+    operator     = 'taylor.ng@fabrikamrobotics.com (Compliance Reader)'
+    mode         = 'Read-only - configuration metadata only'
+}
+$sparseLic  = [pscustomobject]@{ note = [string]$std.licensing.note }
+$sparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing $sparseLic -Sections $sparseSections
+Write-PpaSampleReport -Name 'sample-sparse.html' -Html (Export-PpaHtmlReport -Normalized $sparseNorm -IsSample)
+
+# ---- Done ----
+Write-Host ''
+Write-Host 'Sample reports written:'
+foreach ($p in $written) { Write-Host "  $p" }

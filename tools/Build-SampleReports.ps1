@@ -108,6 +108,20 @@ $snapModel = New-PpaSnapshotModel `
 $snapResult = Export-PpaSnapshot -Model $snapModel -Directory $OutDir
 $written.Add($snapResult.SnapshotPath)
 
+# ---- 7. Delta report sample (Wave 4 Part C: fixture pair through the real differ) ----
+# PS 7+ only, like delta mode itself; skipped silently under 5.1 so the writer-side
+# samples still build there.
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $deltaResult = Invoke-PpaDelta `
+        -FromPath (Join-Path $root 'Samples\delta-fixtures\dense-delta-A.json') `
+        -ToPath (Join-Path $root 'Samples\delta-fixtures\dense-delta-B.json') `
+        -OutputPath $OutDir -WarningAction SilentlyContinue
+    $written.Add($deltaResult.DeltaPath)
+}
+else {
+    Write-Host 'Delta report sample skipped: requires PowerShell 7+ (delta mode engine gate).'
+}
+
 # ---- Done ----
 Write-Host ''
 Write-Host 'Sample reports written:'

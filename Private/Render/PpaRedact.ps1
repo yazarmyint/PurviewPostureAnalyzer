@@ -85,6 +85,63 @@ function Clear-PpaRedaction {
     $script:PpaRedactState = $null
 }
 
+function Initialize-PpaDeltaRedaction {
+    # Delta-report variant of Initialize-PpaRedaction (Wave 4 spec 4.5): same state
+    # shape, same encoders, same stable tokens - but names are harvested from the
+    # DELTA MODEL records the report will render (added/removed/modified names and
+    # rename annotations), and domain seeds come from the snapshots' tenantIds.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)] $Delta,
+        [switch]$RedactNames
+    )
+
+    $state = @{
+        RedactNames = [bool]$RedactNames
+        UserMap     = @{}
+        DomainMap   = @{}
+        NameMap     = @{}
+        NameList    = @()
+        PolicyCount = 0
+        LabelCount  = 0
+        BaseLabels  = @()
+    }
+
+    $seeds = New-Object System.Collections.Generic.List[string]
+    foreach ($t in @([string]$Delta.from.tenantId, [string]$Delta.to.tenantId)) {
+        if (-not [string]::IsNullOrWhiteSpace($t)) {
+            $base = ([string]$t -split '\.')[0].ToLower()
+            if ($base.Length -ge 3) { $seeds.Add($base) }
+        }
+    }
+    $state.BaseLabels = @($seeds | Select-Object -Unique)
+
+    if ($RedactNames) {
+        $labelTypes = @('SensitivityLabel', 'RetentionLabel')
+        $addName = {
+            param($TypeName, $Name)
+            if ([string]::IsNullOrWhiteSpace($Name) -or $Name.Trim().Length -lt 3) { return }
+            $n = $Name.Trim(); $k = $n.ToLower()
+            if ($state.NameMap.ContainsKey($k)) { return }
+            if ($labelTypes -contains $TypeName) { $state.LabelCount++; $token = 'Label-{0:00}' -f $state.LabelCount }
+            else { $state.PolicyCount++; $token = 'Policy-{0:00}' -f $state.PolicyCount }
+            $state.NameMap[$k] = [pscustomobject]@{ Name = $n; Token = $token }
+        }
+        foreach ($sec in @($Delta.sections)) {
+            foreach ($r in @($sec.added))   { & $addName $r.type ([string]$r.name) }
+            foreach ($r in @($sec.removed)) { & $addName $r.type ([string]$r.name) }
+            foreach ($r in @($sec.modified)) {
+                & $addName $r.type ([string]$r.name)
+                & $addName $r.type ([string]$r.renameFrom)
+                & $addName $r.type ([string]$r.renameTo)
+            }
+        }
+        $state.NameList = @($state.NameMap.Values | Sort-Object { $_.Name.Length } -Descending)
+    }
+
+    $script:PpaRedactState = $state
+}
+
 function ConvertTo-PpaRedactedText {
     # The single redaction function. Pass-through when redaction is not active.
     param([AllowNull()][string]$Text)
@@ -116,9 +173,12 @@ function ConvertTo-PpaRedactedText {
     }
 
     # 3. Policy/label names (stricter -RedactNames only), longest-first, everywhere.
+    # Explicit lookarounds instead of \b: names that end (or start) with a non-word
+    # character - 'Broad PII (new)' - have no \b at that edge, so \b silently
+    # skipped them (found during Wave 4 delta redaction pinning).
     if ($state.RedactNames) {
         foreach ($entry in $state.NameList) {
-            $pattern = '\b' + [regex]::Escape($entry.Name) + '\b'
+            $pattern = '(?<![A-Za-z0-9])' + [regex]::Escape($entry.Name) + '(?![A-Za-z0-9])'
             $Text = [regex]::Replace($Text, $pattern, $entry.Token, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
         }
     }

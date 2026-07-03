@@ -29,8 +29,22 @@ function Invoke-PurviewPostureAnalyzer {
         # the HTML by default; -NoSnapshot suppresses it. -IncludeRawCapture also
         # writes the raw collector outputs to a separate debug file outside the schema.
         [switch]$NoSnapshot,
-        [switch]$IncludeRawCapture
+        [switch]$IncludeRawCapture,
+        # Delta mode (Wave 4 Part C): fully offline comparison of two snapshots -
+        # file-in, HTML-out, no tenant session. PS 7+ only (engine gate inside).
+        [string]$DeltaFrom,
+        [string]$DeltaTo,
+        [string]$OutputPath,
+        [switch]$AllowTenantMismatch
     )
+
+    # ---- DELTA MODE: short-circuits the whole collection pipeline (spec 4.1) ----
+    if (-not [string]::IsNullOrWhiteSpace($DeltaFrom) -or -not [string]::IsNullOrWhiteSpace($DeltaTo)) {
+        if ([string]::IsNullOrWhiteSpace($DeltaFrom) -or [string]::IsNullOrWhiteSpace($DeltaTo)) {
+            throw 'Delta mode requires BOTH -DeltaFrom and -DeltaTo snapshot paths.'
+        }
+        return Invoke-PpaDelta -FromPath $DeltaFrom -ToPath $DeltaTo -OutputPath $OutputPath -Redact:$Redact -RedactNames:$RedactNames -AllowTenantMismatch:$AllowTenantMismatch
+    }
 
     # Resolve the output directory to an ABSOLUTE path against the caller's PowerShell location.
     # A relative path handed to .NET file APIs (WriteAllText) would otherwise resolve against the

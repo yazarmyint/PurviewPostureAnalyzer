@@ -65,6 +65,14 @@ $sparseLic  = [pscustomobject]@{ note = [string]$std.licensing.note }
 $sparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing $sparseLic -Sections $sparseSections
 Write-PpaSampleReport -Name 'sample-sparse.html' -Html (Export-PpaHtmlReport -Normalized $sparseNorm -IsSample)
 
+# ---- 4. Redacted variant (dense fixture, -Redact -RedactNames: strictest masking) ----
+Write-PpaSampleReport -Name 'sample-dense-redacted.html' -Html (Export-PpaHtmlReport -Normalized $denseNorm -IsSample -Redact -RedactNames)
+
+# ---- 5. Profile-filtered variant (dense fixture minus DSPM for AI + Audit) ----
+$sel = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_for_AI', 'Audit')
+$profNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $sel.Sections -Observations $dense.observations
+Write-PpaSampleReport -Name 'sample-dense-profile.html' -Html (Export-PpaHtmlReport -Normalized $profNorm -IsSample -ExcludedSections $sel.ExcludedTitles)
+
 # ---- Done ----
 Write-Host ''
 Write-Host 'Sample reports written:'

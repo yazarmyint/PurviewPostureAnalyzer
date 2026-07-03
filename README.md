@@ -97,6 +97,53 @@ If a collector can't run (module missing, not connected, or access denied), that
 degrades to a **Verify manually** placeholder and the run continues — one failure never fails
 the report.
 
+### Run profiles: include / exclude sections
+
+```powershell
+# Only these sections:
+Invoke-PurviewPostureAnalyzer -IncludeSection Sensitivity_Labels, Data_Loss_Prevention
+
+# Everything except these:
+Invoke-PurviewPostureAnalyzer -ExcludeSection DSPM_for_AI, Audit
+
+# The same, expressed as a reusable .psd1 (or .json) profile file:
+#   @{ ExcludeSection = @('DSPM_for_AI', 'Audit') }
+Invoke-PurviewPostureAnalyzer -Profile .\thin-run.psd1
+```
+
+Section keys: `Sensitivity_Labels`, `Data_Loss_Prevention`, `Retention`, `Insider_Risk`,
+`Audit`, `eDiscovery`, `Communication_Compliance`, `DSPM_for_AI`. Unknown keys fail fast,
+before any collection. Explicit parameters override the `-Profile` file. Excluded sections
+are listed in a "Sections excluded by run profile" note on the report — a thin report never
+looks like a silent failure — and the executive-summary counts reflect included sections only.
+
+### Redaction (for sharing reports outside the engagement)
+
+```powershell
+Invoke-PurviewPostureAnalyzer -Redact               # masks tenant domains, UPNs, emails
+Invoke-PurviewPostureAnalyzer -Redact -RedactNames  # additionally pseudonymizes policy/label names
+```
+
+Masking is applied at **render time only** — the JSON export and in-memory findings are
+untouched. Tokens are stable within a run (`user01@[redacted]`, `[redacted-domain-01]`,
+`Policy-01`), so the report stays internally consistent, and a visible REDACTED banner
+states the active scope. Microsoft Learn / portal URLs are never masked.
+
+### Report features (Wave 3)
+
+The HTML report opens with an **executive summary** (severity counts plus a linked
+top-findings list), has a sticky **filter bar** (severity chips + text search), **per-finding
+anchor links**, a **print stylesheet** (exec summary as page one, drill-downs expanded,
+severity colors preserved — use the Print button for a client-ready PDF), and collapsible
+**"How to remediate"** guidance on Improvement/Recommendation findings — portal path, a
+copy-ready cmdlet where one is grounded, and a Learn link. Remediation snippets are
+displayed text only, never executed, and every draft is tracked for human review in
+`docs/REMEDIATION_REVIEW.md`.
+
+To preview all of this without a tenant, run `pwsh -File tools/Build-SampleReports.ps1` —
+it renders five fixture-driven sample reports (standard, dense, sparse, redacted, and
+profile-filtered) into the gitignored `Samples/sample-reports/` folder and prints the paths.
+
 ---
 
 ## How to read the statuses
@@ -145,9 +192,11 @@ Private/
   Model/      status model, finding/section factories, ConvertTo-PpaNormalized (assemble)
   Core/       run context, error-section helper
   Render/     Export-PpaHtmlReport (HTML) + Export-PpaJson + PpaHtml helpers
-Data/         dated maps (license requirements per check, E5-gated SIT tiers)
-Samples/      sample-normalized.json fixture + sample-raw/ per-section fixtures + rendered output
-Tests/        Pester 5: read-only guard, model, render, and per-analyzer tests
+Data/         dated maps (license requirements, E5-gated SIT tiers, remediation snippets)
+Samples/      sample-normalized[-dense].json fixtures + sample-raw/ per-section fixtures + rendered output
+Tests/        Pester 5: read-only guard, model, render, report-polish, and per-analyzer tests
+tools/        Build-SampleReports.ps1 - renders every fixture variant for browser review
+docs/         specs + REMEDIATION_REVIEW.md (draft-snippet review checklist)
 CHECK_CATALOG.md   the domain spec (every finding, cmdlet, and status rule)
 PLAN.md            the build plan
 LIMITATIONS.md     what is not assertable read-only, and why

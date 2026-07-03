@@ -47,6 +47,12 @@ BeforeAll {
     $script:SparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing ([pscustomobject]@{ note = 'n' }) -Sections $sparseSections
     $script:SparseHtml = Export-PpaHtmlReport -Normalized $script:SparseNorm
 
+    # Redacted dense variants (P6). Rendered AFTER the plain variants on purpose -
+    # the no-leakage test re-renders plain afterwards and compares byte-for-byte.
+    $script:RedactHtml      = Export-PpaHtmlReport -Normalized $script:DenseNorm -IsSample -Redact
+    $script:RedactNamesHtml = Export-PpaHtmlReport -Normalized $script:DenseNorm -IsSample -Redact -RedactNames
+    $script:SparseRedactHtml = Export-PpaHtmlReport -Normalized $script:SparseNorm -Redact
+
     # Profile-filtered dense variant (P5): DSPM_for_AI and Audit excluded at render time.
     $script:ProfSelection = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_for_AI', 'Audit')
     $script:ProfNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $script:ProfSelection.Sections -Observations $dense.observations
@@ -269,6 +275,59 @@ Describe 'P5 - entry-script parameter plumbing (no tenant, graceful degradation)
     It 'throws fast on an unknown section key (before any collection)' {
         { Invoke-PurviewPostureAnalyzer -OutputDirectory $script:P5Out -IncludeSection 'Not_A_Section' } |
             Should -Throw '*Not_A_Section*'
+    }
+}
+
+Describe 'P6 - redaction mode' {
+    It '-Redact masks every planted UPN and email address' {
+        $script:RedactHtml | Should -Not -Match 'leigh\.santos@contosopharma\.com'
+        $script:RedactHtml | Should -Not -Match 'svc-dlptest@'
+        $script:RedactHtml | Should -Not -Match 'dl-exec@'
+        $script:RedactHtml | Should -Match 'user\d\d@\[redacted\]'
+    }
+    It '-Redact masks the tenant domains (onmicrosoft + custom) everywhere, including the exec-summary tenant hint' {
+        $script:RedactHtml | Should -Not -Match '(?i)contosopharma'
+        $script:RedactHtml | Should -Match '\[redacted-domain-\d\d\]'
+    }
+    It 'uses a stable token for the same value wherever it appears (tenant hint: title card + exec summary)' {
+        ([regex]::Matches($script:RedactHtml, '\[redacted-domain-01\]')).Count | Should -BeGreaterOrEqual 2
+    }
+    It 'leaves Microsoft Learn and portal URLs untouched' {
+        $script:RedactHtml | Should -Match 'https://learn\.microsoft\.com/en-us/purview/sensitivity-labels'
+        $script:RedactHtml | Should -Match 'https://purview\.microsoft\.com'
+    }
+    It 'shows a visible REDACTED banner naming the scope' {
+        $script:RedactHtml | Should -Match 'class="redact-flag"'
+        $script:RedactHtml | Should -Match 'REDACTED report'
+        $script:RedactHtml | Should -Not -Match 'policy and label names pseudonymized'
+        $script:RedactNamesHtml | Should -Match 'policy and label names pseudonymized'
+    }
+    It 'does NOT pseudonymize policy names under plain -Redact' {
+        $script:RedactHtml | Should -Match 'Broad PII Pilot'
+        $script:RedactHtml | Should -Match 'Contoso Global Label Policy'
+    }
+    It '-RedactNames pseudonymizes policy/label names consistently, including inside remarks' {
+        $script:RedactNamesHtml | Should -Not -Match 'Broad PII Pilot'
+        $script:RedactNamesHtml | Should -Not -Match 'Auto-label PHI and PII'
+        $script:RedactNamesHtml | Should -Match 'Policy-\d\d'
+        $script:RedactNamesHtml | Should -Match 'Label-\d\d'
+    }
+    It 'does not mask anything when the switches are absent' {
+        $script:DenseHtml | Should -Match 'leigh\.santos@contosopharma\.com'
+        $script:DenseHtml | Should -Match 'contosopharma\.onmicrosoft\.com'
+        $script:DenseHtml | Should -Not -Match '\[redacted'
+        $script:DenseHtml | Should -Not -Match 'redact-flag"'
+    }
+    It 'masks the sparse fixture operator UPN too (graceful with analyzer-built sections)' {
+        $script:SparseRedactHtml | Should -Not -Match 'taylor\.ng@fabrikamrobotics\.com'
+        $script:SparseRedactHtml | Should -Match 'user\d\d@\[redacted\]'
+    }
+    It 'redacted output is still pure ASCII' {
+        ($script:RedactNamesHtml.ToCharArray() | Where-Object { [int][char]$_ -gt 126 }).Count | Should -Be 0
+    }
+    It 'is render-time only: the normalized object is untouched and later plain renders are unaffected' {
+        [string]$script:DenseNorm.meta.tenant | Should -Be 'contosopharma.onmicrosoft.com'
+        (Export-PpaHtmlReport -Normalized $script:DenseNorm -IsSample) | Should -Be $script:DenseHtml
     }
 }
 

@@ -10,6 +10,7 @@ BeforeAll {
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     foreach ($m in 'PpaStatus', 'New-PpaFinding', 'New-PpaSection', 'ConvertTo-PpaNormalized') { . (Join-Path $script:RepoRoot "Private\Model\$m.ps1") }
     foreach ($a in (Get-ChildItem (Join-Path $script:RepoRoot 'Private\Analyze') -Filter '*.ps1')) { . $a.FullName }
+    . (Join-Path $script:RepoRoot 'Private\Render\PpaRedact.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\PpaHtml.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\Export-PpaHtmlReport.ps1')
 

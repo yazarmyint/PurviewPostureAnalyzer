@@ -13,7 +13,10 @@ function ConvertTo-PpaHtmlText {
     # HTML-encode text for element content. Escapes & < > and converts any
     # non-ASCII / control character to a numeric entity. Quotes are left literal
     # (legal in text content and matches the mock).
+    # All rendered text flows through here or ConvertTo-PpaHtmlAttr, which makes the
+    # pair the display boundary where P6 redaction is applied (no-op when inactive).
     param([AllowNull()][string]$Text)
+    $Text = ConvertTo-PpaRedactedText $Text
     if ([string]::IsNullOrEmpty($Text)) { return '' }
     $sb = New-Object System.Text.StringBuilder
     foreach ($ch in $Text.ToCharArray()) {
@@ -30,7 +33,9 @@ function ConvertTo-PpaHtmlText {
 
 function ConvertTo-PpaHtmlAttr {
     # Encode text destined for a double-quoted HTML attribute (e.g. an href).
+    # Shares the P6 redaction boundary with ConvertTo-PpaHtmlText.
     param([AllowNull()][string]$Text)
+    $Text = ConvertTo-PpaRedactedText $Text
     if ([string]::IsNullOrEmpty($Text)) { return '' }
     $sb = New-Object System.Text.StringBuilder
     foreach ($ch in $Text.ToCharArray()) {
@@ -265,6 +270,7 @@ function Get-PpaReportHead {
   .app-footer a{ color:#cfe6ff; }
   .logo-ph{ width:250px; height:150px; border:1px dashed #b7c6d6; border-radius:4px; color:#8aa0b5; display:flex; align-items:center; justify-content:center; font-size:13px; }
   .mock-flag{ background:#2a2440; color:#d9d4f0; font-family:monospace; font-size:12px; text-align:center; padding:6px; }
+  .redact-flag{ background:#5c1a1a; color:#ffd9d9; font-family:monospace; font-size:12px; text-align:center; padding:6px; }
   .finding{ border-bottom:1px solid #eef1f4; }
   .finding:last-child{ border-bottom:0; }
   .finding-head{ cursor:pointer; padding:12px 6px; margin:0; align-items:center; }

@@ -11,8 +11,20 @@ function Export-PpaHtmlReport {
         [switch] $IsSample,
         # Titles of sections removed by the run profile (P5) - rendered as a single
         # footer line so a thin report never looks like a silent failure.
-        [string[]] $ExcludedSections = @()
+        [string[]] $ExcludedSections = @(),
+        # P6 render-time redaction. -RedactNames implies -Redact and additionally
+        # pseudonymizes policy/label names. Applied at the display boundary only;
+        # the normalized object and the JSON export are never modified.
+        [switch] $Redact,
+        [switch] $RedactNames
     )
+
+    # Defensive: never inherit redaction state from a previous render (a failed
+    # render cannot poison the next one - the next call always resets first).
+    Clear-PpaRedaction
+    if ($Redact -or $RedactNames) {
+        Initialize-PpaRedaction -Normalized $Normalized -RedactNames:$RedactNames
+    }
 
     $meta      = $Normalized.meta
     $lic       = $Normalized.licensing
@@ -42,6 +54,11 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine((Get-PpaReportHead))
     if ($IsSample) {
         [void]$sb.AppendLine('<div class="mock-flag">Illustrative sample data &middot; fictional tenant (Northwind Health) &middot; rendered from Samples/sample-normalized.json</div>')
+    }
+    if ($Redact -or $RedactNames) {
+        $scope = 'tenant domains, UPNs and email addresses masked'
+        if ($RedactNames) { $scope += ' &middot; policy and label names pseudonymized' }
+        [void]$sb.Append('<div class="redact-flag">REDACTED report &middot; ').Append($scope).AppendLine(' &middot; masking applied at render time only</div>')
     }
     [void]$sb.AppendLine((Get-PpaNavbarHtml))
     [void]$sb.AppendLine('')
@@ -219,5 +236,6 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine((Get-PpaPolishScript))
     [void]$sb.AppendLine((Get-PpaFooterHtml))
 
+    Clear-PpaRedaction
     return $sb.ToString()
 }

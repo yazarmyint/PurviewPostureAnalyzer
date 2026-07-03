@@ -19,7 +19,12 @@ function Invoke-PurviewPostureAnalyzer {
         # shadows the automatic $Profile variable inside this function only.)
         [string[]]$IncludeSection,
         [string[]]$ExcludeSection,
-        [string]$Profile
+        [string]$Profile,
+        # Redaction (P6): render-time masking of tenant domains/UPNs (-Redact) and,
+        # additionally, policy/label name pseudonymization (-RedactNames, implies
+        # -Redact). The JSON export and in-memory findings are never modified.
+        [switch]$Redact,
+        [switch]$RedactNames
     )
 
     # Resolve the output directory to an ABSOLUTE path against the caller's PowerShell location.
@@ -154,7 +159,7 @@ function Invoke-PurviewPostureAnalyzer {
 
     $htmlPath = Join-Path $reportsDir 'posture-report.html'
     $jsonPath = Join-Path $reportsDir 'posture-report.json'
-    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles), (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames), (New-Object System.Text.UTF8Encoding($false)))
     [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
 
     # Only report success once both files are actually on disk. If a write failed, let the failure

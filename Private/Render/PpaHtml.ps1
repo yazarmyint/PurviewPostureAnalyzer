@@ -105,6 +105,70 @@ function Write-PpaSummaryCountCells {
     return $sb.ToString()
 }
 
+function Write-PpaExecSummary {
+    # Page-one executive summary: run metadata line, severity count tiles, and the
+    # top-findings list (every Recommendation, then every Improvement, capped at 15).
+    # Counts come from the same section/finding objects the body renders.
+    param($Meta, $Sections, $Totals)
+
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.AppendLine('  <div class="card mt-3 execsum" id="Execsummary">')
+    [void]$sb.AppendLine('    <div class="card-header"><strong>Executive Summary</strong></div>')
+    [void]$sb.AppendLine('    <div class="card-body">')
+
+    # Run metadata line (tenant hint is masked when redaction is active - P6).
+    [void]$sb.Append('      <p class="es-meta">').Append((ConvertTo-PpaHtmlText $Meta.reportTitle))
+    [void]$sb.Append(' v').Append((ConvertTo-PpaHtmlText $Meta.version))
+    [void]$sb.Append(' &middot; ').Append((ConvertTo-PpaHtmlText $Meta.dateDisplay))
+    [void]$sb.Append(' &middot; tenant: ').Append((ConvertTo-PpaHtmlText $Meta.tenant)).AppendLine('</p>')
+
+    # Severity count tiles (all five statuses, so the tiles always sum to the body).
+    $tileOrder  = @('Recommendation', 'Improvement', 'OK', 'Informational', 'Verify manually')
+    $tileLabels = @{ 'Recommendation'='Recommendations'; 'Improvement'='Improvements'; 'OK'='OK'; 'Informational'='Informational'; 'Verify manually'='Verify manually' }
+    [void]$sb.AppendLine('      <div class="es-tiles">')
+    foreach ($st in $tileOrder) {
+        $sty = Get-PpaStatusStyle $st
+        [void]$sb.Append('        <div class="es-tile"><span class="badge ').Append($sty.Badge).Append(' es-num">').Append([int]$Totals[$st])
+        [void]$sb.Append('</span><div class="es-lbl">').Append((ConvertTo-PpaHtmlText $tileLabels[$st])).AppendLine('</div></div>')
+    }
+    [void]$sb.AppendLine('      </div>')
+
+    # Top findings: every Recommendation, then every Improvement, in section order.
+    $top = New-Object System.Collections.Generic.List[object]
+    foreach ($want in @('Recommendation', 'Improvement')) {
+        foreach ($sec in @($Sections)) {
+            foreach ($f in @($sec.findings)) {
+                if ([string]$f.status -eq $want) {
+                    $top.Add([pscustomobject]@{ Id = [string]$f.id; Title = [string]$f.title; Section = [string]$sec.title; Status = $want })
+                }
+            }
+        }
+    }
+    if ($top.Count -eq 0) {
+        [void]$sb.AppendLine('      <p class="es-none">No Recommendations or Improvements surfaced by this run.</p>')
+    } else {
+        [void]$sb.AppendLine('      <h6 class="es-top">Top findings</h6>')
+        [void]$sb.AppendLine('      <div class="es-list">')
+        $cap = 15
+        $shown = if ($top.Count -gt $cap) { $cap } else { $top.Count }
+        for ($i = 0; $i -lt $shown; $i++) {
+            $t = $top[$i]
+            $dot = (Get-PpaStatusStyle $t.Status).Dot
+            [void]$sb.Append('        <a class="es-item" data-sev="').Append((ConvertTo-PpaHtmlAttr $t.Status)).Append('" href="#finding-').Append((ConvertTo-PpaHtmlAttr $t.Id)).Append('">')
+            [void]$sb.Append('<span class="gdot ').Append($dot).Append('"></span><strong>').Append((ConvertTo-PpaHtmlText $t.Id)).Append('</strong> ')
+            [void]$sb.Append((ConvertTo-PpaHtmlText $t.Title)).Append('<span class="es-sec">').Append((ConvertTo-PpaHtmlText $t.Section)).AppendLine('</span></a>')
+        }
+        if ($top.Count -gt $cap) {
+            [void]$sb.Append('        <div class="es-more">+').Append($top.Count - $cap).AppendLine(' more below</div>')
+        }
+        [void]$sb.AppendLine('      </div>')
+    }
+
+    [void]$sb.AppendLine('    </div>')
+    [void]$sb.AppendLine('  </div>')
+    return $sb.ToString()
+}
+
 function Write-PpaDetailTable {
     param($Table)
     if ($null -eq $Table) { return '' }
@@ -199,6 +263,19 @@ function Get-PpaReportHead {
   .learnmore a{ text-decoration:none; display:block; padding:3px 0; }
   .lm-tag{ font-size:11px; color:#8a97a4; text-transform:uppercase; margin-left:6px; }
   .whyline{ color:#495057; margin:.15rem 0 .1rem; }
+  /* executive summary */
+  .es-meta{ color:#5a6b7b; font-size:13px; margin-bottom:.75rem; }
+  .es-tiles{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:.85rem; }
+  .es-tile{ border:1px solid #e3e9ef; border-radius:6px; padding:10px 14px; min-width:118px; text-align:center; }
+  .es-num{ font-size:18px; font-weight:800; padding:6px 12px; display:inline-block; }
+  .es-lbl{ font-size:11px; color:#5a6b7b; font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-top:6px; }
+  .es-top{ font-weight:700; color:#33445a; margin-bottom:.35rem; }
+  .es-list a.es-item{ display:flex; align-items:baseline; gap:7px; padding:3px 0; color:inherit; text-decoration:none; font-size:13.5px; }
+  .es-list a.es-item:hover{ color:#0078D4; }
+  .es-list .gdot{ align-self:center; }
+  .es-sec{ color:#8a97a4; font-size:11.5px; margin-left:auto; padding-left:12px; white-space:nowrap; }
+  .es-more{ color:#5a6b7b; font-size:12.5px; padding:4px 0 0 16px; font-style:italic; }
+  .es-none{ color:#5a6b7b; font-size:13px; margin:0; }
   /* per-finding anchor affordance */
   .anchor-link{ margin-left:8px; color:#b7c6d6; text-decoration:none; font-weight:600; opacity:0; transition:opacity .12s ease; }
   .finding-head:hover .anchor-link{ opacity:1; }

@@ -78,6 +78,54 @@ Describe 'Dense fixture - shape for Wave 3 regression cases' {
     }
 }
 
+Describe 'P1 - executive summary' {
+    It 'tile counts equal body finding counts (<Name>)' -ForEach @(
+        @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
+    ) {
+        $v = $script:AllVariants | Where-Object { $_.Name -eq $Name }
+        $norm = switch ($Name) { 'standard' { $script:StdNorm } 'dense' { $script:DenseNorm } 'sparse' { $script:SparseNorm } }
+        $body = Get-PpaBodyStatusCounts $norm
+        $tiles = [regex]::Matches($v.Html, 'es-num">(\d+)</span>') | ForEach-Object { [int]$_.Groups[1].Value }
+        @($tiles).Count | Should -Be 5
+        # Tile display order: Recommendation, Improvement, OK, Informational, Verify manually.
+        $tiles[0] | Should -Be ([int]$body['Recommendation'])
+        $tiles[1] | Should -Be ([int]$body['Improvement'])
+        $tiles[2] | Should -Be ([int]$body['OK'])
+        $tiles[3] | Should -Be ([int]$body['Informational'])
+        $tiles[4] | Should -Be ([int]$body['Verify manually'])
+    }
+    It 'renders the run metadata line with version, timestamp and tenant hint' {
+        $script:DenseHtml | Should -Match 'es-meta[^<]*Configuration Analyzer for Microsoft Purview v2\.0'
+        $script:DenseHtml | Should -Match '01-Jul-2026 09:30 UTC'
+        $script:DenseHtml | Should -Match 'tenant: contosopharma\.onmicrosoft\.com'
+    }
+    It 'caps the top-findings list at 15 with a "+N more below" line (dense: 16 -> 15 + 1)' {
+        ([regex]::Matches($script:DenseHtml, 'class="es-item"')).Count | Should -Be 15
+        $script:DenseHtml | Should -Match '\+1 more below'
+    }
+    It 'does not cap when at or under 15 (standard: 11 entries, no more-line)' {
+        ([regex]::Matches($script:StdHtml, 'class="es-item"')).Count | Should -Be 11
+        $script:StdHtml | Should -Not -Match 'more below'
+    }
+    It 'lists every Recommendation before any Improvement' {
+        $sevs = [regex]::Matches($script:DenseHtml, 'data-sev="([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
+        $firstImpr = [array]::IndexOf($sevs, 'Improvement')
+        $lastRec   = [array]::LastIndexOf($sevs, 'Recommendation')
+        $lastRec | Should -BeLessThan $firstImpr
+    }
+    It 'every top-findings link resolves to a finding anchor in the same document (<Name>)' -ForEach @(
+        @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
+    ) {
+        $v = $script:AllVariants | Where-Object { $_.Name -eq $Name }
+        $hrefs = [regex]::Matches($v.Html, 'class="es-item"[^>]*href="#([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
+        foreach ($h in $hrefs) { $v.Html | Should -Match (' id="' + [regex]::Escape($h) + '"') }
+    }
+    It 'renders before the first section card and after the title card' {
+        $script:DenseHtml.IndexOf('id="Execsummary"') | Should -BeLessThan $script:DenseHtml.IndexOf('id="Solutionsummary"')
+        $script:DenseHtml.IndexOf('id="Execsummary"') | Should -BeLessThan $script:DenseHtml.IndexOf('id="Sensitivity_Labels"')
+    }
+}
+
 Describe 'P4 - per-finding anchors' {
     It 'gives every finding card an id derived from its check ID (<Name>)' -ForEach @(
         @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }

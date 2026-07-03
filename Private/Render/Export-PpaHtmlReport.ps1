@@ -16,6 +16,25 @@ function Export-PpaHtmlReport {
     $sections  = @($Normalized.sections)
     $sb        = New-Object System.Text.StringBuilder
 
+    # Group-by-first-appearance + all-solutions totals, computed once from the same
+    # finding objects the body renders. Shared by the exec summary (P1) and the
+    # Solutions Summary so their counts can never drift apart.
+    $groupOrder = New-Object System.Collections.Generic.List[string]
+    $groupMap   = @{}
+    $groupMeta  = @{}
+    $totals     = [ordered]@{ 'OK'=0; 'Improvement'=0; 'Recommendation'=0; 'Informational'=0; 'Verify manually'=0 }
+    foreach ($sec in $sections) {
+        $gname = [string]$sec.group
+        if (-not $groupMap.ContainsKey($gname)) {
+            $groupMap[$gname]  = New-Object System.Collections.Generic.List[object]
+            $groupMeta[$gname] = [pscustomobject]@{ Icon = [string]$sec.groupIcon; Tag = [string]$sec.groupTag }
+            $groupOrder.Add($gname)
+        }
+        $groupMap[$gname].Add($sec)
+        $cts = Get-PpaSectionCounts $sec
+        foreach ($st in $script:PpaStatusOrder) { $totals[$st] = [int]$totals[$st] + [int]$cts[$st] }
+    }
+
     # ---- document head + navbar ----
     [void]$sb.AppendLine((Get-PpaReportHead))
     if ($IsSample) {
@@ -52,6 +71,10 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine('  </div></div>')
     [void]$sb.AppendLine('')
 
+    # ---- executive summary (P1: page one, before the first section) ----
+    [void]$sb.AppendLine((Write-PpaExecSummary -Meta $meta -Sections $sections -Totals $totals))
+    [void]$sb.AppendLine('')
+
     # ---- environment at a glance ----
     [void]$sb.AppendLine('  <div class="card mt-3 glance">')
     [void]$sb.AppendLine('    <div class="card-header"><strong>Environment at a glance</strong></div>')
@@ -70,24 +93,7 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine('  </div>')
     [void]$sb.AppendLine('')
 
-    # ---- solutions summary ----
-    # Group by 'group' in order of first appearance; totals computed from findings.
-    $groupOrder = New-Object System.Collections.Generic.List[string]
-    $groupMap   = @{}
-    $groupMeta  = @{}
-    $totals     = [ordered]@{ 'OK'=0; 'Improvement'=0; 'Recommendation'=0; 'Informational'=0; 'Verify manually'=0 }
-    foreach ($sec in $sections) {
-        $gname = [string]$sec.group
-        if (-not $groupMap.ContainsKey($gname)) {
-            $groupMap[$gname]  = New-Object System.Collections.Generic.List[object]
-            $groupMeta[$gname] = [pscustomobject]@{ Icon = [string]$sec.groupIcon; Tag = [string]$sec.groupTag }
-            $groupOrder.Add($gname)
-        }
-        $groupMap[$gname].Add($sec)
-        $cts = Get-PpaSectionCounts $sec
-        foreach ($st in $script:PpaStatusOrder) { $totals[$st] = [int]$totals[$st] + [int]$cts[$st] }
-    }
-
+    # ---- solutions summary (group/totals computed once, above) ----
     [void]$sb.AppendLine('  <div class="card mt-3" id="Solutionsummary">')
     [void]$sb.AppendLine('    <div class="card-header"><strong>Solutions Summary</strong></div>')
     [void]$sb.AppendLine('    <div class="card-body">')

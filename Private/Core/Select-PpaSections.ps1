@@ -1,6 +1,6 @@
 # Select-PpaSections.ps1 - run-profile section filtering (P5). Applied AFTER analysis
 # and BEFORE ConvertTo-PpaNormalized, so collectors/analyzers always run identically
-# (zero finding-behavior change) while the report body, exec summary counts, and JSON
+# (zero finding-behavior change) while the report body, posture summary counts, and JSON
 # export all reflect only the included sections. Shared by the entry script and the
 # fixture-driven sample-report tooling. ASCII-only source (Windows PowerShell 5.1).
 

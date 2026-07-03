@@ -1,4 +1,4 @@
-# Render.Polish.Tests.ps1 - Wave 3 report polish: fixtures, exec summary, filters,
+# Render.Polish.Tests.ps1 - Wave 3 report polish: fixtures, posture summary, filters,
 # print, anchors, run profile, redaction, remediation. Renders each fixture variant
 # once in the top-level BeforeAll and asserts against the produced HTML.
 # Pester 5. ASCII-only source.
@@ -76,7 +76,7 @@ Describe 'Dense fixture - shape for Wave 3 regression cases' {
         $counts = Get-PpaBodyStatusCounts $script:DenseNorm
         foreach ($st in (Get-PpaStatusOrder)) { [int]$counts[$st] | Should -BeGreaterThan 0 }
     }
-    It 'carries more than 15 Recommendation+Improvement findings (exec-summary cap case)' {
+    It 'carries more than 15 Recommendation+Improvement findings (posture-summary cap case)' {
         $counts = Get-PpaBodyStatusCounts $script:DenseNorm
         ([int]$counts['Recommendation'] + [int]$counts['Improvement']) | Should -BeGreaterThan 15
     }
@@ -89,7 +89,13 @@ Describe 'Dense fixture - shape for Wave 3 regression cases' {
     }
 }
 
-Describe 'P1 - executive summary' {
+Describe 'P1 - posture summary' {
+    It 'renders the "Posture Summary" heading with no stale "Executive" copy' {
+        $script:DenseHtml | Should -Match '<strong>Posture Summary</strong>'
+        $script:DenseHtml | Should -Not -Match 'Executive Summary'
+        $script:DenseHtml | Should -Not -Match 'Execsummary'
+        $script:DenseHtml | Should -Not -Match 'execsum'
+    }
     It 'tile counts equal body finding counts (<Name>)' -ForEach @(
         @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
     ) {
@@ -132,8 +138,8 @@ Describe 'P1 - executive summary' {
         foreach ($h in $hrefs) { $v.Html | Should -Match (' id="' + [regex]::Escape($h) + '"') }
     }
     It 'renders before the first section card and after the title card' {
-        $script:DenseHtml.IndexOf('id="Execsummary"') | Should -BeLessThan $script:DenseHtml.IndexOf('id="Solutionsummary"')
-        $script:DenseHtml.IndexOf('id="Execsummary"') | Should -BeLessThan $script:DenseHtml.IndexOf('id="Sensitivity_Labels"')
+        $script:DenseHtml.IndexOf('id="Posturesummary"') | Should -BeLessThan $script:DenseHtml.IndexOf('id="Solutionsummary"')
+        $script:DenseHtml.IndexOf('id="Posturesummary"') | Should -BeLessThan $script:DenseHtml.IndexOf('id="Sensitivity_Labels"')
     }
 }
 
@@ -173,8 +179,8 @@ Describe 'P3 - print / PDF stylesheet' {
         $script:DenseHtml | Should -Match '\.collapse\{ display:block !important'
         $script:DenseHtml | Should -Match '\.filterbar, \.anchor-link, \.backlink'
     }
-    It 'keeps the exec summary as page one and starts each section cleanly' {
-        $script:DenseHtml | Should -Match '\.execsum\{ break-after:page'
+    It 'keeps the posture summary as page one and starts each section cleanly' {
+        $script:DenseHtml | Should -Match '\.postsum\{ break-after:page'
         $script:DenseHtml | Should -Match '\.seccard\{ break-before:page'
         $script:DenseHtml | Should -Match '\.finding, \.glance \.cell, \.bd-callout\{ break-inside:avoid'
     }
@@ -228,7 +234,7 @@ Describe 'P5 - run profile: section include/exclude' {
     It 'renders no profile note when nothing is excluded' {
         $script:DenseHtml | Should -Not -Match 'Sections excluded by run profile'
     }
-    It 'adjusts exec-summary tile counts to the included sections only' {
+    It 'adjusts posture-summary tile counts to the included sections only' {
         $body = Get-PpaBodyStatusCounts $script:ProfNorm
         $tiles = [regex]::Matches($script:ProfHtml, 'es-num">(\d+)</span>') | ForEach-Object { [int]$_.Groups[1].Value }
         $tiles[0] | Should -Be ([int]$body['Recommendation'])
@@ -285,11 +291,11 @@ Describe 'P6 - redaction mode' {
         $script:RedactHtml | Should -Not -Match 'dl-exec@'
         $script:RedactHtml | Should -Match 'user\d\d@\[redacted\]'
     }
-    It '-Redact masks the tenant domains (onmicrosoft + custom) everywhere, including the exec-summary tenant hint' {
+    It '-Redact masks the tenant domains (onmicrosoft + custom) everywhere, including the posture-summary tenant hint' {
         $script:RedactHtml | Should -Not -Match '(?i)contosopharma'
         $script:RedactHtml | Should -Match '\[redacted-domain-\d\d\]'
     }
-    It 'uses a stable token for the same value wherever it appears (tenant hint: title card + exec summary)' {
+    It 'uses a stable token for the same value wherever it appears (tenant hint: title card + posture summary)' {
         ([regex]::Matches($script:RedactHtml, '\[redacted-domain-01\]')).Count | Should -BeGreaterOrEqual 2
     }
     It 'leaves Microsoft Learn and portal URLs untouched' {

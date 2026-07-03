@@ -35,7 +35,7 @@ function Export-PpaHtmlReport {
     $remedCatalog = Get-PpaRemediationCatalog
 
     # Group-by-first-appearance + all-solutions totals, computed once from the same
-    # finding objects the body renders. Shared by the exec summary (P1) and the
+    # finding objects the body renders. Shared by the posture summary (P1) and the
     # Solutions Summary so their counts can never drift apart.
     $groupOrder = New-Object System.Collections.Generic.List[string]
     $groupMap   = @{}
@@ -94,8 +94,8 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine('  </div></div>')
     [void]$sb.AppendLine('')
 
-    # ---- executive summary (P1: page one, before the first section) ----
-    [void]$sb.AppendLine((Write-PpaExecSummary -Meta $meta -Sections $sections -Totals $totals))
+    # ---- posture summary (P1: page one, before the first section) ----
+    [void]$sb.AppendLine((Write-PpaPostureSummary -Meta $meta -Sections $sections -Totals $totals))
     [void]$sb.AppendLine('')
 
     # ---- filter bar (P2: sticky severity chips + text search; hidden in print) ----

@@ -115,7 +115,7 @@ Section keys: `Sensitivity_Labels`, `Data_Loss_Prevention`, `Retention`, `Inside
 `Audit`, `eDiscovery`, `Communication_Compliance`, `DSPM_for_AI`. Unknown keys fail fast,
 before any collection. Explicit parameters override the `-Profile` file. Excluded sections
 are listed in a "Sections excluded by run profile" note on the report — a thin report never
-looks like a silent failure — and the executive-summary counts reflect included sections only.
+looks like a silent failure — and the posture-summary counts reflect included sections only.
 
 ### Redaction (for sharing reports outside the engagement)
 
@@ -131,9 +131,9 @@ states the active scope. Microsoft Learn / portal URLs are never masked.
 
 ### Report features (Wave 3)
 
-The HTML report opens with an **executive summary** (severity counts plus a linked
+The HTML report opens with a **posture summary** (severity counts plus a linked
 top-findings list), has a sticky **filter bar** (severity chips + text search), **per-finding
-anchor links**, a **print stylesheet** (exec summary as page one, drill-downs expanded,
+anchor links**, a **print stylesheet** (posture summary as page one, drill-downs expanded,
 severity colors preserved — use the Print button for a client-ready PDF), and collapsible
 **"How to remediate"** guidance on Improvement/Recommendation findings — portal path, a
 copy-ready cmdlet where one is grounded, and a Learn link. Remediation snippets are

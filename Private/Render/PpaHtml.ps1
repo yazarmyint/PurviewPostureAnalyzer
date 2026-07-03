@@ -110,15 +110,17 @@ function Write-PpaSummaryCountCells {
     return $sb.ToString()
 }
 
-function Write-PpaExecSummary {
-    # Page-one executive summary: run metadata line, severity count tiles, and the
+function Write-PpaPostureSummary {
+    # Page-one posture summary: run metadata line, severity count tiles, and the
     # top-findings list (every Recommendation, then every Improvement, capped at 15).
     # Counts come from the same section/finding objects the body renders.
+    # Titled "Posture Summary" deliberately - a posture snapshot feeding consultant
+    # judgment, not a finished consulting deliverable (Wave 3.1 Part A).
     param($Meta, $Sections, $Totals)
 
     $sb = New-Object System.Text.StringBuilder
-    [void]$sb.AppendLine('  <div class="card mt-3 execsum" id="Execsummary">')
-    [void]$sb.AppendLine('    <div class="card-header"><strong>Executive Summary</strong></div>')
+    [void]$sb.AppendLine('  <div class="card mt-3 postsum" id="Posturesummary">')
+    [void]$sb.AppendLine('    <div class="card-header"><strong>Posture Summary</strong></div>')
     [void]$sb.AppendLine('    <div class="card-body">')
 
     # Run metadata line (tenant hint is masked when redaction is active - P6).
@@ -337,7 +339,7 @@ function Get-PpaReportHead {
   .seccard.sec-allhidden .card-body{ display:none; }
   .sec-hiddennote{ display:none; font-size:12px; font-weight:400; color:#cfe6ff; margin-left:10px; }
   .seccard.sec-allhidden .sec-hiddennote{ display:inline; }
-  /* executive summary */
+  /* posture summary */
   .es-meta{ color:#5a6b7b; font-size:13px; margin-bottom:.75rem; }
   .es-tiles{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:.85rem; }
   .es-tile{ border:1px solid #e3e9ef; border-radius:6px; padding:10px 14px; min-width:118px; text-align:center; }
@@ -388,7 +390,7 @@ function Get-PpaReportHead {
   .ssparent td{ font-weight:700; color:#33445a; letter-spacing:.01em; }
   .sschild a{ color:#0078D4; text-decoration:none; }
   @media (prefers-reduced-motion:reduce){ .chev{ transition:none; } .glance .cell{ transition:none; } }
-  /* print / PDF (P3): exec summary is page one, sections start clean, drill-downs
+  /* print / PDF (P3): posture summary is page one, sections start clean, drill-downs
      expanded (beforeprint JS opens them; the .collapse rule is the CSS fallback),
      interactive-only affordances hidden, severity colors preserved. */
   @media print{
@@ -396,7 +398,7 @@ function Get-PpaReportHead {
     body{ background:#fff; }
     .filterbar, .anchor-link, .backlink, .navbar-custom .btn, .mock-flag, .chev{ display:none !important; }
     .collapse{ display:block !important; height:auto !important; }
-    .execsum{ break-after:page; page-break-after:always; }
+    .postsum{ break-after:page; page-break-after:always; }
     .seccard{ break-before:page; page-break-before:always; }
     .finding, .glance .cell, .bd-callout{ break-inside:avoid; page-break-inside:avoid; }
     .finding-head{ cursor:default; }

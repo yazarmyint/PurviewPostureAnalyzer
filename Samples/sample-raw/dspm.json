@@ -1,0 +1,43 @@
+{
+  "copilotPolicies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      {
+        "name": "Detect sensitive info in AI prompts",
+        "mode": "AuditAndNotify",
+        "sits": ["U.S. SSN", "Credit Card", "U.S. HIPAA"],
+        "hasLabelCondition": false,
+        "labelRefs": [],
+        "copilotLocations": ["Copilot.M365"],
+        "oneClick": false,
+        "parseFallback": false,
+        "created": "2026-05-11"
+      }
+    ],
+    "thirdPartyAiDlpPolicies": []
+  },
+  "dspmPolicies": {
+    "status": "Ok",
+    "error": null,
+    "items": []
+  },
+  "appRetention": {
+    "status": "Ok",
+    "error": null,
+    "items": []
+  },
+  "retentionLegacy": {
+    "status": "Ok",
+    "error": null,
+    "totalCount": 0,
+    "teamsChatPolicies": []
+  },
+  "ccCopilot": {
+    "policiesStatus": "Ok",
+    "policiesError": null,
+    "rulesStatus": "Ok",
+    "rulesError": null,
+    "items": []
+  }
+}

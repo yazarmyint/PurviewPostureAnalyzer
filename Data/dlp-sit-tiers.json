@@ -1,0 +1,20 @@
+{
+  "schema": "ppa-dlp-sit-tiers/v1",
+  "lastReviewed": "2026-07-01",
+  "requiredLicenseFeature": "e5Compliance",
+  "reviewNote": "Only well-known E5-gated named-entity / enhanced-template SITs are listed here. Any SIT NOT in this map is treated as 'Verify manually' - never assumed available. Microsoft re-tiers SITs over time; re-verify every entry against current learn.microsoft.com before each release and expand the list conservatively.",
+  "sits": [
+    {
+      "name": "International Classification of Diseases (ICD-10-CM)",
+      "requiredLicense": "E5",
+      "category": "named-entity",
+      "note": "Enhanced HIPAA template detector; requires Microsoft 365 E5 / E5 Compliance."
+    },
+    {
+      "name": "International Classification of Diseases (ICD-9-CM)",
+      "requiredLicense": "E5",
+      "category": "named-entity",
+      "note": "Enhanced HIPAA template detector; requires Microsoft 365 E5 / E5 Compliance."
+    }
+  ]
+}

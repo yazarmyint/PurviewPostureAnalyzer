@@ -1,0 +1,65 @@
+{
+  "schema": "ppa-license-requirements/v1",
+  "lastReviewed": "2026-07-02",
+  "source": "https://learn.microsoft.com/en-us/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/microsoft-purview-service-description",
+  "reviewNote": "Static license ANNOTATION, not detection - the tool never reads the tenant's subscriptions and the report ASSUMES Microsoft 365 E5 (or equivalent) when judging Purview workloads (decision D9). Annotations ride alongside findings and never change or soften a verdict. Every entry below was verified against the Microsoft Purview service description page on the lastReviewed date; entries use the page's own tier vocabulary (Microsoft 365 E3/E5, Microsoft Purview Suite, named add-ons). Checks without an entry are E3-baseline features per the same page. AI severity policy (docs/specs/ai-findings-build-spec.md): E5-included AI features (Copilot-experiences DLP, Copilot retention location, CC Copilot template, IRM risky-AI template) are judged like any E5 workload; features gated above E5 by pay-as-you-go billing or Agent 365 (DSPM collection policies, Enterprise/Other AI app locations, unified GenAI / third-party CC channels) are reported as Informational only - those PAYG gates are stated in finding copy, not as entries here, because they are not part of the service-description tier vocabulary. Microsoft re-tiers features over time: re-verify each entry against the source page before each release and update lastReviewed. Do not add tiers the page does not state.",
+  "contextNote": "This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant's subscriptions. Findings marked 'Requires' note the tier or add-on the feature needs per the Microsoft Purview service description (reviewed 2026-07-02); if the tenant is below that tier, read those findings as licensing decisions rather than configuration gaps. E5-included AI data security features are judged like any other E5 workload; AI surfaces gated above E5 by pay-as-you-go billing or Agent 365 licensing are reported as Informational only.",
+  "checks": {
+    "LABELS-03": {
+      "requires": "Microsoft 365 E5 (or Information Protection & Governance add-on)",
+      "basis": "Information Protection sensitivity labeling: 'automatic or policy-based labeling requires a Microsoft 365 E5 license or Microsoft 365 Information Protection and Governance'"
+    },
+    "DLP-02": {
+      "requires": "Microsoft 365 E5 / Office 365 E5 (or Microsoft Purview Suite)",
+      "basis": "DLP for Teams: feature table lists Microsoft 365 E5/A5/G5, Microsoft Purview Suite, IP&G add-on, Office 365 E5/A5/G5"
+    },
+    "DLP-03": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / IP&G add-on)",
+      "basis": "Endpoint DLP: feature table lists Microsoft 365 E5/A5/G5, Microsoft Purview Suite, IP&G add-on"
+    },
+    "DLP-04": {
+      "requires": "Microsoft 365 E5 (named-entity SITs)",
+      "basis": "Named-entity SIT tiering tracked in Data/dlp-sit-tiers.json (separately dated); see DLP policy reference"
+    },
+    "RET-02": {
+      "requires": "Microsoft 365 E5 / Office 365 E5 (or IP&G add-on)",
+      "basis": "Data Lifecycle & Records Management: 'If the retention policy uses an adaptive policy scope' license list (E5/A5/G5, Office 365 E5/A5/G5, IP&G)"
+    },
+    "IRM-01": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+      "basis": "Insider Risk Management: feature table lists Microsoft 365 E5/A5/G5, Microsoft Purview Suite, Insider Risk Management add-on"
+    },
+    "IRM-02": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+      "basis": "Insider Risk Management: as IRM-01"
+    },
+    "IRM-03": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+      "basis": "Insider Risk Management: as IRM-01 (Risky AI usage is an IRM policy template)"
+    },
+    "CC-01": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite)",
+      "basis": "Communications Compliance: feature table lists Microsoft 365 E5/A5/G5, Microsoft Purview Suite and add-on plans"
+    },
+    "AUD-03": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / E5 eDiscovery & Audit add-on)",
+      "basis": "Audit (Premium): feature table lists Microsoft 365 E5/A5/G5, Office 365 E5, Microsoft Purview Suite, E5 eDiscovery & Audit; 10-year retention needs a further add-on"
+    },
+    "ED-02": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / E5 eDiscovery & Audit add-on)",
+      "basis": "eDiscovery: 'eDiscovery (Premium)' row is Yes only for E5, Purview Suite and E5 eDiscovery & Audit columns"
+    },
+    "AI-01": {
+      "requires": "Microsoft 365 Copilot license",
+      "basis": "DLP for Microsoft 365 Copilot: the AI surface exists where Microsoft 365 Copilot is licensed and deployed"
+    },
+    "AI-02": {
+      "requires": "Prompt DLP: any Microsoft 365 Copilot tier; label-based file/email restriction: Microsoft 365 E5 (or Microsoft Purview Suite / IP&G add-on)",
+      "basis": "DLP for Microsoft 365 Copilot: table shows 'safeguard prompts' = Yes for all Copilot users; 'restrict Copilot from processing files and emails' = No for Business/E3/Office 365 E3, Yes for E5 / Purview Suite / IP&G"
+    },
+    "AI-06": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite)",
+      "basis": "Communications Compliance: as CC-01 (the Copilot interactions template is a Communication Compliance policy)"
+    }
+  }
+}

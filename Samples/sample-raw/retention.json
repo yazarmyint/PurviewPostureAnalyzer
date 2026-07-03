@@ -1,0 +1,26 @@
+{
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "HR Records – 7yr", "adaptive": false, "locations": ["SharePoint"], "labels": ["HR-Retain-7y"] },
+      { "name": "Finance Records – 10yr", "adaptive": false, "locations": ["SharePoint", "Exchange"], "labels": ["Fin-Retain-10y"] },
+      { "name": "General – 3yr", "adaptive": false, "locations": ["SharePoint"], "labels": ["Gen-Retain-3y"] }
+    ]
+  },
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "HR-Retain-7y", "autoApply": false },
+      { "name": "Fin-Retain-10y", "autoApply": false },
+      { "name": "Gen-Retain-3y", "autoApply": false },
+      { "name": "Legal-Hold-Permanent", "autoApply": false },
+      { "name": "Contracts-7y", "autoApply": false },
+      { "name": "Email-3y", "autoApply": false },
+      { "name": "Project-5y", "autoApply": false },
+      { "name": "Policy-Docs-6y", "autoApply": false }
+    ]
+  },
+  "adaptiveScopes": { "status": "Ok", "count": 0 }
+}

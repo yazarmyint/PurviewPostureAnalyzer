@@ -1,0 +1,13 @@
+{
+  "_comment": "Sparse shape observed on a real tenant (2026-07-01): retention policies exist but Get-RetentionComplianceRule returned 0 objects, so policies carry no labels and the label inventory is empty. Regression fixture for empty/zero handling.",
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Default retention", "adaptive": false, "locations": ["Exchange"], "labels": [] },
+      { "name": "Teams chat retention", "adaptive": false, "locations": [], "labels": [] }
+    ]
+  },
+  "labels": { "status": "Ok", "error": null, "items": [] },
+  "adaptiveScopes": { "status": "Ok", "count": 0 }
+}

@@ -1,0 +1,34 @@
+{
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Public", "guid": "g-public", "priority": 0, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "General", "guid": "g-general", "priority": 1, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Confidential", "guid": "g-conf", "priority": 2, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Highly Confidential", "guid": "g-hc", "priority": 3, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Legal", "guid": "g-hc-legal", "priority": 4, "scopes": ["File"], "parentId": "g-hc" },
+      { "name": "Finance", "guid": "g-hc-fin", "priority": 5, "scopes": ["File"], "parentId": "g-hc" }
+    ]
+  },
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Northwind Global Label Policy", "labels": ["Public", "General", "Confidential", "Highly Confidential", "Legal", "Finance"], "enabled": true, "scope": "All users" },
+      { "name": "Executive Protection Policy", "labels": ["Confidential", "Highly Confidential"], "enabled": true, "scope": "Executives (grp)" }
+    ]
+  },
+  "autoLabels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Auto-label PHI & PII", "mode": "TestWithoutNotifications", "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
+    ]
+  },
+  "containers": {
+    "status": "Collected",
+    "groups": { "total": 143, "labeled": 0 },
+    "sites": { "total": 168, "labeled": 0 }
+  }
+}

@@ -1,0 +1,38 @@
+Purview Posture Analyzer
+========================
+
+This project is a modernized, read-only Microsoft Purview posture analyzer.
+
+It is derived in part from the MIT-licensed project:
+
+    Configuration Analyzer for Microsoft Purview (CAMP)
+    https://github.com/OfficeDev/CAMP
+    Copyright (c) Microsoft Corporation.
+
+The original CAMP MIT license is preserved in the LICENSE file.
+
+Portions of the architecture (the dynamic file-convention loader pattern and the
+per-area cmdlet inventory used by collectors) are inspired by CAMP. The collection,
+analysis, and reporting logic has been rewritten.
+
+IMPORTANT
+---------
+This is an independent, community-maintained tool. It is NOT an official Microsoft
+product, is NOT supported by Microsoft, and is NOT endorsed by or affiliated with
+Microsoft. "Microsoft", "Microsoft Purview", "Microsoft 365", and "Copilot" are
+trademarks of Microsoft Corporation and are used here only to describe the services
+this tool reads from.
+
+Differences from CAMP
+---------------------
+- Read-only enforced: all tenant audit-log writes, execution beacons, telemetry
+  network calls, and consent prompts present in CAMP have been removed.
+- No automatic module installation.
+- No remediation scripts that create or modify tenant policies.
+- Framework-neutral: findings are NOT mapped to SOC 2, ISO 27001, NIST, CMMC, SSPA,
+  or any other compliance framework. Control mapping is left to a separate GRC process.
+- No content collection by default (no document/email/prompt content, file names,
+  or matched values).
+
+Third-party components used by the HTML report (if/when bundled) retain their own
+licenses and are attributed in the report output and/or docs.

@@ -1,0 +1,22 @@
+{
+  "_comment": "Sparse shape observed on a real tenant (2026-07-01): default OOB labels with empty parentId, no auto-labeling policies, label policy with no derivable scope. Regression fixture for empty/zero handling.",
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Personal", "guid": "g-personal", "priority": 0, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Public", "guid": "g-public", "priority": 1, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "General", "guid": "g-general", "priority": 2, "scopes": [], "parentId": "" },
+      { "name": "Confidential", "guid": "g-conf", "priority": 3, "scopes": ["File", "Email"], "parentId": "" }
+    ]
+  },
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Default Label Policy", "labels": [], "enabled": true, "scope": "" }
+    ]
+  },
+  "autoLabels": { "status": "Ok", "error": null, "items": [] },
+  "containers": { "status": "NotCollected", "groups": null, "sites": null }
+}

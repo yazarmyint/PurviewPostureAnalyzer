@@ -1,0 +1,10 @@
+{
+  "cases": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Litigation-2025-Contoso", "caseStatus": "Active" },
+      { "name": "HR-Investigation-Q1-2026", "caseStatus": "Closed" }
+    ]
+  }
+}

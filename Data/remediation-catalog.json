@@ -1,0 +1,114 @@
+{
+  "source": "Wave 3 remediation snippets. DRAFT until human-reviewed - tracking checklist in docs/REMEDIATION_REVIEW.md. Sourcing rule: cmdlets only where grounded (spec/probe-verified or documented on Microsoft Learn at the cited URL); portal-path-only everywhere else. Snippets are display-only text - this tool never executes remediation.",
+  "lastReviewed": "2026-07-03",
+  "checks": {
+    "LABELS-01": {
+      "portalPath": "Microsoft Purview portal > Information protection > Sensitivity labels",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels"
+    },
+    "LABELS-02": {
+      "portalPath": "Microsoft Purview portal > Information protection > Label publishing policies > Publish label",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-sensitivity-labels"
+    },
+    "LABELS-03": {
+      "portalPath": "Microsoft Purview portal > Information protection > Auto-labeling > select the simulation policy > Turn on policy",
+      "cmdlet": "# Security & Compliance PowerShell (Connect-IPPSSession)\nSet-AutoSensitivityLabelPolicy -Identity \"<policy name>\" -Mode Enable",
+      "learnUrl": "https://learn.microsoft.com/powershell/module/exchangepowershell/set-autosensitivitylabelpolicy"
+    },
+    "LABELS-04": {
+      "portalPath": "Microsoft Purview portal > Information protection > Sensitivity labels > Create a label > scope it to Groups & sites",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites"
+    },
+    "DLP-01": {
+      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select the test-mode policy > Turn the policy on",
+      "cmdlet": "# Security & Compliance PowerShell (Connect-IPPSSession)\nSet-DlpCompliancePolicy -Identity \"<policy name>\" -Mode Enable",
+      "learnUrl": "https://learn.microsoft.com/powershell/module/exchangepowershell/set-dlpcompliancepolicy"
+    },
+    "DLP-02": {
+      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select each policy > Edit locations > add Teams chat and channel messages",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams"
+    },
+    "DLP-03": {
+      "portalPath": "Microsoft Purview portal > Settings > Device onboarding (onboard devices first), then Data loss prevention > Policies > add the Devices location",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about"
+    },
+    "DLP-04": {
+      "portalPath": "Microsoft Purview portal > Data classification > Sensitive info types - confirm which named-entity detectors are active at the tenant's service plan",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-policy-reference"
+    },
+    "RET-01": {
+      "portalPath": "Microsoft Purview portal > Data lifecycle management > Retention policies",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention"
+    },
+    "RET-02": {
+      "portalPath": "Microsoft Purview portal > Data lifecycle management > Adaptive scopes > Create scope, then retarget retention policies to adaptive scopes",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-adaptive"
+    },
+    "RET-03": {
+      "portalPath": "Microsoft Purview portal > Data lifecycle management > Label policies > Auto-apply a label",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically"
+    },
+    "IRM-01": {
+      "portalPath": "Microsoft Purview portal > Insider risk management > Policies > Create policy",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management"
+    },
+    "IRM-02": {
+      "portalPath": "Microsoft Purview portal > Insider risk management > Policies > Create policy > Data theft by departing users template - after HR/Legal alignment and licensing are settled",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies"
+    },
+    "IRM-03": {
+      "portalPath": "Microsoft Purview portal > Insider risk management > Policies > Create policy > Risky AI usage template",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies"
+    },
+    "AUD-01": {
+      "portalPath": "Microsoft Purview portal > Audit > select the 'Start recording user and admin activity' banner",
+      "cmdlet": "# Exchange Online PowerShell (Connect-ExchangeOnline)\nSet-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $true",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable"
+    },
+    "AUD-02": {
+      "portalPath": "Microsoft Purview portal > Audit > New search - confirm recent events return results (enabled is not the same as ingesting on time)",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-search"
+    },
+    "AUD-03": {
+      "portalPath": "Microsoft Purview portal > Audit - review Audit (Premium) retention policies where the tenant tier includes them",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-premium"
+    },
+    "ED-01": {
+      "portalPath": "Microsoft Purview portal > eDiscovery > Cases",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery"
+    },
+    "ED-02": {
+      "portalPath": "Microsoft Purview portal > eDiscovery - Premium capabilities (holds, analytics, review sets) surface once the tenant tier includes them",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery"
+    },
+    "CC-01": {
+      "portalPath": "Microsoft Purview portal > Communication compliance > Policies > Create policy",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance"
+    },
+    "AI-01": {
+      "portalPath": "Microsoft Purview portal > DSPM for AI",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview"
+    },
+    "AI-02": {
+      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select the Copilot-scoped policy > Turn the policy on",
+      "cmdlet": "# Security & Compliance PowerShell (Connect-IPPSSession)\nSet-DlpCompliancePolicy -Identity \"<policy name>\" -Mode Enable",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dspm-for-ai"
+    },
+    "AI-03": {
+      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > create or edit a policy on the Microsoft 365 Copilot location with a rule referencing sensitivity labels",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about"
+    },
+    "AI-04": {
+      "portalPath": "Microsoft Purview portal > DSPM for AI - collection policies (pay-as-you-go / Agent 365 billing applies)",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-copilot"
+    },
+    "AI-05": {
+      "portalPath": "Microsoft Purview portal > Data lifecycle management > Retention policies > New retention policy - include the Microsoft 365 Copilot experiences location",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-retention-policies"
+    },
+    "AI-06": {
+      "portalPath": "Microsoft Purview portal > Communication compliance > Policies > Create policy > 'Detect Microsoft 365 Copilot interactions' template",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance"
+    }
+  }
+}

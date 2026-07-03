@@ -331,6 +331,56 @@ Describe 'P6 - redaction mode' {
     }
 }
 
+Describe 'P7 - remediation snippets' {
+    It 'renders a remediation region for every Improvement/Recommendation finding with a catalog entry (dense: 16)' {
+        ([regex]::Matches($script:DenseHtml, '<details class="remed">')).Count | Should -Be 16
+    }
+    It 'never renders remediation on OK / Informational / Verify-manually findings' {
+        # These have catalog entries but must not show the region. Capture each card
+        # from its anchor to the next finding card (or the section back-link).
+        foreach ($id in @('DLP-04', 'LABELS-01', 'ED-01', 'AUD-03', 'LABELS-02')) {
+            $card = [regex]::Match($script:DenseHtml, '(?s)id="finding-' + $id + '".*?(?=<div class="finding"|<div class="text-right backlink")').Value
+            $card | Should -Not -BeNullOrEmpty
+            $card | Should -Not -Match 'class="remed"'
+        }
+    }
+    It 'renders nothing when the catalog has no entry for the check ID' {
+        $sec = New-PpaSection -Id 'Zz_Test' -Title 'Zz Test' -Group 'G' -GroupIcon 'fas fa-cog' `
+            -Glance (New-PpaGlance -Name 'Zz') -Findings @(
+                New-PpaFinding -Id 'ZZZ-99' -DomId 'f-zz-1' -Title 'Unmapped check' -Status 'Improvement' -Whyline 'w'
+            )
+        $norm = ConvertTo-PpaNormalized -Meta $script:DenseNorm.meta -Licensing $script:DenseNorm.licensing -Sections @($sec)
+        (Export-PpaHtmlReport -Normalized $norm) | Should -Not -Match 'class="remed"'
+    }
+    It 'shows the grounded cmdlet in a code block with a copy button (AUD-01, AI-02)' {
+        $script:DenseHtml | Should -Match 'Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled \$true'
+        $script:DenseHtml | Should -Match 'Set-DlpCompliancePolicy -Identity "&lt;policy name&gt;" -Mode Enable'
+        ([regex]::Matches($script:DenseHtml, 'class="remed-copy"')).Count | Should -BeGreaterThan 0
+    }
+    It 'portal-path-only entries render without a code block (LABELS-04)' {
+        $card = [regex]::Match($script:DenseHtml, '(?s)id="finding-LABELS-04".*?</details>').Value
+        $card | Should -Match 'remed-portal'
+        $card | Should -Not -Match 'remed-code'
+    }
+    It 'every remediation region carries the draft disclaimer and a Learn link' {
+        ([regex]::Matches($script:DenseHtml, 'remed-note')).Count | Should -BeGreaterOrEqual 16
+        $card = [regex]::Match($script:DenseHtml, '(?s)id="finding-CC-01".*?</details>').Value
+        $card | Should -Match 'remed-learn'
+        $card | Should -Match 'https://learn\.microsoft\.com/en-us/purview/communication-compliance'
+    }
+    It 'remediation regions are native details elements - the drill-down collapse count is unchanged' {
+        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 26
+    }
+    It 'the catalog defines an entry for every catalog check ID referenced by the dense fixture' {
+        $cat = Get-PpaRemediationCatalog
+        foreach ($sec in @($script:DenseNorm.sections)) {
+            foreach ($f in @($sec.findings)) {
+                (Get-PpaRemediation -Catalog $cat -CheckId ([string]$f.id)) | Should -Not -BeNullOrEmpty
+            }
+        }
+    }
+}
+
 Describe 'Every fixture variant - client safety invariants' {
     It 'produces ASCII-only output for <Name>' -ForEach @(
         @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }

@@ -17,6 +17,7 @@ $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $root 'Private\Model\PpaStatus.ps1')
 . (Join-Path $root 'Private\Model\New-PpaFinding.ps1')
 . (Join-Path $root 'Private\Model\ConvertTo-PpaNormalized.ps1')
+. (Join-Path $root 'Private\Core\Get-PpaRemediationCatalog.ps1')
 . (Join-Path $root 'Private\Render\PpaRedact.ps1')
 . (Join-Path $root 'Private\Render\PpaHtml.ps1')
 . (Join-Path $root 'Private\Render\Export-PpaHtmlReport.ps1')

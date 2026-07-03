@@ -31,6 +31,9 @@ function Export-PpaHtmlReport {
     $sections  = @($Normalized.sections)
     $sb        = New-Object System.Text.StringBuilder
 
+    # P7: static remediation-snippet map, joined per finding by check ID at render time.
+    $remedCatalog = Get-PpaRemediationCatalog
+
     # Group-by-first-appearance + all-solutions totals, computed once from the same
     # finding objects the body renders. Shared by the exec summary (P1) and the
     # Solutions Summary so their counts can never drift apart.
@@ -186,6 +189,12 @@ function Export-PpaHtmlReport {
             [void]$sb.Append('          <p class="whyline">').Append((ConvertTo-PpaHtmlText $f.whyline)).AppendLine('</p>')
             $tableHtml = Write-PpaDetailTable $f.table
             if ($tableHtml) { [void]$sb.Append($tableHtml) }
+            # P7: remediation only where the finding is actionable AND the catalog
+            # defines an entry for this check ID (keyed join, never positional).
+            if ($f.status -eq 'Improvement' -or $f.status -eq 'Recommendation') {
+                $remedHtml = Write-PpaRemediation (Get-PpaRemediation -Catalog $remedCatalog -CheckId ([string]$f.id))
+                if ($remedHtml) { [void]$sb.Append($remedHtml) }
+            }
             $lmHtml = Write-PpaLearnMore $f.learnmore
             if ($lmHtml) { [void]$sb.Append($lmHtml) }
             [void]$sb.AppendLine('        </div></div>')

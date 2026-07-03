@@ -6,6 +6,7 @@ BeforeAll {
     . (Join-Path $script:RepoRoot 'Private\Model\PpaStatus.ps1')
     . (Join-Path $script:RepoRoot 'Private\Model\New-PpaFinding.ps1')
     . (Join-Path $script:RepoRoot 'Private\Model\ConvertTo-PpaNormalized.ps1')
+    . (Join-Path $script:RepoRoot 'Private\Core\Get-PpaRemediationCatalog.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\PpaRedact.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\PpaHtml.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\Export-PpaHtmlReport.ps1')

@@ -303,6 +303,31 @@ No Graph. Cmdlet-level provenance (verified / doc-grounded / unverified) is reco
 
 ---
 
+## Remediation metadata *(Wave 3)*
+
+Each check may define an optional remediation block in `Data/remediation-catalog.json`,
+keyed by the check ID above: `portalPath` (string), `cmdlet` (optional string), `learnUrl`
+(string, may reuse the finding's Learn link). The renderer shows a collapsible **"How to
+remediate"** region inside the finding card **only when the finding's status is
+Improvement or Recommendation** and an entry exists. Snippets are displayed text, never
+executed — the tool stays read-only.
+
+Sourcing rule (non-negotiable): cmdlets are drafted **only where grounded** — verified in
+this project's probe/spec work or documented at the cited Microsoft Learn page; everywhere
+else the entry is portal-path + Learn link only. Every drafted snippet is a **DRAFT**
+until human-reviewed; the review checklist lives in `docs/REMEDIATION_REVIEW.md`.
+
+Cmdlet-bearing entries (all other checks are portal-path-only):
+
+| Check | Cmdlet | Grounding |
+|---|---|---|
+| DLP-01 | `Set-DlpCompliancePolicy -Identity "<name>" -Mode Enable` | Wave 3 spec + Wave 2 probe-verified `Mode` values |
+| AI-02 | `Set-DlpCompliancePolicy -Identity "<name>" -Mode Enable` | Copilot policy modes verified 2026-07-02 |
+| LABELS-03 | `Set-AutoSensitivityLabelPolicy -Identity "<name>" -Mode Enable` | Learn cmdlet page, `-Mode` accepted values (fetched 2026-07-03) |
+| AUD-01 | `Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $true` | Learn "Turn auditing on or off" verbatim; Exchange Online PowerShell (fetched 2026-07-03) |
+
+---
+
 ## Open items to resolve during the Code build
 
 1. **Device onboarding count** (DLP-03) — find a read-only source or downgrade to Verify.

@@ -397,6 +397,21 @@ Describe 'P7 - remediation snippets' {
             }
         }
     }
+    It 'every catalog entry carries a grounding field (skill/learn/established/none) - Wave 3.1 B5' {
+        $cat = Get-PpaRemediationCatalog
+        foreach ($prop in $cat.checks.PSObject.Properties) {
+            $g = [string]$prop.Value.grounding
+            $g | Should -Not -BeNullOrEmpty -Because ($prop.Name + ' must record its grounding')
+            @('skill', 'learn', 'established', 'none') | Should -Contain $g
+        }
+    }
+    It 'not-grounded entries (DLP-04, AI-04) carry the minimal fallback, grounded entries carry decision-naming prose' {
+        $cat = Get-PpaRemediationCatalog
+        foreach ($id in @('DLP-04', 'AI-04')) { [string]$cat.checks.$id.grounding | Should -Be 'none' }
+        # Spot-check a grounded entry names the decision, not just a blade path.
+        [string]$cat.checks.'LABELS-03'.portalPath | Should -Match 'simulation'
+        [string]$cat.checks.'IRM-01'.portalPath | Should -Match 'privacy'
+    }
 }
 
 Describe 'Every fixture variant - client safety invariants' {

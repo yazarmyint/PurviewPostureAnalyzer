@@ -241,8 +241,10 @@ function Write-PpaRemediation {
     [void]$sb.AppendLine('          <details class="remed">')
     [void]$sb.AppendLine('            <summary><i class="fas fa-tools"></i> How to remediate <span class="remed-draft-tag">draft</span></summary>')
     [void]$sb.AppendLine('            <div class="remed-body">')
+    # portalPath carries the 2-3 sentence portal-first guidance (or the minimal
+    # fallback line for not-grounded checks) - prose, so no label prefix.
     if (-not [string]::IsNullOrEmpty([string]$Entry.portalPath)) {
-        [void]$sb.Append('              <p class="remed-portal"><strong>Portal:</strong> ').Append((ConvertTo-PpaHtmlText ([string]$Entry.portalPath))).AppendLine('</p>')
+        [void]$sb.Append('              <p class="remed-portal">').Append((ConvertTo-PpaHtmlText ([string]$Entry.portalPath))).AppendLine('</p>')
     }
     if (-not [string]::IsNullOrEmpty([string]$Entry.learnUrl)) {
         [void]$sb.Append('              <a class="remed-learn" href="').Append((ConvertTo-PpaHtmlAttr ([string]$Entry.learnUrl))).Append('" target="_blank">')

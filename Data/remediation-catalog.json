@@ -1,110 +1,136 @@
 {
-  "source": "Wave 3.1 remediation guidance. DRAFT until human-reviewed - determination table and drafts in docs/REMEDIATION_REVIEW.md. No PowerShell anywhere in this file (Wave 3.1 B1): grounded checks carry short portal-first guidance naming the key decision; not-grounded checks carry portal path + Learn link only. Display-only text - this tool never executes remediation.",
+  "source": "Wave 3.1 remediation guidance. DRAFT until human-reviewed - grounding determination table and drafts in docs/REMEDIATION_REVIEW.md. No PowerShell anywhere in this file (B1). portalPath carries 2-3 sentence portal-first guidance naming the key decision for GROUNDED checks (grounding: skill), or a minimal fallback line for NOT-GROUNDED checks (grounding: none). Display-only text - this tool never executes remediation.",
   "lastReviewed": "2026-07-03",
   "checks": {
     "LABELS-01": {
-      "portalPath": "Microsoft Purview portal > Information protection > Sensitivity labels",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels"
+      "portalPath": "In the Purview portal under Information protection > Sensitivity labels, build a small taxonomy - four or fewer top-level labels with business-language names (for example Public / General / Confidential / Highly Confidential). Get data-owner sign-off on the tiers before publishing; an IT-invented taxonomy with many levels stalls adoption and users default to General.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels",
+      "grounding": "skill"
     },
     "LABELS-02": {
-      "portalPath": "Microsoft Purview portal > Information protection > Label publishing policies > Publish label",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-sensitivity-labels"
+      "portalPath": "Under Information protection > Label publishing policies, publish the labels to the users who create content, deciding the audience scope and the default label for each group. Verify pilot users see the label menu with the intended default in Word and Outlook before widening the rollout.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-sensitivity-labels",
+      "grounding": "skill"
     },
     "LABELS-03": {
-      "portalPath": "Microsoft Purview portal > Information protection > Auto-labeling > select the simulation policy > Turn on policy",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically"
+      "portalPath": "Under Information protection > Auto-labeling, review the policy's simulation results to confirm the matched items and sensitive info types are what you intend, then turn the policy on. Enabling before reviewing simulation can mislabel content at scale.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically",
+      "grounding": "skill"
     },
     "LABELS-04": {
-      "portalPath": "Microsoft Purview portal > Information protection > Sensitivity labels > Create a label > scope it to Groups & sites",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites"
+      "portalPath": "Container labels are created under Information protection > Sensitivity labels by scoping a label to Groups & sites. The real decision is what each label enforces on a workspace - guest access, external sharing, and unmanaged-device limits - so agree those settings with site owners before publishing.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites",
+      "grounding": "skill"
     },
     "DLP-01": {
-      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select the test-mode policy > Turn the policy on",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp"
+      "portalPath": "Under Data loss prevention > Policies, review each test-mode policy's matches in Activity Explorer and define the exceptions and override justifications the business needs before switching the policy to enforce. Blocking without an exception path produces business escalations within hours.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp",
+      "grounding": "skill"
     },
     "DLP-02": {
-      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select each policy > Edit locations > add Teams chat and channel messages",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams"
+      "portalPath": "Under Data loss prevention > Policies, edit each policy's locations to add Teams chat and channel messages, deciding which policies genuinely need Teams coverage. Teams DLP applies only to messages posted after the change - it is not retroactive - so set expectations and start with warn-level actions.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams",
+      "grounding": "skill"
     },
     "DLP-03": {
-      "portalPath": "Microsoft Purview portal > Settings > Device onboarding (onboard devices first), then Data loss prevention > Policies > add the Devices location",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about"
+      "portalPath": "Endpoint DLP only works on onboarded devices, so onboard them first (Intune is the preferred path, or Defender for Endpoint) and confirm per-user licensing covers Endpoint DLP. Then add the Devices location to the relevant policies and run audit-only before warn or block - blocking on day one turns users against the agent.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about",
+      "grounding": "skill"
     },
     "DLP-04": {
-      "portalPath": "Microsoft Purview portal > Data classification > Sensitive info types - confirm which named-entity detectors are active at the tenant's service plan",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-policy-reference"
+      "portalPath": "Configure in the Microsoft Purview portal under Data classification > Sensitive info types; see the linked guidance for which detectors apply at your tenant's service plan.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-policy-reference",
+      "grounding": "none"
     },
     "RET-01": {
-      "portalPath": "Microsoft Purview portal > Data lifecycle management > Retention policies",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention"
+      "portalPath": "Under Data lifecycle management, anchor the retention inventory to a file plan: map each retention rule to a policy (broad, location-level) or a label (item-level precision), each citing a regulation or a named business owner. Rules that exist in the portal but not in the plan are the ones that fail audit.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention",
+      "grounding": "skill"
     },
     "RET-02": {
-      "portalPath": "Microsoft Purview portal > Data lifecycle management > Adaptive scopes > Create scope, then retarget retention policies to adaptive scopes",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-adaptive"
+      "portalPath": "Under Data lifecycle management > Adaptive scopes, create query-based scopes on user, group, or site attributes and preview the membership they return before retargeting retention policies to them. Adaptive scopes keep coverage current as the organization changes; static scopes quietly drift.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-adaptive",
+      "grounding": "skill"
     },
     "RET-03": {
-      "portalPath": "Microsoft Purview portal > Data lifecycle management > Label policies > Auto-apply a label",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically"
+      "portalPath": "Under Data lifecycle management > Label policies, add auto-apply rules for the retention labels, choosing the conditions deliberately - sensitive info types, KQL, or trainable classifiers - and run them in simulation first. Mis-targeted auto-apply is hard to roll back at scale, so review simulated coverage before broad rollout.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically",
+      "grounding": "skill"
     },
     "IRM-01": {
-      "portalPath": "Microsoft Purview portal > Insider risk management > Policies > Create policy",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management"
+      "portalPath": "Before creating any policy under Insider risk management, configure the privacy controls - pseudonymized usernames, separated admin/analyst/investigator roles, and legal or works-council review where required. Then start with a single template in analytics mode for about two weeks to baseline alert volume; enabling every template on day one buries the team in untriaged alerts.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management",
+      "grounding": "skill"
     },
     "IRM-02": {
-      "portalPath": "Microsoft Purview portal > Insider risk management > Policies > Create policy > Data theft by departing users template - after HR/Legal alignment and licensing are settled",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies"
+      "portalPath": "Treat this as a scoping conversation, not a configuration task: the departing-users template needs HR/Legal alignment and an HR data connector before it has a trigger to fire on. Settle licensing, privacy controls, and the HR feed first, then scope the policy.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies",
+      "grounding": "skill"
     },
     "IRM-03": {
-      "portalPath": "Microsoft Purview portal > Insider risk management > Policies > Create policy > Risky AI usage template",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies"
+      "portalPath": "The Risky AI usage template is created under Insider risk management > Policies, but it scores on DSPM for AI signals - enable that visibility first or the policy has nothing to evaluate. Pair it with the same privacy controls and analytics-mode baseline as any other IRM template.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies",
+      "grounding": "skill"
     },
     "AUD-01": {
-      "portalPath": "Microsoft Purview portal > Audit > select the 'Start recording user and admin activity' banner",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable"
+      "portalPath": "In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable",
+      "grounding": "skill"
     },
     "AUD-02": {
-      "portalPath": "Microsoft Purview portal > Audit > New search - confirm recent events return results (enabled is not the same as ingesting on time)",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-search"
+      "portalPath": "In Audit > New search, run a query for activity you know happened recently and confirm events return - enabled is not the same as ingesting on time. Audit search has latency, so allow for it before concluding events are missing.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-search",
+      "grounding": "skill"
     },
     "AUD-03": {
-      "portalPath": "Microsoft Purview portal > Audit - review Audit (Premium) retention policies where the tenant tier includes them",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-premium"
+      "portalPath": "Where the tenant tier includes Audit (Premium), decide retention deliberately: match the retention period to how far back an investigation may need to reach, and add audit retention policies for the crucial events (for example mailbox access) rather than relying on defaults.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-premium",
+      "grounding": "skill"
     },
     "ED-01": {
-      "portalPath": "Microsoft Purview portal > eDiscovery > Cases",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery"
+      "portalPath": "Under eDiscovery > Cases, keep case hygiene defensible: assign per-case, role-scoped access rather than broad eDiscovery Manager grants, apply holds before searching, and close cases (releasing holds) only when legal confirms the matter is concluded.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery",
+      "grounding": "skill"
     },
     "ED-02": {
-      "portalPath": "Microsoft Purview portal > eDiscovery - Premium capabilities (holds, analytics, review sets) surface once the tenant tier includes them",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery"
+      "portalPath": "Premium capabilities - review sets, analytics, and Copilot interaction collection - depend on E5 / E5 Compliance / add-on licensing per user. Confirm which features your licensing actually enables before building a workflow that assumes them.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery",
+      "grounding": "skill"
     },
     "CC-01": {
-      "portalPath": "Microsoft Purview portal > Communication compliance > Policies > Create policy",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance"
+      "portalPath": "Before creating a policy under Communication compliance, put the privacy guardrails in place: pseudonymized usernames for reviewers, tightly scoped reviewer access, and legal/HR sign-off on what is monitored. Then start narrow - one template scoped to the population that genuinely needs supervision - and expand once triage keeps up.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance",
+      "grounding": "skill"
     },
     "AI-01": {
-      "portalPath": "Microsoft Purview portal > DSPM for AI",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview"
+      "portalPath": "Activate DSPM for AI from the Purview portal and confirm tenant-wide auditing is on - without it there are no interactions to see. Run the built-in data assessments to scope AI risk before turning on any enforcement.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview",
+      "grounding": "skill"
     },
     "AI-02": {
-      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select the Copilot-scoped policy > Turn the policy on",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/dspm-for-ai"
+      "portalPath": "Under Data loss prevention > Policies, review what the Copilot-scoped policy matched during simulation - whether the sensitive info types and prompt matches are what you intend to act on - then switch it to enforce. Classification maturity gates its value: tune the conditions rather than enforcing a noisy default.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dspm-for-ai",
+      "grounding": "skill"
     },
     "AI-03": {
-      "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > create or edit a policy on the Microsoft 365 Copilot location with a rule referencing sensitivity labels",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about"
+      "portalPath": "The decision is which sensitivity labels Copilot must not ground on: create or edit a policy on the Microsoft 365 Copilot location with a rule referencing those labels, which requires the labels to be deployed and applied first. Verify with a test prompt that Copilot no longer returns the labeled content.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about",
+      "grounding": "skill"
     },
     "AI-04": {
-      "portalPath": "Microsoft Purview portal > DSPM for AI - collection policies (pay-as-you-go / Agent 365 billing applies)",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-copilot"
+      "portalPath": "Configure in the Microsoft Purview portal under DSPM for AI; see the linked guidance for collection-policy scoping specific to your environment (pay-as-you-go / Agent 365 billing applies).",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-copilot",
+      "grounding": "none"
     },
     "AI-05": {
-      "portalPath": "Microsoft Purview portal > Data lifecycle management > Retention policies > New retention policy - include the Microsoft 365 Copilot experiences location",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-retention-policies"
+      "portalPath": "Under Data lifecycle management > Retention policies, create or extend a policy to include the Microsoft 365 Copilot interactions location, deciding the retain/delete period with the records owner rather than defaulting. Check precedence against existing policies - retention wins over deletion and the longest retention wins - so the outcome is deliberate.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-retention-policies",
+      "grounding": "skill"
     },
     "AI-06": {
-      "portalPath": "Microsoft Purview portal > Communication compliance > Policies > Create policy > 'Detect Microsoft 365 Copilot interactions' template",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance"
+      "portalPath": "Under Communication compliance > Policies, start from the 'Detect Microsoft 365 Copilot interactions' template and decide which population's AI interactions genuinely need supervision. Apply the same privacy prerequisites as any Communication Compliance policy - pseudonymized reviewers, scoped access, and legal sign-off - before enabling.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance",
+      "grounding": "skill"
     }
   }
 }

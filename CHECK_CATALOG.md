@@ -303,28 +303,26 @@ No Graph. Cmdlet-level provenance (verified / doc-grounded / unverified) is reco
 
 ---
 
-## Remediation metadata *(Wave 3)*
+## Remediation metadata *(Wave 3.1)*
 
 Each check may define an optional remediation block in `Data/remediation-catalog.json`,
-keyed by the check ID above: `portalPath` (string), `cmdlet` (optional string), `learnUrl`
-(string, may reuse the finding's Learn link). The renderer shows a collapsible **"How to
-remediate"** region inside the finding card **only when the finding's status is
-Improvement or Recommendation** and an entry exists. Snippets are displayed text, never
-executed — the tool stays read-only.
+keyed by the check ID above: `portalPath` (string — 2–3 sentence portal-first guidance
+naming the key decision, or a minimal fallback line), `learnUrl` (string, may reuse the
+finding's Learn link), and `grounding` (`skill` / `learn` / `established` / `none` — the
+auditable record of why the guidance says what it says; not rendered). The renderer shows
+a collapsible **"How to remediate"** region inside the finding card **only when the
+finding's status is Improvement or Recommendation** and an entry exists. Guidance is
+displayed text, never executed — the tool stays read-only.
 
-Sourcing rule (non-negotiable): cmdlets are drafted **only where grounded** — verified in
-this project's probe/spec work or documented at the cited Microsoft Learn page; everywhere
-else the entry is portal-path + Learn link only. Every drafted snippet is a **DRAFT**
-until human-reviewed; the review checklist lives in `docs/REMEDIATION_REVIEW.md`.
+**No PowerShell in remediation, ever** (Wave 3.1 B1): a one-line cmdlet implies a switch
+flips a posture gap that Purview never solves that simply — the real remediation is the
+scope/SITs/location/audience decision, which is what the guidance names.
 
-Cmdlet-bearing entries (all other checks are portal-path-only):
-
-| Check | Cmdlet | Grounding |
-|---|---|---|
-| DLP-01 | `Set-DlpCompliancePolicy -Identity "<name>" -Mode Enable` | Wave 3 spec + Wave 2 probe-verified `Mode` values |
-| AI-02 | `Set-DlpCompliancePolicy -Identity "<name>" -Mode Enable` | Copilot policy modes verified 2026-07-02 |
-| LABELS-03 | `Set-AutoSensitivityLabelPolicy -Identity "<name>" -Mode Enable` | Learn cmdlet page, `-Mode` accepted values (fetched 2026-07-03) |
-| AUD-01 | `Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $true` | Learn "Turn auditing on or off" verbatim; Exchange Online PowerShell (fetched 2026-07-03) |
+Sourcing rule (non-negotiable): guidance is written **only where grounded** — a skills
+self-audit (B2) judged each check against the local Purview skill library and the
+finding's own Learn material before any prose was drafted. Not-grounded checks (DLP-04,
+AI-04) carry portal path + Learn link only. The determination table and every draft live
+in `docs/REMEDIATION_REVIEW.md`; all of it is DRAFT until human-reviewed.
 
 ---
 

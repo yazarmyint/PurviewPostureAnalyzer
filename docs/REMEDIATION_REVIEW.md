@@ -55,12 +55,43 @@ the current fixtures DLP-04 (Verify manually), RET-01/AUD-02/AUD-03/ED-01/ED-02/
 (Informational/Verify) carry catalog entries that do not render today; they exist so the
 structure stays complete if a status flips on another tenant.
 
-## B3/B4 - Drafted guidance (added after the table above was vetted)
+## B3/B4 - Drafted guidance (table above approved 2026-07-03 before drafting)
 
-*Pending: this section is filled in by B3 (grounded prose, 2-3 sentences naming the key
-decision) and B4 (fallback lines) once the determination table is approved. The rendered
-text lives in `Data/remediation-catalog.json`; each entry also carries a `grounding`
-field (`skill` / `learn` / `established` / `none`) matching this table.*
+The rendered text lives in `Data/remediation-catalog.json`; each entry carries a
+`grounding` field (`skill` / `learn` / `established` / `none`) matching the table.
+Hard cap honored: no entry exceeds 3 sentences; no PowerShell anywhere.
+
+### Grounded drafts (24)
+
+- **LABELS-01** - "In the Purview portal under Information protection > Sensitivity labels, build a small taxonomy - four or fewer top-level labels with business-language names (for example Public / General / Confidential / Highly Confidential). Get data-owner sign-off on the tiers before publishing; an IT-invented taxonomy with many levels stalls adoption and users default to General."
+- **LABELS-02** - "Under Information protection > Label publishing policies, publish the labels to the users who create content, deciding the audience scope and the default label for each group. Verify pilot users see the label menu with the intended default in Word and Outlook before widening the rollout."
+- **LABELS-03** - "Under Information protection > Auto-labeling, review the policy's simulation results to confirm the matched items and sensitive info types are what you intend, then turn the policy on. Enabling before reviewing simulation can mislabel content at scale."
+- **LABELS-04** - "Container labels are created under Information protection > Sensitivity labels by scoping a label to Groups & sites. The real decision is what each label enforces on a workspace - guest access, external sharing, and unmanaged-device limits - so agree those settings with site owners before publishing."
+- **DLP-01** - "Under Data loss prevention > Policies, review each test-mode policy's matches in Activity Explorer and define the exceptions and override justifications the business needs before switching the policy to enforce. Blocking without an exception path produces business escalations within hours."
+- **DLP-02** - "Under Data loss prevention > Policies, edit each policy's locations to add Teams chat and channel messages, deciding which policies genuinely need Teams coverage. Teams DLP applies only to messages posted after the change - it is not retroactive - so set expectations and start with warn-level actions."
+- **DLP-03** - "Endpoint DLP only works on onboarded devices, so onboard them first (Intune is the preferred path, or Defender for Endpoint) and confirm per-user licensing covers Endpoint DLP. Then add the Devices location to the relevant policies and run audit-only before warn or block - blocking on day one turns users against the agent."
+- **RET-01** - "Under Data lifecycle management, anchor the retention inventory to a file plan: map each retention rule to a policy (broad, location-level) or a label (item-level precision), each citing a regulation or a named business owner. Rules that exist in the portal but not in the plan are the ones that fail audit."
+- **RET-02** - "Under Data lifecycle management > Adaptive scopes, create query-based scopes on user, group, or site attributes and preview the membership they return before retargeting retention policies to them. Adaptive scopes keep coverage current as the organization changes; static scopes quietly drift."
+- **RET-03** - "Under Data lifecycle management > Label policies, add auto-apply rules for the retention labels, choosing the conditions deliberately - sensitive info types, KQL, or trainable classifiers - and run them in simulation first. Mis-targeted auto-apply is hard to roll back at scale, so review simulated coverage before broad rollout."
+- **IRM-01** - "Before creating any policy under Insider risk management, configure the privacy controls - pseudonymized usernames, separated admin/analyst/investigator roles, and legal or works-council review where required. Then start with a single template in analytics mode for about two weeks to baseline alert volume; enabling every template on day one buries the team in untriaged alerts."
+- **IRM-02** - "Treat this as a scoping conversation, not a configuration task: the departing-users template needs HR/Legal alignment and an HR data connector before it has a trigger to fire on. Settle licensing, privacy controls, and the HR feed first, then scope the policy."
+- **IRM-03** - "The Risky AI usage template is created under Insider risk management > Policies, but it scores on DSPM for AI signals - enable that visibility first or the policy has nothing to evaluate. Pair it with the same privacy controls and analytics-mode baseline as any other IRM template."
+- **AUD-01** - "In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach."
+- **AUD-02** - "In Audit > New search, run a query for activity you know happened recently and confirm events return - enabled is not the same as ingesting on time. Audit search has latency, so allow for it before concluding events are missing."
+- **AUD-03** - "Where the tenant tier includes Audit (Premium), decide retention deliberately: match the retention period to how far back an investigation may need to reach, and add audit retention policies for the crucial events (for example mailbox access) rather than relying on defaults."
+- **ED-01** - "Under eDiscovery > Cases, keep case hygiene defensible: assign per-case, role-scoped access rather than broad eDiscovery Manager grants, apply holds before searching, and close cases (releasing holds) only when legal confirms the matter is concluded."
+- **ED-02** - "Premium capabilities - review sets, analytics, and Copilot interaction collection - depend on E5 / E5 Compliance / add-on licensing per user. Confirm which features your licensing actually enables before building a workflow that assumes them."
+- **CC-01** - "Before creating a policy under Communication compliance, put the privacy guardrails in place: pseudonymized usernames for reviewers, tightly scoped reviewer access, and legal/HR sign-off on what is monitored. Then start narrow - one template scoped to the population that genuinely needs supervision - and expand once triage keeps up."
+- **AI-01** - "Activate DSPM for AI from the Purview portal and confirm tenant-wide auditing is on - without it there are no interactions to see. Run the built-in data assessments to scope AI risk before turning on any enforcement."
+- **AI-02** - "Under Data loss prevention > Policies, review what the Copilot-scoped policy matched during simulation - whether the sensitive info types and prompt matches are what you intend to act on - then switch it to enforce. Classification maturity gates its value: tune the conditions rather than enforcing a noisy default."
+- **AI-03** - "The decision is which sensitivity labels Copilot must not ground on: create or edit a policy on the Microsoft 365 Copilot location with a rule referencing those labels, which requires the labels to be deployed and applied first. Verify with a test prompt that Copilot no longer returns the labeled content."
+- **AI-05** - "Under Data lifecycle management > Retention policies, create or extend a policy to include the Microsoft 365 Copilot interactions location, deciding the retain/delete period with the records owner rather than defaulting. Check precedence against existing policies - retention wins over deletion and the longest retention wins - so the outcome is deliberate."
+- **AI-06** - "Under Communication compliance > Policies, start from the 'Detect Microsoft 365 Copilot interactions' template and decide which population's AI interactions genuinely need supervision. Apply the same privacy prerequisites as any Communication Compliance policy - pseudonymized reviewers, scoped access, and legal sign-off - before enabling."
+
+### Fallback entries (2, NOT GROUNDED)
+
+- **DLP-04** - "Configure in the Microsoft Purview portal under Data classification > Sensitive info types; see the linked guidance for which detectors apply at your tenant's service plan."
+- **AI-04** - "Configure in the Microsoft Purview portal under DSPM for AI; see the linked guidance for collection-policy scoping specific to your environment (pay-as-you-go / Agent 365 billing applies)."
 
 ## Reviewer checklist
 

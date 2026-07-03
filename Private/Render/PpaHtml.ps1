@@ -229,9 +229,11 @@ function Write-PpaDetailTable {
 }
 
 function Write-PpaRemediation {
-    # P7: collapsible "How to remediate" region inside a finding's drill-down.
-    # Native <details> (no Bootstrap collapse, no jQuery): keeps the drill-down
-    # collapse count stable and prints via the beforeprint open-all handler.
+    # P7 (reworked in Wave 3.1 B1): collapsible "How to remediate" region inside a
+    # finding's drill-down. Native <details> (no Bootstrap collapse, no jQuery):
+    # keeps the drill-down collapse count stable and prints via the beforeprint
+    # open-all handler. Prose portal guidance + Learn link ONLY - no PowerShell,
+    # no code blocks, ever (a cmdlet 'fix' misleads on what remediation involves).
     # Caller gates on status - this renders whatever entry it is given.
     param($Entry)
     if ($null -eq $Entry) { return '' }
@@ -241,12 +243,6 @@ function Write-PpaRemediation {
     [void]$sb.AppendLine('            <div class="remed-body">')
     if (-not [string]::IsNullOrEmpty([string]$Entry.portalPath)) {
         [void]$sb.Append('              <p class="remed-portal"><strong>Portal:</strong> ').Append((ConvertTo-PpaHtmlText ([string]$Entry.portalPath))).AppendLine('</p>')
-    }
-    if (-not [string]::IsNullOrEmpty([string]$Entry.cmdlet)) {
-        [void]$sb.AppendLine('              <div class="remed-code">')
-        [void]$sb.Append('                <pre><code>').Append((ConvertTo-PpaHtmlText ([string]$Entry.cmdlet))).AppendLine('</code></pre>')
-        [void]$sb.AppendLine('                <button type="button" class="remed-copy" title="Copy command">Copy</button>')
-        [void]$sb.AppendLine('              </div>')
     }
     if (-not [string]::IsNullOrEmpty([string]$Entry.learnUrl)) {
         [void]$sb.Append('              <a class="remed-learn" href="').Append((ConvertTo-PpaHtmlAttr ([string]$Entry.learnUrl))).Append('" target="_blank">')
@@ -359,11 +355,6 @@ function Get-PpaReportHead {
   .remed-draft-tag{ font-size:10px; color:#8a97a4; text-transform:uppercase; letter-spacing:.04em; border:1px solid #d7e0ea; border-radius:3px; padding:1px 5px; margin-left:6px; vertical-align:middle; }
   .remed-body{ padding:8px 2px 2px 2px; }
   .remed-portal{ font-size:13px; margin-bottom:.5rem; }
-  .remed-code{ position:relative; margin-bottom:.5rem; }
-  .remed-code pre{ background:#f1f5f9; border:1px solid #d7e0ea; border-radius:4px; padding:10px 64px 10px 12px; font-size:12.5px; margin:0; white-space:pre-wrap; word-break:break-word; }
-  .remed-copy{ position:absolute; top:6px; right:6px; border:1px solid #d7e0ea; background:#fff; border-radius:4px; font-size:11px; font-weight:600; color:#5a6b7b; padding:2px 10px; cursor:pointer; }
-  .remed-copy:hover{ border-color:#0078D4; color:#0b5394; }
-  .remed-copy.copied{ border-color:#00bd19; color:#00bd19; }
   .remed-learn{ font-size:13px; text-decoration:none; display:inline-block; padding:2px 0; }
   .remed-note{ font-size:11.5px; color:#8a97a4; margin:.4rem 0 0; }
   /* run-profile exclusion note */
@@ -450,22 +441,6 @@ function Get-PpaPolishScript {
     a.classList.add('copied');
     setTimeout(function () { a.classList.remove('copied'); }, 1200);
   }, true);
-
-  // P7 remediation: copy the cmdlet snippet next to the button.
-  document.addEventListener('click', function (ev) {
-    var t = ev.target;
-    var btn = (t && t.closest) ? t.closest('.remed-copy') : null;
-    if (!btn) { return; }
-    var wrap = btn.closest('.remed-code');
-    var code = wrap ? wrap.querySelector('code') : null;
-    if (code) {
-      copyText(code.textContent || '');
-      btn.classList.add('copied');
-      var old = btn.textContent;
-      btn.textContent = 'Copied';
-      setTimeout(function () { btn.classList.remove('copied'); btn.textContent = old; }, 1200);
-    }
-  });
 
   // P2 severity filter + text search. Hides finding cards only (never touches the
   // Bootstrap collapse elements, so drill-down open state survives filtering).

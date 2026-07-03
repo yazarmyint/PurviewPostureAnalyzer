@@ -1,5 +1,5 @@
 {
-  "source": "Wave 3 remediation snippets. DRAFT until human-reviewed - tracking checklist in docs/REMEDIATION_REVIEW.md. Sourcing rule: cmdlets only where grounded (spec/probe-verified or documented on Microsoft Learn at the cited URL); portal-path-only everywhere else. Snippets are display-only text - this tool never executes remediation.",
+  "source": "Wave 3.1 remediation guidance. DRAFT until human-reviewed - determination table and drafts in docs/REMEDIATION_REVIEW.md. No PowerShell anywhere in this file (Wave 3.1 B1): grounded checks carry short portal-first guidance naming the key decision; not-grounded checks carry portal path + Learn link only. Display-only text - this tool never executes remediation.",
   "lastReviewed": "2026-07-03",
   "checks": {
     "LABELS-01": {
@@ -12,8 +12,7 @@
     },
     "LABELS-03": {
       "portalPath": "Microsoft Purview portal > Information protection > Auto-labeling > select the simulation policy > Turn on policy",
-      "cmdlet": "# Security & Compliance PowerShell (Connect-IPPSSession)\nSet-AutoSensitivityLabelPolicy -Identity \"<policy name>\" -Mode Enable",
-      "learnUrl": "https://learn.microsoft.com/powershell/module/exchangepowershell/set-autosensitivitylabelpolicy"
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically"
     },
     "LABELS-04": {
       "portalPath": "Microsoft Purview portal > Information protection > Sensitivity labels > Create a label > scope it to Groups & sites",
@@ -21,8 +20,7 @@
     },
     "DLP-01": {
       "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select the test-mode policy > Turn the policy on",
-      "cmdlet": "# Security & Compliance PowerShell (Connect-IPPSSession)\nSet-DlpCompliancePolicy -Identity \"<policy name>\" -Mode Enable",
-      "learnUrl": "https://learn.microsoft.com/powershell/module/exchangepowershell/set-dlpcompliancepolicy"
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp"
     },
     "DLP-02": {
       "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select each policy > Edit locations > add Teams chat and channel messages",
@@ -62,7 +60,6 @@
     },
     "AUD-01": {
       "portalPath": "Microsoft Purview portal > Audit > select the 'Start recording user and admin activity' banner",
-      "cmdlet": "# Exchange Online PowerShell (Connect-ExchangeOnline)\nSet-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $true",
       "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable"
     },
     "AUD-02": {
@@ -91,7 +88,6 @@
     },
     "AI-02": {
       "portalPath": "Microsoft Purview portal > Data loss prevention > Policies > select the Copilot-scoped policy > Turn the policy on",
-      "cmdlet": "# Security & Compliance PowerShell (Connect-IPPSSession)\nSet-DlpCompliancePolicy -Identity \"<policy name>\" -Mode Enable",
       "learnUrl": "https://learn.microsoft.com/en-us/purview/dspm-for-ai"
     },
     "AI-03": {

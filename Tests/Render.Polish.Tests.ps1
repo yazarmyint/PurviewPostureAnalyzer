@@ -358,15 +358,27 @@ Describe 'P7 - remediation snippets' {
         $norm = ConvertTo-PpaNormalized -Meta $script:DenseNorm.meta -Licensing $script:DenseNorm.licensing -Sections @($sec)
         (Export-PpaHtmlReport -Normalized $norm) | Should -Not -Match 'class="remed"'
     }
-    It 'shows the grounded cmdlet in a code block with a copy button (AUD-01, AI-02)' {
-        $script:DenseHtml | Should -Match 'Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled \$true'
-        $script:DenseHtml | Should -Match 'Set-DlpCompliancePolicy -Identity "&lt;policy name&gt;" -Mode Enable'
-        ([regex]::Matches($script:DenseHtml, 'class="remed-copy"')).Count | Should -BeGreaterThan 0
+    It 'contains no PowerShell anywhere in the rendered report (<Name>) - Wave 3.1 B1' -ForEach @(
+        @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
+    ) {
+        $v = $script:AllVariants | Where-Object { $_.Name -eq $Name }
+        $v.Html | Should -Not -Match '<pre><code>'
+        $v.Html | Should -Not -Match 'Connect-IPPSSession'
+        $v.Html | Should -Not -Match 'Connect-ExchangeOnline'
+        $v.Html | Should -Not -Match '\bSet-[A-Z][A-Za-z]+'
+        $v.Html | Should -Not -Match 'remed-code'
+        $v.Html | Should -Not -Match 'remed-copy'
     }
-    It 'portal-path-only entries render without a code block (LABELS-04)' {
+    It 'remediation regions render prose portal guidance plus a Learn link (LABELS-04)' {
         $card = [regex]::Match($script:DenseHtml, '(?s)id="finding-LABELS-04".*?</details>').Value
         $card | Should -Match 'remed-portal'
-        $card | Should -Not -Match 'remed-code'
+        $card | Should -Match 'remed-learn'
+    }
+    It 'the catalog file itself carries no cmdlet keys or PowerShell text' {
+        $raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Data\remediation-catalog.json'))
+        $raw | Should -Not -Match '"cmdlet"'
+        $raw | Should -Not -Match '\bSet-[A-Z]'
+        $raw | Should -Not -Match 'Connect-IPPSSession|Connect-ExchangeOnline'
     }
     It 'every remediation region carries the draft disclaimer and a Learn link' {
         ([regex]::Matches($script:DenseHtml, 'remed-note')).Count | Should -BeGreaterOrEqual 16

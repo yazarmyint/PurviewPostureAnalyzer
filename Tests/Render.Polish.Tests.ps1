@@ -126,6 +126,36 @@ Describe 'P1 - executive summary' {
     }
 }
 
+Describe 'P2 - severity filters + text search' {
+    It 'renders one filter bar with a chip per status, all active by default' {
+        ([regex]::Matches($script:DenseHtml, 'id="Filterbar"')).Count | Should -Be 1
+        foreach ($st in @('OK', 'Improvement', 'Recommendation', 'Informational', 'Verify manually')) {
+            $script:DenseHtml | Should -Match ('class="fb-chip active" data-fb="' + $st + '"')
+        }
+        $script:DenseHtml | Should -Match 'class="fb-search"'
+        $script:DenseHtml | Should -Match 'class="fb-reset"'
+    }
+    It 'stamps data-status on every finding card, matching body counts (<Name>)' -ForEach @(
+        @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
+    ) {
+        $v = $script:AllVariants | Where-Object { $_.Name -eq $Name }
+        $norm = switch ($Name) { 'standard' { $script:StdNorm } 'dense' { $script:DenseNorm } 'sparse' { $script:SparseNorm } }
+        $body = Get-PpaBodyStatusCounts $norm
+        foreach ($st in @('OK', 'Improvement', 'Recommendation', 'Informational', 'Verify manually')) {
+            ([regex]::Matches($v.Html, 'data-status="' + $st + '"')).Count | Should -Be ([int]$body[$st])
+        }
+    }
+    It 'gives every section header a hidden-by-filter note placeholder (dense: 8)' {
+        ([regex]::Matches($script:DenseHtml, 'class="sec-hiddennote"')).Count | Should -Be 8
+        ([regex]::Matches($script:DenseHtml, 'class="card mt-3 seccard"')).Count | Should -Be 8
+    }
+    It 'wires the filter behavior in the inline polish script (vanilla, no dependencies)' {
+        $script:DenseHtml | Should -Match 'applyFilter'
+        $script:DenseHtml | Should -Match 'sec-allhidden'
+        $script:DenseHtml | Should -Not -Match '\$\(''\.fb-chip''\)'
+    }
+}
+
 Describe 'P4 - per-finding anchors' {
     It 'gives every finding card an id derived from its check ID (<Name>)' -ForEach @(
         @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }

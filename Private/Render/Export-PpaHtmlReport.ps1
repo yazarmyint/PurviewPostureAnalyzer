@@ -75,6 +75,10 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine((Write-PpaExecSummary -Meta $meta -Sections $sections -Totals $totals))
     [void]$sb.AppendLine('')
 
+    # ---- filter bar (P2: sticky severity chips + text search; hidden in print) ----
+    [void]$sb.AppendLine((Write-PpaFilterBar))
+    [void]$sb.AppendLine('')
+
     # ---- environment at a glance ----
     [void]$sb.AppendLine('  <div class="card mt-3 glance">')
     [void]$sb.AppendLine('    <div class="card-header"><strong>Environment at a glance</strong></div>')
@@ -134,9 +138,10 @@ function Export-PpaHtmlReport {
     # ---- section cards ----
     foreach ($sec in $sections) {
         $counts = Get-PpaSectionCounts $sec
-        [void]$sb.Append('  <div class="card mt-3" id="').Append((ConvertTo-PpaHtmlAttr $sec.id)).AppendLine('">')
+        [void]$sb.Append('  <div class="card mt-3 seccard" id="').Append((ConvertTo-PpaHtmlAttr $sec.id)).AppendLine('">')
         [void]$sb.AppendLine('    <div class="card-header"><div class="row">')
-        [void]$sb.Append('      <div class="col-sm" style="margin:auto 0;"><a>').Append((ConvertTo-PpaHtmlText $sec.title)).AppendLine('</a></div>')
+        [void]$sb.Append('      <div class="col-sm" style="margin:auto 0;"><a>').Append((ConvertTo-PpaHtmlText $sec.title)).Append('</a>')
+        [void]$sb.AppendLine('<span class="sec-hiddennote"></span></div>')
         [void]$sb.AppendLine('      <div class="col-sm text-right" style="padding-right:10px;">')
         [void]$sb.Append('        ').AppendLine((Write-PpaCountBadges $counts))
         [void]$sb.AppendLine('      </div></div></div>')
@@ -146,8 +151,9 @@ function Export-PpaHtmlReport {
         foreach ($f in @($sec.findings)) {
             $s = Get-PpaStatusStyle $f.status
             # Stable per-finding anchor derived from the check ID (never positional).
+            # data-status feeds the P2 client-side severity filter.
             $anchorId = 'finding-' + (ConvertTo-PpaHtmlAttr $f.id)
-            [void]$sb.Append('      <div class="finding" id="').Append($anchorId).AppendLine('">')
+            [void]$sb.Append('      <div class="finding" id="').Append($anchorId).Append('" data-status="').Append((ConvertTo-PpaHtmlAttr $f.status)).AppendLine('">')
             [void]$sb.Append('        <div class="row finding-head" data-toggle="collapse" data-target="#').Append((ConvertTo-PpaHtmlAttr $f.domId)).AppendLine('" aria-expanded="false">')
             [void]$sb.Append('          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>').Append((ConvertTo-PpaHtmlText $f.title)).Append('</h6>')
             [void]$sb.Append('<a class="anchor-link" href="#').Append($anchorId).AppendLine('" title="Copy link to this finding">&para;</a></div>')

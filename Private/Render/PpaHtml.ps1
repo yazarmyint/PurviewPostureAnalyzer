@@ -169,6 +169,25 @@ function Write-PpaExecSummary {
     return $sb.ToString()
 }
 
+function Write-PpaFilterBar {
+    # P2: sticky control bar - one toggle chip per status (all on by default), a
+    # case-insensitive substring search over finding cards, and a reset. Interactive
+    # only; the P3 print stylesheet hides it.
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.AppendLine('  <div class="filterbar" id="Filterbar">')
+    [void]$sb.AppendLine('    <span class="fb-label">Filter:</span>')
+    foreach ($st in $script:PpaStatusOrder) {
+        $dot = (Get-PpaStatusStyle $st).Dot
+        [void]$sb.Append('    <button type="button" class="fb-chip active" data-fb="').Append((ConvertTo-PpaHtmlAttr $st)).Append('">')
+        [void]$sb.Append('<span class="gdot ').Append($dot).Append('"></span>').Append((ConvertTo-PpaHtmlText $st)).AppendLine('</button>')
+    }
+    [void]$sb.AppendLine('    <input type="text" class="fb-search" placeholder="Search findings..." aria-label="Search findings">')
+    [void]$sb.AppendLine('    <button type="button" class="fb-reset">Reset</button>')
+    [void]$sb.AppendLine('    <span class="fb-status"></span>')
+    [void]$sb.AppendLine('  </div>')
+    return $sb.ToString()
+}
+
 function Write-PpaDetailTable {
     param($Table)
     if ($null -eq $Table) { return '' }
@@ -263,6 +282,25 @@ function Get-PpaReportHead {
   .learnmore a{ text-decoration:none; display:block; padding:3px 0; }
   .lm-tag{ font-size:11px; color:#8a97a4; text-transform:uppercase; margin-left:6px; }
   .whyline{ color:#495057; margin:.15rem 0 .1rem; }
+  /* filter bar */
+  .filterbar{ position:sticky; top:8px; z-index:100; background:#fff; border:1px solid #e3e9ef; border-radius:6px;
+              padding:8px 12px; margin-top:1rem; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+              box-shadow:0 2px 8px rgba(0,40,80,.08); }
+  .fb-label{ font-size:12px; font-weight:700; color:#33445a; text-transform:uppercase; letter-spacing:.02em; }
+  .fb-chip{ border:1px solid #d7e0ea; background:#f8fafc; border-radius:14px; font-size:12px; font-weight:600;
+            color:#5a6b7b; padding:3px 11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .fb-chip:hover{ border-color:#0078D4; }
+  .fb-chip.active{ background:#eaf4fd; border-color:#0078D4; color:#0b5394; }
+  .fb-chip:not(.active) .gdot{ opacity:.35; }
+  .fb-search{ border:1px solid #d7e0ea; border-radius:4px; font-size:13px; padding:4px 10px; min-width:220px; flex:1 1 220px; max-width:340px; }
+  .fb-search:focus{ outline:none; border-color:#0078D4; }
+  .fb-reset{ border:1px solid #d7e0ea; background:#fff; border-radius:4px; font-size:12px; font-weight:600; color:#5a6b7b; padding:4px 12px; cursor:pointer; }
+  .fb-reset:hover{ border-color:#0078D4; color:#0b5394; }
+  .fb-status{ font-size:12px; color:#8a97a4; margin-left:auto; }
+  .finding.fb-hidden{ display:none; }
+  .seccard.sec-allhidden .card-body{ display:none; }
+  .sec-hiddennote{ display:none; font-size:12px; font-weight:400; color:#cfe6ff; margin-left:10px; }
+  .seccard.sec-allhidden .sec-hiddennote{ display:inline; }
   /* executive summary */
   .es-meta{ color:#5a6b7b; font-size:13px; margin-bottom:.75rem; }
   .es-tiles{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:.85rem; }
@@ -344,6 +382,46 @@ function Get-PpaPolishScript {
     a.classList.add('copied');
     setTimeout(function () { a.classList.remove('copied'); }, 1200);
   }, true);
+
+  // P2 severity filter + text search. Hides finding cards only (never touches the
+  // Bootstrap collapse elements, so drill-down open state survives filtering).
+  var bar = document.getElementById('Filterbar');
+  if (bar) {
+    var chips = [].slice.call(bar.querySelectorAll('.fb-chip'));
+    var search = bar.querySelector('.fb-search');
+    var reset = bar.querySelector('.fb-reset');
+    var statusEl = bar.querySelector('.fb-status');
+    var items = [].slice.call(document.querySelectorAll('.finding')).map(function (el) {
+      return { el: el, status: el.getAttribute('data-status') || '', text: (el.textContent || '').toLowerCase() };
+    });
+    var sections = [].slice.call(document.querySelectorAll('.seccard'));
+    var applyFilter = function () {
+      var active = {};
+      chips.forEach(function (c) { if (c.classList.contains('active')) { active[c.getAttribute('data-fb')] = true; } });
+      var q = (search.value || '').toLowerCase().trim();
+      var shown = 0;
+      items.forEach(function (it) {
+        var ok = !!active[it.status] && (q === '' || it.text.indexOf(q) !== -1);
+        it.el.classList.toggle('fb-hidden', !ok);
+        if (ok) { shown++; }
+      });
+      // A fully-filtered section collapses to its header with a note, never vanishes.
+      sections.forEach(function (sec) {
+        var fs = [].slice.call(sec.querySelectorAll('.finding'));
+        var hidden = fs.filter(function (f) { return f.classList.contains('fb-hidden'); }).length;
+        var all = fs.length > 0 && hidden === fs.length;
+        sec.classList.toggle('sec-allhidden', all);
+        var note = sec.querySelector('.sec-hiddennote');
+        if (note) { note.textContent = all ? '(' + hidden + ' finding' + (hidden === 1 ? '' : 's') + ' hidden by filter)' : ''; }
+      });
+      var isDefault = q === '' && chips.every(function (c) { return c.classList.contains('active'); });
+      statusEl.textContent = isDefault ? '' : shown + ' of ' + items.length + ' findings shown';
+    };
+    chips.forEach(function (c) { c.addEventListener('click', function () { c.classList.toggle('active'); applyFilter(); }); });
+    var debounce = null;
+    search.addEventListener('input', function () { if (debounce) { clearTimeout(debounce); } debounce = setTimeout(applyFilter, 120); });
+    reset.addEventListener('click', function () { chips.forEach(function (c) { c.classList.add('active'); }); search.value = ''; applyFilter(); });
+  }
 })();
 </script>
 '@

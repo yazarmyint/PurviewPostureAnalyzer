@@ -215,6 +215,12 @@ Top level:
   Removed > 0 and Modified == 0 and UnchangedCount == 0, render a warning
   banner: likely identity/keying failure, review _keySource values.
 
+ADDENDUM (Part A review, 2026-07-03) - carry-forward for the differ: the
+normalizer maps null and placeholder values (DateTime.MinValue, all-zeros
+Guid) to empty strings, so the differ must treat empty-string and
+absent-property consistently (absent == '' for comparison purposes); a
+property moving between absent and '' is never a Modified.
+
 ### 4.5 Delta report render
 - Reuses the existing render boundary: HTML-encoding unconditional;
   redaction (stable pseudonyms) applied at render iff -Redact/-RedactNames.
@@ -245,6 +251,11 @@ Top level:
   grounded in auto-sensitivity-label policy locations, NOT label publishing.
 - Tenant-level strip below the grid: Audit (unified audit on/off) rendered
   once, never per-row.
+  ADDENDUM (Part A review, 2026-07-03): the audit strip grounds on presence
+  of the AuditConfig singleton (unifiedAuditEnabled successfully read), NOT
+  on the audit collector outcome, so a Partial caused by a secondary read
+  failure (Get-OrganizationConfig) does not render the strip Unknown when
+  the answer is known. Final wording decided at Part D.
 - Principal-scoped strip: Label publishing, Insider Risk, Communication
   Compliance - present/absent summaries with counts, no workload cells,
   one line each linking to their sections.

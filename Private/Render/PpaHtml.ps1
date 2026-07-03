@@ -199,6 +199,12 @@ function Get-PpaReportHead {
   .learnmore a{ text-decoration:none; display:block; padding:3px 0; }
   .lm-tag{ font-size:11px; color:#8a97a4; text-transform:uppercase; margin-left:6px; }
   .whyline{ color:#495057; margin:.15rem 0 .1rem; }
+  /* per-finding anchor affordance */
+  .anchor-link{ margin-left:8px; color:#b7c6d6; text-decoration:none; font-weight:600; opacity:0; transition:opacity .12s ease; }
+  .finding-head:hover .anchor-link{ opacity:1; }
+  .anchor-link:hover{ color:#0078D4; text-decoration:none; }
+  .anchor-link.copied{ color:#00bd19; opacity:1; }
+  .finding:target{ background:#f0f7ff; }
   /* environment at a glance */
   .glance .cell{ display:block; border:1px solid #e3e9ef; border-radius:6px; padding:10px 12px; height:100%; text-decoration:none; color:inherit; transition:border-color .12s ease, background .12s ease; }
   .glance .cell:hover{ border-color:#0078D4; background:#f5f9fd; }
@@ -231,6 +237,38 @@ function Get-PpaNavbarHtml {
     <div class="col-sm" style="text-align:right"><button type="button" class="btn btn-primary" onclick="window.print();">Print</button></div>
   </div>
 </nav>
+'@
+}
+
+function Get-PpaPolishScript {
+    # Wave 3 interactive behaviors: vanilla JS, inline, no dependencies. Emitted once
+    # before the footer. Everything here is progressive enhancement - the report stays
+    # fully readable with scripting disabled.
+@'
+<script>
+(function () {
+  'use strict';
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text); return; }
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'absolute'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e) { }
+    document.body.removeChild(ta);
+  }
+  // Per-finding anchor: copy the deep link; stop the click reaching the collapse toggle.
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    var a = (t && t.closest) ? t.closest('.anchor-link') : null;
+    if (!a) { return; }
+    ev.stopPropagation();
+    copyText(location.href.split('#')[0] + a.getAttribute('href'));
+    a.classList.add('copied');
+    setTimeout(function () { a.classList.remove('copied'); }, 1200);
+  }, true);
+})();
+</script>
 '@
 }
 

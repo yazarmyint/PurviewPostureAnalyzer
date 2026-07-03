@@ -78,6 +78,34 @@ Describe 'Dense fixture - shape for Wave 3 regression cases' {
     }
 }
 
+Describe 'P4 - per-finding anchors' {
+    It 'gives every finding card an id derived from its check ID (<Name>)' -ForEach @(
+        @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
+    ) {
+        $v = $script:AllVariants | Where-Object { $_.Name -eq $Name }
+        ([regex]::Matches($v.Html, '<div class="finding" id="finding-')).Count |
+            Should -Be ([regex]::Matches($v.Html, 'class="finding"')).Count
+    }
+    It 'anchors carry the literal check ID (dense spot checks)' {
+        $script:DenseHtml | Should -Match 'id="finding-AI-02"'
+        $script:DenseHtml | Should -Match 'id="finding-LABELS-03"'
+        $script:DenseHtml | Should -Match 'id="finding-CC-01"'
+    }
+    It 'all id attributes are unique across the rendered report (<Name>)' -ForEach @(
+        @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }
+    ) {
+        $v = $script:AllVariants | Where-Object { $_.Name -eq $Name }
+        $ids = [regex]::Matches($v.Html, ' id="([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
+        $dupes = $ids | Group-Object | Where-Object { $_.Count -gt 1 }
+        ($dupes | ForEach-Object { $_.Name }) -join ', ' | Should -BeNullOrEmpty
+        @($ids).Count | Should -BeGreaterThan 0
+    }
+    It 'renders one copy-link affordance per finding (dense)' {
+        ([regex]::Matches($script:DenseHtml, 'class="anchor-link"')).Count |
+            Should -Be ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count
+    }
+}
+
 Describe 'Every fixture variant - client safety invariants' {
     It 'produces ASCII-only output for <Name>' -ForEach @(
         @{ Name = 'standard' }, @{ Name = 'dense' }, @{ Name = 'sparse' }

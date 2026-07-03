@@ -139,9 +139,12 @@ function Export-PpaHtmlReport {
 
         foreach ($f in @($sec.findings)) {
             $s = Get-PpaStatusStyle $f.status
-            [void]$sb.AppendLine('      <div class="finding">')
+            # Stable per-finding anchor derived from the check ID (never positional).
+            $anchorId = 'finding-' + (ConvertTo-PpaHtmlAttr $f.id)
+            [void]$sb.Append('      <div class="finding" id="').Append($anchorId).AppendLine('">')
             [void]$sb.Append('        <div class="row finding-head" data-toggle="collapse" data-target="#').Append((ConvertTo-PpaHtmlAttr $f.domId)).AppendLine('" aria-expanded="false">')
-            [void]$sb.Append('          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>').Append((ConvertTo-PpaHtmlText $f.title)).AppendLine('</h6></div>')
+            [void]$sb.Append('          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>').Append((ConvertTo-PpaHtmlText $f.title)).Append('</h6>')
+            [void]$sb.Append('<a class="anchor-link" href="#').Append($anchorId).AppendLine('" title="Copy link to this finding">&para;</a></div>')
             [void]$sb.Append('          <div class="col-sm-2 text-right"><span class="badge ').Append($s.Badge).Append('">').Append((ConvertTo-PpaHtmlText $f.status)).AppendLine('</span></div>')
             [void]$sb.AppendLine('        </div>')
             # Note: findings may carry a 'requires' tier annotation; it travels in the JSON
@@ -190,6 +193,7 @@ function Export-PpaHtmlReport {
     # ---- close + footer ----
     [void]$sb.AppendLine('</main></div>')
     [void]$sb.AppendLine('')
+    [void]$sb.AppendLine((Get-PpaPolishScript))
     [void]$sb.AppendLine((Get-PpaFooterHtml))
 
     return $sb.ToString()

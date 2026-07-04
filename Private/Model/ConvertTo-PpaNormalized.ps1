@@ -12,7 +12,9 @@ function ConvertTo-PpaNormalized {
         [Parameter(Mandatory = $true)] $Meta,
         [Parameter(Mandatory = $true)] $Licensing,
         [Parameter(Mandatory = $true)] $Sections,
-        $Observations = @()
+        $Observations = @(),
+        # Wave 4 Part D: the CoverageModel (pure projection); null renders no matrix.
+        $Coverage = $null
     )
 
     $order    = Get-PpaStatusOrder
@@ -78,6 +80,7 @@ function ConvertTo-PpaNormalized {
     return [pscustomobject][ordered]@{
         meta         = $Meta
         licensing    = $Licensing
+        coverage     = $Coverage
         summary      = [pscustomobject][ordered]@{ totals = [pscustomobject]$totals; groups = $groupsOut.ToArray() }
         sections     = $secOut.ToArray()
         observations = @($Observations)

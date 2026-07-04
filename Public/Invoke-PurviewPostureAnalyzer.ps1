@@ -166,8 +166,21 @@ function Invoke-PurviewPostureAnalyzer {
                else { 'This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant subscriptions; findings marked Requires note the tier the feature needs.' }
     $licBlock = [pscustomobject]@{ note = $licNote }
 
+    # ---- COVERAGE MATRIX (Wave 4 Part D): pure projection from collected data ----
+    $rawMap = @{
+        Sensitivity_Labels       = $rawLabels
+        Data_Loss_Prevention     = $rawDlp
+        Retention                = $rawRet
+        Insider_Risk             = $rawIrm
+        Audit                    = $rawAud
+        eDiscovery               = $rawEd
+        Communication_Compliance = $rawCc
+        DSPM_for_AI              = $rawDspm
+    }
+    $coverage = Get-PpaCoverageModel -RawMap $rawMap
+
     # ---- ASSEMBLE -> RENDER (HTML primary) + EXPORT (JSON) ----
-    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Observations @()
+    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Observations @() -Coverage $coverage
 
     $stamp = $AsOf.ToUniversalTime().ToString('yyyyMMdd-HHmmss')
     $reportsDir = Join-Path (Join-Path $OutputDirectory "PurviewPosture-$stamp") 'reports'
@@ -187,16 +200,7 @@ function Invoke-PurviewPostureAnalyzer {
     # (attempted-and-errored; 'NotRun' is reserved for never-attempted).
     $snapshotPath = $null
     if (-not $NoSnapshot) {
-        $rawMap = @{
-            Sensitivity_Labels       = $rawLabels
-            Data_Loss_Prevention     = $rawDlp
-            Retention                = $rawRet
-            Insider_Risk             = $rawIrm
-            Audit                    = $rawAud
-            eDiscovery               = $rawEd
-            Communication_Compliance = $rawCc
-            DSPM_for_AI              = $rawDspm
-        }
+        # $rawMap was built once above for the coverage matrix; the snapshot reuses it.
         $profileName = if ([string]::IsNullOrWhiteSpace($Profile)) { $null } else { [System.IO.Path]::GetFileNameWithoutExtension($Profile) }
         $snapModel = New-PpaSnapshotModel `
             -RawMap $rawMap -Sections $sections -Meta $meta `

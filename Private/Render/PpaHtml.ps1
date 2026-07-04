@@ -377,6 +377,30 @@ function Get-PpaSharedReportCss {
   .ssparent{ background:#f1f5f9; }
   .ssparent td{ font-weight:700; color:#33445a; letter-spacing:.01em; }
   .sschild a{ color:#0078D4; text-decoration:none; }
+  /* coverage matrix (Wave 4 Part D). None vs Unknown must survive print WITHOUT
+     color: distinct family + hatching (repeating stripes) vs dotting (radial) +
+     glyph + in-cell text - four independent signals. */
+  table.covm-grid{ border-collapse:collapse; width:100%; font-size:13px; margin-top:.4rem; }
+  table.covm-grid thead th{ background:#f1f5f9; border:1px solid #d7e0ea; font-size:12px; text-transform:uppercase; letter-spacing:.02em; color:#5a6b7b; padding:8px 10px; text-align:center; }
+  table.covm-grid th.covm-row{ background:#f8fafc; border:1px solid #d7e0ea; text-align:left; padding:8px 10px; font-size:12.5px; color:#33445a; width:16%; }
+  td.covm-cell{ border:1px solid #d7e0ea; padding:8px 10px; text-align:center; vertical-align:middle; }
+  .covm-cell a.covm-link{ text-decoration:none; color:inherit; }
+  .covm-glyph{ font-weight:800; margin-right:5px; }
+  .covm-text{ font-weight:600; font-size:12.5px; }
+  .covm-covered{ background:#e6f6e9; color:#1e7e34; }
+  .covm-partial{ background:#fff6e0; color:#8a6d1a; }
+  .covm-testonly{ background:#eef4fa; color:#0b5394; }
+  .covm-none{ background:repeating-linear-gradient(45deg,#fdecea,#fdecea 6px,#ffffff 6px,#ffffff 12px); color:#a52834; }
+  .covm-unknown{ background:radial-gradient(#cfd6dd 1.3px, #f8f9fa 1.3px); background-size:8px 8px; color:#495057; }
+  .covm-na{ background:#fafbfc; color:#8a97a4; }
+  .covm-held{ background:#ffffff; color:#8a97a4; }
+  .covm-held sup a{ text-decoration:none; }
+  .covm-reason{ display:inline-block; border:1px solid #d7e0ea; border-radius:9px; font-size:10px; padding:0 6px; margin-top:3px; color:#5a6b7b; background:#fff; }
+  .covm-prov{ color:#b07d2b; margin-left:4px; cursor:help; font-weight:700; }
+  .covm-banner{ background:#fff8e6; border:1px solid #f0ad4e; border-radius:6px; padding:8px 12px; margin-bottom:.6rem; font-size:13px; }
+  .covm-strip{ font-size:13px; margin:.7rem 0 0; color:#33445a; }
+  .covm-strip a{ color:#0078D4; text-decoration:none; }
+  .covm-foot{ color:#8a97a4; font-size:11.5px; margin:.5rem 0 0; }
   @media (prefers-reduced-motion:reduce){ .chev{ transition:none; } .glance .cell{ transition:none; } }
   /* print / PDF (P3): posture summary is page one, sections start clean, drill-downs
      expanded (beforeprint JS opens them; the .collapse rule is the CSS fallback),

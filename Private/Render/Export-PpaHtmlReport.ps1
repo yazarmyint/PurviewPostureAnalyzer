@@ -98,6 +98,12 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine((Write-PpaPostureSummary -Meta $meta -Sections $sections -Totals $totals))
     [void]$sb.AppendLine('')
 
+    # ---- coverage matrix (Wave 4 Part D): right after the Posture Summary ----
+    if ($null -ne $Normalized.coverage) {
+        [void]$sb.AppendLine((Write-PpaCoverageMatrix -Coverage $Normalized.coverage))
+        [void]$sb.AppendLine('')
+    }
+
     # ---- filter bar (P2: sticky severity chips + text search; hidden in print) ----
     [void]$sb.AppendLine((Write-PpaFilterBar))
     [void]$sb.AppendLine('')

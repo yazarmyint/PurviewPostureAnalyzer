@@ -1,0 +1,11 @@
+{
+  "_comment": "Static applicability table for the coverage matrix (Wave 4 spec 5.2) - reviewed data file. Cells listed here render N/A and are excluded from every total. Derived from the location properties the cmdlets actually expose in the normalized model; each entry carries the rationale for review. Row keys: exchange, sharePoint, oneDrive, teams, endpoint, powerBI, copilot. Column keys: dlp, autoLabel, retention.",
+  "na": [
+    { "row": "teams",    "column": "autoLabel", "rationale": "Auto-sensitivity-label policies carry Exchange/SharePoint/OneDrive locations only; Teams messages are not an auto-labeling location." },
+    { "row": "endpoint", "column": "autoLabel", "rationale": "Devices are not an auto-labeling location; endpoint protection is Endpoint DLP's job (DLP column)." },
+    { "row": "powerBI",  "column": "autoLabel", "rationale": "Power BI is not an auto-sensitivity-label policy location; Power BI default labeling is a Fabric admin setting outside Security & Compliance PowerShell." },
+    { "row": "copilot",  "column": "autoLabel", "rationale": "Copilot interactions are not an auto-labeling location; label-based Copilot controls surface through DLP rule conditions (check AI-03)." },
+    { "row": "endpoint", "column": "retention", "rationale": "Retention compliance policies expose no device/endpoint location property." },
+    { "row": "powerBI",  "column": "retention", "rationale": "Power BI/Fabric content retention is not a retention-compliance-policy location readable via Security & Compliance PowerShell." }
+  ]
+}

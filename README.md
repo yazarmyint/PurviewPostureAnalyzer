@@ -135,10 +135,10 @@ The HTML report opens with a **posture summary** (severity counts plus a linked
 top-findings list), has a sticky **filter bar** (severity chips + text search), **per-finding
 anchor links**, a **print stylesheet** (posture summary as page one, drill-downs expanded,
 severity colors preserved — use the Print button for a client-ready PDF), and collapsible
-**"How to remediate"** guidance on Improvement/Recommendation findings — portal path, a
-copy-ready cmdlet where one is grounded, and a Learn link. Remediation snippets are
-displayed text only, never executed, and every draft is tracked for human review in
-`docs/REMEDIATION_REVIEW.md`.
+**"How to remediate"** guidance on Improvement/Recommendation findings — portal-first
+prose and a Learn link only (no PowerShell snippets; a cmdlet "fix" misleads on what
+remediation involves). Guidance is displayed text only, never executed, and every
+draft is tracked for human review in `docs/REMEDIATION_REVIEW.md`.
 
 To preview all of this without a tenant, run `pwsh -File tools/Build-SampleReports.ps1` —
 it renders five fixture-driven sample reports (standard, dense, sparse, redacted, and

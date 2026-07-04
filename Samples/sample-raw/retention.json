@@ -4,9 +4,9 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "HR Records – 7yr", "guid": "guid-hr-records-7yr", "adaptive": false, "locations": ["SharePoint"], "labels": ["HR-Retain-7y"] },
-      { "name": "Finance Records – 10yr", "guid": "guid-finance-records-10yr", "adaptive": false, "locations": ["SharePoint", "Exchange"], "labels": ["Fin-Retain-10y"] },
-      { "name": "General – 3yr", "guid": "guid-general-3yr", "adaptive": false, "locations": ["SharePoint"], "labels": ["Gen-Retain-3y"] }
+      { "name": "HR Records – 7yr", "guid": "guid-hr-records-7yr", "adaptive": false, "locations": ["SharePoint"], "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["HR-Retain-7y"] },
+      { "name": "Finance Records – 10yr", "guid": "guid-finance-records-10yr", "adaptive": false, "locations": ["SharePoint", "Exchange"], "locationScope": { "exchange": "All", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["Fin-Retain-10y"] },
+      { "name": "General – 3yr", "guid": "guid-general-3yr", "adaptive": true, "locations": ["SharePoint"], "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["Gen-Retain-3y"] }
     ]
   },
   "labels": {

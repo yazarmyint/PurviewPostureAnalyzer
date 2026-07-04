@@ -24,7 +24,7 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Auto-label PHI & PII", "guid": "guid-auto-label-phi-pii", "mode": "TestWithoutNotifications", "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
+      { "name": "Auto-label PHI & PII", "guid": "guid-auto-label-phi-pii", "mode": "TestWithoutNotifications", "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false }, "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
     ]
   },
   "containers": {

@@ -40,8 +40,21 @@ $stdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Se
 Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample)
 
 # ---- 2. Dense fixture (Contoso Pharmaceuticals, 26 findings, every severity) ----
+# Wave 4 Part D: the dense sample carries the coverage matrix, projected from the
+# dense RAW fixtures (same source as the sample snapshot below).
+$fixtureRawMap = @{
+    Sensitivity_Labels       = Read-PpaFixture 'Samples\sample-raw\labels.json'
+    Data_Loss_Prevention     = Read-PpaFixture 'Samples\sample-raw\dlp.json'
+    Retention                = Read-PpaFixture 'Samples\sample-raw\retention.json'
+    Insider_Risk             = Read-PpaFixture 'Samples\sample-raw\insiderrisk.json'
+    Audit                    = Read-PpaFixture 'Samples\sample-raw\audit.json'
+    eDiscovery               = Read-PpaFixture 'Samples\sample-raw\ediscovery.json'
+    Communication_Compliance = Read-PpaFixture 'Samples\sample-raw\commscompliance.json'
+    DSPM_for_AI              = Read-PpaFixture 'Samples\sample-raw\dspm.json'
+}
+$denseCoverage = Get-PpaCoverageModel -RawMap $fixtureRawMap
 $dense = Read-PpaFixture 'Samples\sample-normalized-dense.json'
-$denseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations
+$denseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations -Coverage $denseCoverage
 Write-PpaSampleReport -Name 'sample-dense.html' -Html (Export-PpaHtmlReport -Normalized $denseNorm -IsSample)
 
 # ---- 3. Sparse fixture (raw sparse JSON through the real analyzers - graceful absence) ----
@@ -62,7 +75,13 @@ $sparseMeta = [pscustomobject]@{
     mode         = 'Read-only - configuration metadata only'
 }
 $sparseLic  = [pscustomobject]@{ note = [string]$std.licensing.note }
-$sparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing $sparseLic -Sections $sparseSections
+# Sparse matrix: only three collectors present - the graceful-absence case.
+$sparseCoverage = Get-PpaCoverageModel -RawMap @{
+    Sensitivity_Labels   = Read-PpaFixture 'Samples\sample-raw\sparse\labels-sparse.json'
+    Data_Loss_Prevention = Read-PpaFixture 'Samples\sample-raw\sparse\dlp-sparse.json'
+    Retention            = Read-PpaFixture 'Samples\sample-raw\sparse\retention-sparse.json'
+}
+$sparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing $sparseLic -Sections $sparseSections -Coverage $sparseCoverage
 Write-PpaSampleReport -Name 'sample-sparse.html' -Html (Export-PpaHtmlReport -Normalized $sparseNorm -IsSample)
 
 # ---- 4. Redacted variant (dense fixture, -Redact -RedactNames: strictest masking) ----
@@ -78,16 +97,7 @@ Write-PpaSampleReport -Name 'sample-dense-profile.html' -Html (Export-PpaHtmlRep
 # constant - a fixture token, not a real tenant. Snapshot filenames derive their
 # tenantIdShort ('contosod') from it. Tests use the same value (Snapshot.Tests.ps1).
 $fixtureTenantId = 'contoso-dense-fixture'
-$snapRawMap = @{
-    Sensitivity_Labels       = Read-PpaFixture 'Samples\sample-raw\labels.json'
-    Data_Loss_Prevention     = Read-PpaFixture 'Samples\sample-raw\dlp.json'
-    Retention                = Read-PpaFixture 'Samples\sample-raw\retention.json'
-    Insider_Risk             = Read-PpaFixture 'Samples\sample-raw\insiderrisk.json'
-    Audit                    = Read-PpaFixture 'Samples\sample-raw\audit.json'
-    eDiscovery               = Read-PpaFixture 'Samples\sample-raw\ediscovery.json'
-    Communication_Compliance = Read-PpaFixture 'Samples\sample-raw\commscompliance.json'
-    DSPM_for_AI              = Read-PpaFixture 'Samples\sample-raw\dspm.json'
-}
+$snapRawMap = $fixtureRawMap
 $snapAsOf = [datetime]'2026-06-24'
 $sitMap = Read-PpaFixture 'Data\dlp-sit-tiers.json'
 $snapSections = @(

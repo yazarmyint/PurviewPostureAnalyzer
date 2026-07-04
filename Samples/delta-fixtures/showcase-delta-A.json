@@ -64,6 +64,16 @@
         "name": "Auto-label PHI & PII",
         "guid": "guid-auto-label-phi-pii",
         "mode": "TestWithoutNotifications",
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "All",
+          "oneDrive": "All"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false
+        },
         "sits": [
           "U.S. HIPAA",
           "U.S. SSN",
@@ -120,6 +130,22 @@
           "teams": false,
           "endpoint": false
         },
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "All",
+          "oneDrive": "Scoped",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": true,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
         "testModeSince": ""
       },
       {
@@ -134,6 +160,22 @@
           "oneDrive": true,
           "teams": false,
           "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "Scoped",
+          "oneDrive": "Scoped",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
         },
         "testModeSince": ""
       },
@@ -150,6 +192,22 @@
           "teams": false,
           "endpoint": false
         },
+        "locationScope": {
+          "exchange": "Scoped",
+          "sharePoint": "All",
+          "oneDrive": "None",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
         "testModeSince": ""
       },
       {
@@ -164,6 +222,22 @@
           "oneDrive": true,
           "teams": false,
           "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "Scoped",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
         },
         "testModeSince": ""
       },
@@ -180,6 +254,22 @@
           "teams": false,
           "endpoint": false
         },
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "All",
+          "oneDrive": "All",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "All"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
         "testModeSince": "2026-05-12"
       },
       {
@@ -194,6 +284,22 @@
           "oneDrive": false,
           "teams": false,
           "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
         },
         "testModeSince": ""
       }
@@ -230,7 +336,7 @@
         "policyName": "SSN Guard",
         "name": "r-ssn",
         "guid": "guid-r-ssn",
-        "disabled": false,
+        "disabled": true,
         "sits": [
           "U.S. SSN"
         ]
@@ -441,6 +547,14 @@
         "locations": [
           "SharePoint"
         ],
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "groups": "None",
+          "teamsChannel": "None",
+          "teamsChat": "None"
+        },
         "labels": [
           "HR-Retain-7y"
         ]
@@ -455,6 +569,14 @@
           "SharePoint",
           "Exchange"
         ],
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "groups": "None",
+          "teamsChannel": "None",
+          "teamsChat": "None"
+        },
         "labels": [
           "Fin-Retain-10y"
         ]
@@ -464,10 +586,18 @@
         "_keySource": "Guid",
         "name": "General – 3yr",
         "guid": "guid-general-3yr",
-        "adaptive": false,
+        "adaptive": true,
         "locations": [
           "SharePoint"
         ],
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "groups": "None",
+          "teamsChannel": "None",
+          "teamsChat": "None"
+        },
         "labels": [
           "Gen-Retain-3y"
         ]

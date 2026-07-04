@@ -8,6 +8,8 @@
 
     { "side": "A", "op": "setOutcome", "section": "Insider_Risk", "value": "Empty", "why": "showcase pair is degradation-free: override the fixture's CmdletUnavailable (items are already empty)" },
     { "side": "B", "op": "setOutcome", "section": "Insider_Risk", "value": "Empty", "why": "showcase pair is degradation-free: override the fixture's CmdletUnavailable (items are already empty)" },
+    { "side": "A", "op": "setOutcome", "section": "DSPM_for_AI", "value": "Populated", "why": "showcase pair is degradation-free: override the dense fixture's AccessDenied (Part D matrix Unknown/banner case)" },
+    { "side": "B", "op": "setOutcome", "section": "DSPM_for_AI", "value": "Populated", "why": "showcase pair is degradation-free: override the dense fixture's AccessDenied (Part D matrix Unknown/banner case)" },
 
     { "side": "B", "op": "addObject", "type": "DlpPolicy",
       "object": { "_key": "guid-teams-chat-protection", "_keySource": "Guid", "name": "Teams Chat Protection", "guid": "guid-teams-chat-protection", "mode": "Enable", "locations": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": true, "endpoint": false }, "testModeSince": "" },

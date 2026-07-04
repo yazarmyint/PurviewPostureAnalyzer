@@ -76,5 +76,8 @@ Emitted by every collector as a root `outcome` property, derived by
 `Resolve-PpaCollectorOutcome` (Private/Collect/PpaNormalize.ps1) from the
 statuses of every read the collector performed plus the normalized item count:
 `Populated | Empty | Partial | AccessDenied | CmdletUnavailable | Failed`.
-`Skipped | NotRun` are stamped by the orchestration layer for sections excluded
-from a run; a collector that actually ran never reports them.
+Orchestration-level values (B-fix 1 semantics): `Skipped` = section excluded
+from the snapshot's scope; `Failed` also covers a collector that was attempted
+and crashed (the wrapper hands a null raw); `NotRun` is reserved for
+never-attempted. A collector that ran to completion never reports
+Skipped/NotRun itself.

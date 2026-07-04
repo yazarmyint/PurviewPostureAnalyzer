@@ -89,7 +89,7 @@ Write-PpaSampleReport -Name 'sample-dense-redacted.html' -Html (Export-PpaHtmlRe
 
 # ---- 5. Profile-filtered variant (dense fixture minus DSPM for AI + Audit) ----
 $sel = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_for_AI', 'Audit')
-$profNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $sel.Sections -Observations $dense.observations
+$profNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $sel.Sections -Observations $dense.observations -Coverage $denseCoverage
 Write-PpaSampleReport -Name 'sample-dense-profile.html' -Html (Export-PpaHtmlReport -Normalized $profNorm -IsSample -ExcludedSections $sel.ExcludedTitles)
 
 # ---- 6. Dense snapshot sample (Wave 4 Part B: raw fixtures -> analyzers -> snapshot) ----

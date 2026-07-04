@@ -266,11 +266,16 @@ Describe 'Matrix render (spec 5.1/5.5/5.6/5.8)' {
         # Build the redaction state the way the main report does, from the dense
         # normalized fixture, then re-render the matrix.
         $dense = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized-dense.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-        $norm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations
+        $norm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations -Coverage $script:DenseModel
         Initialize-PpaRedaction -Normalized $norm -RedactNames
         try {
             $redacted = Write-PpaCoverageMatrix -Coverage $script:DenseModel
             $redacted | Should -Not -Match 'SSN Guard'
+            # Contributor names must be harvested from the coverage model too, not
+            # just drill-down tables - no tooltip name may survive (closeout fix).
+            $redacted | Should -Not -Match 'Broad PII'
+            $redacted | Should -Not -Match 'Financial Data'
+            $redacted | Should -Not -Match 'Auto-label PHI'
             $redacted | Should -Match 'Policy-\d\d'
         }
         finally { Clear-PpaRedaction }

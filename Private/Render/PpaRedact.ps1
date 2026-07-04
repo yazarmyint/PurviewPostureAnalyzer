@@ -74,6 +74,21 @@ function Initialize-PpaRedaction {
                 }
             }
         }
+        # Wave 4 closeout: the coverage matrix renders contributor policy names in
+        # cell tooltips; harvest them from the CoverageModel too, so no name can
+        # slip past redaction just because a drill-down table did not carry it.
+        if ($Normalized.PSObject.Properties.Name -contains 'coverage' -and $null -ne $Normalized.coverage) {
+            foreach ($cell in @($Normalized.coverage.cells)) {
+                foreach ($name in @($cell.contributors)) {
+                    $n = [string]$name
+                    if ([string]::IsNullOrWhiteSpace($n) -or $n.Trim().Length -lt 3) { continue }
+                    $n = $n.Trim(); $key = $n.ToLower()
+                    if ($state.NameMap.ContainsKey($key)) { continue }
+                    $state.PolicyCount++
+                    $state.NameMap[$key] = [pscustomobject]@{ Name = $n; Token = ('Policy-{0:00}' -f $state.PolicyCount) }
+                }
+            }
+        }
         # Longest-first so 'General - 3yr' is consumed before the label 'General'.
         $state.NameList = @($state.NameMap.Values | Sort-Object { $_.Name.Length } -Descending)
     }

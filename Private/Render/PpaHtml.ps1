@@ -119,8 +119,25 @@ function Write-PpaPostureSummary {
     param($Meta, $Sections, $Totals)
 
     $sb = New-Object System.Text.StringBuilder
+    # Collapsible glanceable header (Wave 5 addendum): the card-header toggles the body via
+    # the shared vanilla collapse handler; collapsed-by-default reclaims the top of the report.
+    # The severity tallies stay visible when collapsed - aggregate posture metrics, so safe to
+    # show even under redaction (no tenant-derived strings).
     [void]$sb.AppendLine('  <div class="card mt-3 postsum" id="Posturesummary">')
-    [void]$sb.AppendLine('    <div class="card-header"><strong>Posture Summary</strong></div>')
+    [void]$sb.AppendLine('    <div class="card-header sumhead" data-toggle="collapse" data-target="#body-Posturesummary" role="button" tabindex="0" aria-expanded="false" aria-controls="body-Posturesummary">')
+    [void]$sb.AppendLine('      <i class="fas fa-chevron-right chev"></i><strong>Posture Summary</strong>')
+    $glanceParts = New-Object System.Collections.Generic.List[string]
+    $ariaParts   = New-Object System.Collections.Generic.List[string]
+    foreach ($st in $script:PpaStatusOrder) {
+        $dot = (Get-PpaStatusStyle $st).Dot
+        $n   = [int]$Totals[$st]
+        $glanceParts.Add('<span class="sg-item"><span class="gdot ' + $dot + '"></span>' + $n + '</span>')
+        $ariaParts.Add((ConvertTo-PpaHtmlAttr $st) + ' ' + $n)
+    }
+    [void]$sb.Append('      <span class="sum-glance" aria-label="').Append(($ariaParts -join ', ')).Append('">')
+    [void]$sb.Append(($glanceParts -join '')).AppendLine('</span>')
+    [void]$sb.AppendLine('    </div>')
+    [void]$sb.AppendLine('    <div class="collapse" id="body-Posturesummary">')
     [void]$sb.AppendLine('    <div class="card-body">')
 
     # Run metadata line (tenant hint is masked when redaction is active - P6).
@@ -171,6 +188,7 @@ function Write-PpaPostureSummary {
         [void]$sb.AppendLine('      </div>')
     }
 
+    [void]$sb.AppendLine('    </div>')
     [void]$sb.AppendLine('    </div>')
     [void]$sb.AppendLine('  </div>')
     return $sb.ToString()
@@ -281,127 +299,214 @@ function Get-PpaSharedReportCss {
     # The single shared stylesheet (C-fix 4): consumed by BOTH the main report head
     # and the delta report head, so the two artifacts render as one product family.
     # Never hand-copy these rules into another template.
+    #
+    # Wave 5 port (framework-free / offline): three layers, in order -
+    #   1. compat - re-implements the Bootstrap 4 subset the markup uses (grid, card,
+    #      badge, table, btn) + a Font Awesome -> monochrome-unicode map, so the report
+    #      renders with NO CDN. (The CDN <link>/<script> tags are gone from the head/footer.)
+    #   2. polished - CSS custom properties (:root tokens) + the tokenized component CSS
+    #      (contrast/gray/border/surface consolidation, unified severity colors, focus
+    #      states, type/spacing/radius scale). The @media print block + covm gradient
+    #      patterns are preserved verbatim (Pester asserts those substrings).
+    #   3. collapse addendum - the .sumhead / .sum-glance rules for the collapsible
+    #      Posture Summary + Coverage Matrix headers.
 @'
-  .navbar-custom{ background-color:#005494; color:white; padding-bottom:10px; }
-  .card-header{ background-color:#0078D4; color:white; }
-  .card-header a{ color:white; text-decoration:none; }
-  .bd-callout{ padding:1rem 1.25rem; margin:.5rem 0 1rem; border:1px solid #eee; border-left-width:.25rem; border-radius:.25rem; background:#fff; }
-  .bd-callout-info{ border-left-color:#5bc0de; }
-  .bd-callout-warning{ border-left-color:#f0ad4e; }
-  .bd-callout-success{ border-left-color:#00bd19; }
-  .bd-callout-secondary{ border-left-color:#adb5bd; }
-  .bd-callout-dark{ border-left-color:#6c757d; }
-  .app-footer{ background-color:#005494; color:white; padding:12px 0; }
+  /* ---- 1. framework-free compat layer (replaces Bootstrap + Font Awesome CDN) ---- */
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-sans);line-height:1.45;color:var(--text-body);}
+  img{max-width:100%;height:auto;}
+  h2{font-size:2rem;font-weight:500;margin:0 0 .5rem;line-height:1.2;}
+  h5{font-size:1.25rem;font-weight:500;margin:0 0 .5rem;}
+  h6{font-size:1rem;font-weight:500;margin:0 0 .5rem;}
+  p{margin:0 0 1rem;}
+  .row{display:flex;flex-wrap:wrap;}
+  .container-fluid{width:100%;padding-left:12px;padding-right:12px;}
+  .navbar{display:flex;flex-wrap:wrap;align-items:center;padding:.5rem 1rem;}
+  .col,.col-sm{flex:1 1 0%;min-width:0;}
+  .col-auto{flex:0 0 auto;width:auto;}
+  .col-sm-10{flex:1 1 auto;min-width:0;}
+  .col-sm-2{flex:0 0 auto;margin-left:auto;text-align:right;}
+  .col-6{flex:0 0 50%;max-width:50%;padding-left:6px;padding-right:6px;}
+  @media (min-width:768px){ .col-md-3{flex:0 0 25%;max-width:25%;} }
+  .text-right{text-align:right;} .text-center{text-align:center;}
+  .ml-3{margin-left:1rem;} .mt-3{margin-top:1rem;} .p-3{padding:1rem;}
+  .text-success{color:var(--sev-ok);} .text-danger{color:#c0392b;}
+  .text-muted{color:var(--text-faint);} .text-secondary{color:var(--sev-verify);}
+  .bg-light{background:#f8f9fa;}
+  .card{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--radius-md);}
+  .card-body{padding:1rem 1.25rem;}
+  .card-title{margin-bottom:.75rem;}
+  table{border-collapse:collapse;}
+  .table{width:100%;margin-bottom:1rem;}
+  .table td,.table th{padding:.45rem .5rem;text-align:left;}
+  .table-sm td,.table-sm th{padding:.3rem .4rem;}
+  .table-borderless td,.table-borderless th{border:0;}
+  .badge{display:inline-block;padding:.25em .4em;font-size:75%;font-weight:700;line-height:1;text-align:center;white-space:nowrap;border-radius:var(--radius-sm);vertical-align:baseline;}
+  .badge-success{background:var(--badge-ok-bg);color:var(--badge-ok-fg);}
+  .badge-warning{background:var(--badge-impr-bg);color:var(--badge-impr-fg);}
+  .badge-info{background:var(--badge-rec-bg);color:var(--badge-rec-fg);}
+  .badge-secondary{background:var(--badge-info-bg);color:var(--badge-info-fg);}
+  .badge-dark{background:var(--badge-verify-bg);color:var(--badge-verify-fg);}
+  .btn{display:inline-block;font-weight:400;text-align:center;padding:.375rem .75rem;font-size:1rem;line-height:1.5;border:1px solid transparent;border-radius:.25rem;cursor:pointer;}
+  .btn-primary{color:#fff;background:#007bff;border-color:#007bff;}
+  .fas,.far,.fa{font-style:normal;display:inline-block;line-height:1;font-family:inherit;}
+  .fa-chevron-right::before{content:"\203A";}
+  .fa-external-link-square-alt::before{content:"\2197";}
+  .fa-tools::before{content:"\2699";}
+  .fa-info-circle::before{content:"\2139";}
+  .fa-check-circle::before{content:"\2714";}
+  .fa-times-circle::before{content:"\2716";}
+  .fa-user-check::before{content:"\25CB";}
+  .fa-user-cog::before,.fa-shield-alt::before,.fa-archive::before,.fa-user-secret::before,.fa-search::before,.fa-robot::before,.fa-binoculars::before{content:"\25AA";}
+  .collapse{display:none;} .collapse.show{display:block;}
+  /* ---- 2. tokens + tokenized/polished component CSS ---- */
+  :root{
+    --font-sans:'Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    --fs-xs:11px; --fs-sm:12px; --fs-base:13px; --fs-md:14px; --fs-lg:18px; --fs-xl:20px;
+    --sp-1:4px; --sp-2:6px; --sp-3:8px; --sp-4:10px; --sp-5:12px; --sp-6:16px;
+    --radius-sm:4px; --radius-md:6px; --radius-pill:14px;
+    --brand:#005494; --brand-header:#0078D4; --accent:#0078D4; --accent-strong:#0b5394;
+    --accent-soft:#eaf4fd; --target:#f0f7ff;
+    --text-strong:#33445a; --text-body:#495057; --text-muted:#5a6b7b; --text-faint:#667085;
+    --surface:#ffffff; --surface-1:#f8fafc; --surface-2:#f1f5f9; --hover:#f5f9fd;
+    --hairline:#e6ebf1; --border:#d7e0ea;
+    --sev-ok:#1e7e34; --sev-impr:#f0ad4e; --sev-rec:#17a2b8; --sev-info:#adb5bd; --sev-verify:#6c757d;
+    --badge-ok-bg:#1e7e34; --badge-ok-fg:#ffffff;
+    --badge-impr-bg:#ffc107; --badge-impr-fg:#212529;
+    --badge-rec-bg:#17a2b8; --badge-rec-fg:#ffffff;
+    --badge-info-bg:#6c757d; --badge-info-fg:#ffffff;
+    --badge-verify-bg:#343a40; --badge-verify-fg:#ffffff;
+  }
+  a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px; border-radius:2px; }
+  .navbar-custom{ background-color:var(--brand); color:#fff; padding-bottom:10px; }
+  .card-header{ background-color:var(--brand-header); color:#fff; padding:.6rem 1.25rem; border-radius:var(--radius-md) var(--radius-md) 0 0; }
+  .card-header a{ color:#fff; text-decoration:none; }
+  .bd-callout{ padding:1rem 1.25rem; margin:.5rem 0 1rem; border:1px solid var(--hairline); border-left-width:.25rem; border-radius:var(--radius-sm); background:var(--surface); }
+  .bd-callout-info{ border-left-color:var(--sev-rec); }
+  .bd-callout-warning{ border-left-color:var(--sev-impr); }
+  .bd-callout-success{ border-left-color:var(--sev-ok); }
+  .bd-callout-secondary{ border-left-color:var(--sev-info); }
+  .bd-callout-dark{ border-left-color:var(--sev-verify); }
+  .app-footer{ background-color:var(--brand); color:#fff; padding:12px 0; }
   .app-footer a{ color:#cfe6ff; }
-  .logo-ph{ width:250px; height:150px; border:1px dashed #b7c6d6; border-radius:4px; color:#8aa0b5; display:flex; align-items:center; justify-content:center; font-size:13px; }
-  .mock-flag{ background:#2a2440; color:#d9d4f0; font-family:monospace; font-size:12px; text-align:center; padding:6px; }
-  .redact-flag{ background:#5c1a1a; color:#ffd9d9; font-family:monospace; font-size:12px; text-align:center; padding:6px; }
-  .finding{ border-bottom:1px solid #eef1f4; }
+  .logo-ph{ width:250px; height:150px; border:1px dashed var(--border); border-radius:var(--radius-sm); color:var(--text-faint); display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); }
+  .mock-flag{ background:#2a2440; color:#d9d4f0; font-family:monospace; font-size:var(--fs-sm); text-align:center; padding:var(--sp-2); }
+  .redact-flag{ background:#5c1a1a; color:#ffd9d9; font-family:monospace; font-size:var(--fs-sm); text-align:center; padding:var(--sp-2); }
+  .finding{ border-bottom:1px solid var(--hairline); }
   .finding:last-child{ border-bottom:0; }
-  .finding-head{ cursor:pointer; padding:12px 6px; margin:0; align-items:center; }
-  .finding-head:hover{ background:#f5f9fd; }
+  .finding-head{ cursor:pointer; padding:var(--sp-5) var(--sp-3); margin:0; align-items:center; }
+  .finding-head:hover{ background:var(--hover); }
   .finding-head h6{ margin:0; display:inline; font-weight:600; }
-  .chev{ color:#0078D4; transition:transform .15s ease; margin-right:10px; width:12px; }
+  .chev{ color:var(--accent); transition:transform .15s ease; margin-right:10px; width:12px; }
   .finding-head[aria-expanded="true"] .chev{ transform:rotate(90deg); }
-  table.detail{ font-size:13px; margin-top:.6rem; margin-bottom:.25rem; }
-  table.detail thead th{ background:#f1f5f9; border-bottom:2px solid #d7e0ea; font-size:12px; text-transform:uppercase; letter-spacing:.02em; color:#5a6b7b; padding:8px 10px; }
-  table.detail td{ padding:8px 10px; vertical-align:top; }
+  table.detail{ font-size:var(--fs-base); margin-top:.6rem; margin-bottom:.25rem; }
+  table.detail thead th{ background:var(--surface-2); border-bottom:2px solid var(--border); font-size:var(--fs-sm); text-transform:uppercase; letter-spacing:.02em; color:var(--text-muted); padding:var(--sp-3) var(--sp-4); }
+  table.detail td{ padding:var(--sp-3) var(--sp-4); vertical-align:top; }
   .rowstat{ white-space:nowrap; font-weight:600; }
-  .remarks{ background:#f8f9fa; border:0; color:#495057; font-size:12.5px; }
-  .remarks i{ color:#6c757d; margin-right:6px; }
-  .learnmore{ margin-top:.6rem; padding-top:.5rem; border-top:1px dashed #e3e7eb; }
+  .remarks{ background:var(--surface-1); border:0; color:var(--text-body); font-size:var(--fs-sm); }
+  .remarks i{ color:var(--text-faint); margin-right:6px; }
+  .learnmore{ margin-top:.6rem; padding-top:.5rem; border-top:1px dashed var(--hairline); }
   .learnmore a{ text-decoration:none; display:block; padding:3px 0; }
-  .lm-tag{ font-size:11px; color:#8a97a4; text-transform:uppercase; margin-left:6px; }
-  .whyline{ color:#495057; margin:.15rem 0 .1rem; }
+  .lm-tag{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; margin-left:6px; }
+  .whyline{ color:var(--text-body); margin:.15rem 0 .1rem; }
   /* filter bar */
-  .filterbar{ position:sticky; top:8px; z-index:100; background:#fff; border:1px solid #e3e9ef; border-radius:6px;
-              padding:8px 12px; margin-top:1rem; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  .filterbar{ position:sticky; top:8px; z-index:100; background:var(--surface); border:1px solid var(--hairline); border-radius:var(--radius-md);
+              padding:var(--sp-3) var(--sp-5); margin-top:1rem; display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3);
               box-shadow:0 2px 8px rgba(0,40,80,.08); }
-  .fb-label{ font-size:12px; font-weight:700; color:#33445a; text-transform:uppercase; letter-spacing:.02em; }
-  .fb-chip{ border:1px solid #d7e0ea; background:#f8fafc; border-radius:14px; font-size:12px; font-weight:600;
-            color:#5a6b7b; padding:3px 11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-  .fb-chip:hover{ border-color:#0078D4; }
-  .fb-chip.active{ background:#eaf4fd; border-color:#0078D4; color:#0b5394; }
+  .fb-label{ font-size:var(--fs-sm); font-weight:700; color:var(--text-strong); text-transform:uppercase; letter-spacing:.02em; }
+  .fb-chip{ border:1px solid var(--border); background:var(--surface-1); border-radius:var(--radius-pill); font-size:var(--fs-sm); font-weight:600;
+            color:var(--text-muted); padding:3px 11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .fb-chip:hover{ border-color:var(--accent); }
+  .fb-chip.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong); }
   .fb-chip:not(.active) .gdot{ opacity:.35; }
-  .fb-search{ border:1px solid #d7e0ea; border-radius:4px; font-size:13px; padding:4px 10px; min-width:220px; flex:1 1 220px; max-width:340px; }
-  .fb-search:focus{ outline:none; border-color:#0078D4; }
-  .fb-reset{ border:1px solid #d7e0ea; background:#fff; border-radius:4px; font-size:12px; font-weight:600; color:#5a6b7b; padding:4px 12px; cursor:pointer; }
-  .fb-reset:hover{ border-color:#0078D4; color:#0b5394; }
-  .fb-status{ font-size:12px; color:#8a97a4; margin-left:auto; }
+  .fb-search{ border:1px solid var(--border); border-radius:var(--radius-sm); font-size:var(--fs-base); padding:4px 10px; min-width:220px; flex:1 1 220px; max-width:340px; }
+  .fb-search:focus{ border-color:var(--accent); }
+  .fb-reset{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); font-size:var(--fs-sm); font-weight:600; color:var(--text-muted); padding:4px 12px; cursor:pointer; }
+  .fb-reset:hover{ border-color:var(--accent); color:var(--accent-strong); }
+  .fb-status{ font-size:var(--fs-sm); color:var(--text-faint); margin-left:auto; }
   .finding.fb-hidden{ display:none; }
   .seccard.sec-allhidden .card-body{ display:none; }
-  .sec-hiddennote{ display:none; font-size:12px; font-weight:400; color:#cfe6ff; margin-left:10px; }
+  .sec-hiddennote{ display:none; font-size:var(--fs-sm); font-weight:400; color:#cfe6ff; margin-left:10px; }
   .seccard.sec-allhidden .sec-hiddennote{ display:inline; }
   /* posture summary */
-  .es-meta{ color:#5a6b7b; font-size:13px; margin-bottom:.75rem; }
-  .es-tiles{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:.85rem; }
-  .es-tile{ border:1px solid #e3e9ef; border-radius:6px; padding:10px 14px; min-width:118px; text-align:center; }
-  .es-num{ font-size:18px; font-weight:800; padding:6px 12px; display:inline-block; }
-  .es-lbl{ font-size:11px; color:#5a6b7b; font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-top:6px; }
-  .es-top{ font-weight:700; color:#33445a; margin-bottom:.35rem; }
-  .es-list a.es-item{ display:flex; align-items:baseline; gap:7px; padding:3px 0; color:inherit; text-decoration:none; font-size:13.5px; }
-  .es-list a.es-item:hover{ color:#0078D4; }
+  .es-meta{ color:var(--text-muted); font-size:var(--fs-base); margin-bottom:.75rem; }
+  .es-tiles{ display:flex; flex-wrap:wrap; gap:var(--sp-4); margin-bottom:.85rem; }
+  .es-tile{ border:1px solid var(--hairline); border-radius:var(--radius-md); padding:var(--sp-4) var(--sp-6); min-width:118px; text-align:center; }
+  .es-num{ font-size:var(--fs-lg); font-weight:800; padding:6px 12px; display:inline-block; }
+  .es-lbl{ font-size:var(--fs-xs); color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.02em; margin-top:6px; }
+  .es-top{ font-weight:700; color:var(--text-strong); margin-bottom:.35rem; }
+  .es-list a.es-item{ display:flex; align-items:baseline; gap:7px; padding:3px 0; color:inherit; text-decoration:none; font-size:var(--fs-base); }
+  .es-list a.es-item:hover{ color:var(--accent); }
   .es-list .gdot{ align-self:center; }
-  .es-sec{ color:#8a97a4; font-size:11.5px; margin-left:auto; padding-left:12px; white-space:nowrap; }
-  .es-more{ color:#5a6b7b; font-size:12.5px; padding:4px 0 0 16px; font-style:italic; }
-  .es-none{ color:#5a6b7b; font-size:13px; margin:0; }
+  .es-sec{ color:var(--text-faint); font-size:var(--fs-sm); margin-left:auto; padding-left:12px; white-space:nowrap; }
+  .es-more{ color:var(--text-muted); font-size:var(--fs-sm); padding:4px 0 0 16px; font-style:italic; }
+  .es-none{ color:var(--text-muted); font-size:var(--fs-base); margin:0; }
   /* remediation region (P7) */
-  details.remed{ margin-top:.6rem; border-top:1px dashed #e3e7eb; padding-top:.5rem; }
-  details.remed summary{ cursor:pointer; font-size:13px; font-weight:600; color:#0b5394; list-style-position:inside; }
-  details.remed summary i{ margin-right:4px; color:#0078D4; }
-  .remed-draft-tag{ font-size:10px; color:#8a97a4; text-transform:uppercase; letter-spacing:.04em; border:1px solid #d7e0ea; border-radius:3px; padding:1px 5px; margin-left:6px; vertical-align:middle; }
-  .remed-body{ padding:8px 2px 2px 2px; }
-  .remed-portal{ font-size:13px; margin-bottom:.5rem; }
-  .remed-learn{ font-size:13px; text-decoration:none; display:inline-block; padding:2px 0; }
-  .remed-note{ font-size:11.5px; color:#8a97a4; margin:.4rem 0 0; }
+  details.remed{ margin-top:.6rem; border-top:1px dashed var(--hairline); padding-top:.5rem; }
+  details.remed summary{ cursor:pointer; font-size:var(--fs-base); font-weight:600; color:var(--accent-strong); list-style-position:inside; }
+  details.remed summary i{ margin-right:4px; color:var(--accent); }
+  .remed-draft-tag{ font-size:var(--fs-xs); color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--border); border-radius:var(--radius-sm); padding:1px 5px; margin-left:6px; vertical-align:middle; }
+  .remed-body{ padding:var(--sp-3) var(--sp-1) var(--sp-1); }
+  .remed-portal{ font-size:var(--fs-base); margin-bottom:.5rem; }
+  .remed-learn{ font-size:var(--fs-base); text-decoration:none; display:inline-block; padding:2px 0; }
+  .remed-note{ font-size:var(--fs-sm); color:var(--text-faint); margin:.4rem 0 0; }
   /* run-profile exclusion note */
-  .profile-note{ color:#5a6b7b; font-size:12.5px; margin:1rem 2px 0; padding:8px 12px; background:#f1f5f9; border:1px solid #e3e9ef; border-radius:6px; }
+  .profile-note{ color:var(--text-muted); font-size:var(--fs-sm); margin:1rem 2px 0; padding:var(--sp-3) var(--sp-5); background:var(--surface-2); border:1px solid var(--hairline); border-radius:var(--radius-md); }
   /* per-finding anchor affordance */
-  .anchor-link{ margin-left:8px; color:#b7c6d6; text-decoration:none; font-weight:600; opacity:0; transition:opacity .12s ease; }
+  .anchor-link{ margin-left:8px; color:var(--text-faint); text-decoration:none; font-weight:600; opacity:0; transition:opacity .12s ease; }
   .finding-head:hover .anchor-link{ opacity:1; }
-  .anchor-link:hover{ color:#0078D4; text-decoration:none; }
-  .anchor-link.copied{ color:#00bd19; opacity:1; }
-  .finding:target{ background:#f0f7ff; }
+  .anchor-link:hover{ color:var(--accent); text-decoration:none; }
+  .anchor-link.copied{ color:var(--sev-ok); opacity:1; }
+  .finding:target{ background:var(--target); }
   /* environment at a glance */
-  .glance .cell{ display:block; border:1px solid #e3e9ef; border-radius:6px; padding:10px 12px; height:100%; text-decoration:none; color:inherit; transition:border-color .12s ease, background .12s ease; }
-  .glance .cell:hover{ border-color:#0078D4; background:#f5f9fd; }
-  .glance .nm{ font-size:12px; color:#5a6b7b; font-weight:600; display:flex; align-items:center; gap:7px; margin-bottom:3px; }
-  .glance .mx{ font-size:20px; font-weight:800; letter-spacing:-.01em; line-height:1.1; }
-  .glance .sub{ font-size:11px; color:#8a97a4; }
+  .glance .cell{ display:block; border:1px solid var(--hairline); border-radius:var(--radius-md); padding:var(--sp-4) var(--sp-5); height:100%; text-decoration:none; color:inherit; transition:border-color .12s ease, background .12s ease; }
+  .glance .cell:hover{ border-color:var(--accent); background:var(--hover); }
+  .glance .nm{ font-size:var(--fs-sm); color:var(--text-muted); font-weight:600; display:flex; align-items:center; gap:7px; margin-bottom:3px; }
+  .glance .mx{ font-size:var(--fs-xl); font-weight:800; letter-spacing:-.01em; line-height:1.1; }
+  .glance .sub{ font-size:var(--fs-xs); color:var(--text-faint); }
   .gdot{ width:9px; height:9px; border-radius:50%; display:inline-block; flex:none; }
-  .gdot.ok{ background:#00bd19; } .gdot.impr{ background:#f0ad4e; } .gdot.rec{ background:#17a2b8; }
-  .gdot.info{ background:#adb5bd; } .gdot.verify{ background:#6c757d; }
+  .gdot.ok{ background:var(--sev-ok); } .gdot.impr{ background:var(--sev-impr); } .gdot.rec{ background:var(--sev-rec); }
+  .gdot.info{ background:var(--sev-info); } .gdot.verify{ background:var(--sev-verify); }
   /* solutions summary count badges */
-  table.summary td{ vertical-align:middle; padding:6px 8px; }
-  .sscount{ width:34px; padding:8px 0; text-align:center; display:inline-block; margin-left:2px; font-size:13px; }
-  .ssparent{ background:#f1f5f9; }
-  .ssparent td{ font-weight:700; color:#33445a; letter-spacing:.01em; }
-  .sschild a{ color:#0078D4; text-decoration:none; }
+  table.summary td{ vertical-align:middle; padding:var(--sp-2) var(--sp-3); }
+  .sscount{ width:34px; padding:var(--sp-3) 0; text-align:center; display:inline-block; margin-left:2px; font-size:var(--fs-base); }
+  .ssparent{ background:var(--surface-2); }
+  .ssparent td{ font-weight:700; color:var(--text-strong); letter-spacing:.01em; }
+  .sschild a{ color:var(--accent); text-decoration:none; }
   /* coverage matrix (Wave 4 Part D). None vs Unknown must survive print WITHOUT
      color: distinct family + hatching (repeating stripes) vs dotting (radial) +
      glyph + in-cell text - four independent signals. */
-  table.covm-grid{ border-collapse:collapse; width:100%; font-size:13px; margin-top:.4rem; }
-  table.covm-grid thead th{ background:#f1f5f9; border:1px solid #d7e0ea; font-size:12px; text-transform:uppercase; letter-spacing:.02em; color:#5a6b7b; padding:8px 10px; text-align:center; }
-  table.covm-grid th.covm-row{ background:#f8fafc; border:1px solid #d7e0ea; text-align:left; padding:8px 10px; font-size:12.5px; color:#33445a; width:16%; }
-  td.covm-cell{ border:1px solid #d7e0ea; padding:8px 10px; text-align:center; vertical-align:middle; }
+  table.covm-grid{ border-collapse:collapse; width:100%; font-size:var(--fs-base); margin-top:.4rem; }
+  table.covm-grid thead th{ background:var(--surface-2); border:1px solid var(--border); font-size:var(--fs-sm); text-transform:uppercase; letter-spacing:.02em; color:var(--text-muted); padding:var(--sp-3) var(--sp-4); text-align:center; }
+  table.covm-grid th.covm-row{ background:var(--surface-1); border:1px solid var(--border); text-align:left; padding:var(--sp-3) var(--sp-4); font-size:var(--fs-sm); color:var(--text-strong); width:16%; }
+  td.covm-cell{ border:1px solid var(--border); padding:var(--sp-3) var(--sp-4); text-align:center; vertical-align:middle; }
   .covm-cell a.covm-link{ text-decoration:none; color:inherit; }
   .covm-glyph{ font-weight:800; margin-right:5px; }
-  .covm-text{ font-weight:600; font-size:12.5px; }
+  .covm-text{ font-weight:600; font-size:var(--fs-sm); }
   .covm-covered{ background:#e6f6e9; color:#1e7e34; }
   .covm-partial{ background:#fff6e0; color:#8a6d1a; }
-  .covm-testonly{ background:#eef4fa; color:#0b5394; }
+  .covm-testonly{ background:#eef4fa; color:var(--accent-strong); }
   .covm-none{ background:repeating-linear-gradient(45deg,#fdecea,#fdecea 6px,#ffffff 6px,#ffffff 12px); color:#a52834; }
-  .covm-unknown{ background:radial-gradient(#cfd6dd 1.3px, #f8f9fa 1.3px); background-size:8px 8px; color:#495057; }
-  .covm-na{ background:#fafbfc; color:#8a97a4; }
-  .covm-held{ background:#ffffff; color:#8a97a4; }
+  .covm-unknown{ background:radial-gradient(#cfd6dd 1.3px, #f8f9fa 1.3px); background-size:8px 8px; color:var(--text-body); }
+  .covm-na{ background:var(--surface-1); color:var(--text-faint); }
+  .covm-held{ background:#ffffff; color:var(--text-faint); }
   .covm-held sup a{ text-decoration:none; }
-  .covm-reason{ display:inline-block; border:1px solid #d7e0ea; border-radius:9px; font-size:10px; padding:0 6px; margin-top:3px; color:#5a6b7b; background:#fff; }
+  .covm-reason{ display:inline-block; border:1px solid var(--border); border-radius:var(--radius-md); font-size:10px; padding:0 6px; margin-top:3px; color:var(--text-muted); background:var(--surface); }
   .covm-prov{ color:#b07d2b; margin-left:4px; cursor:help; font-weight:700; }
-  .covm-banner{ background:#fff8e6; border:1px solid #f0ad4e; border-radius:6px; padding:8px 12px; margin-bottom:.6rem; font-size:13px; }
-  .covm-strip{ font-size:13px; margin:.7rem 0 0; color:#33445a; }
-  .covm-strip a{ color:#0078D4; text-decoration:none; }
-  .covm-foot{ color:#8a97a4; font-size:11.5px; margin:.5rem 0 0; }
+  .covm-banner{ background:#fff8e6; border:1px solid var(--sev-impr); border-radius:var(--radius-md); padding:var(--sp-3) var(--sp-5); margin-bottom:.6rem; font-size:var(--fs-base); }
+  .covm-strip{ font-size:var(--fs-base); margin:.7rem 0 0; color:var(--text-strong); }
+  .covm-strip a{ color:var(--accent); text-decoration:none; }
+  .covm-foot{ color:var(--text-faint); font-size:var(--fs-sm); margin:.5rem 0 0; }
   @media (prefers-reduced-motion:reduce){ .chev{ transition:none; } .glance .cell{ transition:none; } }
+  /* ---- 3. collapsible Posture Summary + Coverage Matrix headers ---- */
+  .card-header.sumhead{ display:flex; align-items:center; cursor:pointer; }
+  .card-header.sumhead:hover{ background:#0a6bc0; }
+  .sumhead .chev{ color:#fff; margin-right:8px; width:12px; }
+  .sumhead[aria-expanded="true"] .chev{ transform:rotate(90deg); }
+  .sum-glance{ margin-left:auto; display:inline-flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:var(--fs-base); font-weight:600; color:#fff; }
+  .sum-glance .sg-item{ display:inline-flex; align-items:center; gap:5px; }
+  .sum-glance .gdot{ box-shadow:0 0 0 1.5px rgba(255,255,255,.55); }
   /* print / PDF (P3): posture summary is page one, sections start clean, drill-downs
      expanded (beforeprint JS opens them; the .collapse rule is the CSS fallback),
      interactive-only affordances hidden, severity colors preserved. */
@@ -414,15 +519,18 @@ function Get-PpaSharedReportCss {
     .seccard{ break-before:page; page-break-before:always; }
     .finding, .glance .cell, .bd-callout{ break-inside:avoid; page-break-inside:avoid; }
     .finding-head{ cursor:default; }
+    .card-header.sumhead{ cursor:default; }
     .card{ border:1px solid #d7e0ea; }
   }
 '@
 }
 
 function Get-PpaHtmlHead {
-    # Shared document head (C-fix 4): doctype, CDN assets, the shared stylesheet
-    # plus optional artifact-specific extra CSS, the title, and the opening body
-    # tag. Both the main report and the delta report build their head here.
+    # Shared document head (C-fix 4): doctype, the shared stylesheet plus optional
+    # artifact-specific extra CSS, the title, and the opening body tag. Both the main
+    # report and the delta report build their head here.
+    # Wave 5: framework-free / offline - NO CDN <link>s. The shared stylesheet re-implements
+    # the Bootstrap subset + a Font Awesome -> unicode map, so the report is self-contained.
     param(
         [Parameter(Mandatory = $true)][string]$Title,
         [string]$ExtraCss = ''
@@ -435,8 +543,6 @@ function Get-PpaHtmlHead {
     [void]$sb.AppendLine('<head>')
     [void]$sb.AppendLine('<meta charset="utf-8">')
     [void]$sb.AppendLine('<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">')
-    [void]$sb.AppendLine('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" crossorigin="anonymous">')
-    [void]$sb.AppendLine('<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">')
     [void]$sb.AppendLine('<style>')
     [void]$sb.AppendLine($css)
     [void]$sb.AppendLine('</style>')
@@ -491,8 +597,55 @@ function Get-PpaPolishScript {
     setTimeout(function () { a.classList.remove('copied'); }, 1200);
   }, true);
 
+  // Vanilla collapse (Wave 5, replaces Bootstrap): a click on any collapse toggle
+  // (finding drill-down heads + the Posture Summary / Coverage Matrix headers) shows or
+  // hides its data-target and flips aria-expanded. Matched via [data-target] so the toggle
+  // markup stays the single source of the collapse-toggle count (this handler adds none).
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t.closest && t.closest('.anchor-link')) { return; }
+    var h = (t && t.closest) ? t.closest('[data-target]') : null;
+    if (!h) { return; }
+    var sel = h.getAttribute('data-target');
+    if (!sel) { return; }
+    var body = document.querySelector(sel);
+    if (!body) { return; }
+    var open = body.classList.toggle('show');
+    h.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  // Keyboard toggle (Enter/Space) for focusable collapse headers (the summary sections).
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') { return; }
+    var h = (ev.target && ev.target.closest) ? ev.target.closest('[data-target]') : null;
+    if (!h || !h.hasAttribute('tabindex')) { return; }
+    ev.preventDefault();
+    h.click();
+  });
+
+  // Auto-expand on anchor: a deep link to a finding, the Posture Summary, or the Coverage
+  // Matrix opens the relevant collapse so the target never lands on an empty-looking section.
+  function expandForHash() {
+    var id = (location.hash || '').slice(1);
+    if (!id) { return; }
+    var el = document.getElementById(id);
+    if (!el) { return; }
+    var head = el.classList.contains('finding')
+      ? el.querySelector('.finding-head[data-target]')
+      : el.querySelector('.card-header.sumhead[data-target]');
+    if (!head) { return; }
+    var sel = head.getAttribute('data-target');
+    var body = sel && document.querySelector(sel);
+    if (body && !body.classList.contains('show')) {
+      body.classList.add('show');
+      head.setAttribute('aria-expanded', 'true');
+    }
+    el.scrollIntoView({ block: 'start' });
+  }
+  window.addEventListener('hashchange', expandForHash);
+
   // P2 severity filter + text search. Hides finding cards only (never touches the
-  // Bootstrap collapse elements, so drill-down open state survives filtering).
+  // collapse elements, so drill-down open state survives filtering).
   var bar = document.getElementById('Filterbar');
   if (bar) {
     var chips = [].slice.call(bar.querySelectorAll('.fb-chip'));
@@ -550,22 +703,22 @@ function Get-PpaPolishScript {
       el.removeAttribute('open'); el.removeAttribute('data-print-opened');
     });
   });
+
+  expandForHash();
 })();
 </script>
 '@
 }
 
 function Get-PpaFooterHtml {
+    # Wave 5: framework-free / offline - the CDN jQuery/Popper/Bootstrap <script> tags are
+    # gone; all interactivity is the vanilla JS in Get-PpaPolishScript (incl. collapse).
 @'
 <footer class="app-footer"><div class="container-fluid">
   <strong>CAMP v2 &middot; read-only.</strong> Reads configuration metadata only &mdash; no document, email or prompt content, no matched values.
   Does not create, modify or delete tenant configuration. Statuses are inputs to consultant judgment, not compliance determinations,
   and are not mapped to any regulatory framework.
 </div></footer>
-
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 </body>
 </html>
 '@

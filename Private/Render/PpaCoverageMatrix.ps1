@@ -30,8 +30,28 @@ function Write-PpaCoverageMatrix {
     if ($null -eq $Coverage) { return '' }
 
     $sb = New-Object System.Text.StringBuilder
+
+    # Collapsible glanceable header (Wave 5 addendum): the card-header toggles the grid via
+    # the shared vanilla collapse handler; collapsed-by-default reclaims vertical space. The
+    # one-line coverage tally (assessed cell states) stays visible - aggregate metrics, so
+    # safe to show even under redaction. N/A and Held cells are excluded from the tally.
+    $stateCounts = [ordered]@{ 'Covered'=0; 'Partial'=0; 'Test-only'=0; 'None'=0; 'Unknown'=0 }
+    foreach ($cell in @($Coverage.cells)) {
+        $cs = [string]$cell.state
+        if ($stateCounts.Contains($cs)) { $stateCounts[$cs] = [int]$stateCounts[$cs] + 1 }
+    }
+    $labels = @{ 'Covered'='covered'; 'Partial'='partial'; 'Test-only'='test-only'; 'None'='none'; 'Unknown'='unknown' }
+    $tallyParts = New-Object System.Collections.Generic.List[string]
+    foreach ($k in $stateCounts.Keys) {
+        if ([int]$stateCounts[$k] -gt 0) { $tallyParts.Add(([string][int]$stateCounts[$k]) + ' ' + $labels[$k]) }
+    }
+    $tally = if ($tallyParts.Count -gt 0) { $tallyParts -join ' &middot; ' } else { 'no assessed cells' }
+
     [void]$sb.AppendLine('  <div class="card mt-3 covm" id="Coveragematrix">')
-    [void]$sb.AppendLine('    <div class="card-header"><strong>Coverage Matrix</strong></div>')
+    [void]$sb.Append('    <div class="card-header sumhead" data-toggle="collapse" data-target="#body-Coveragematrix" role="button" tabindex="0" aria-expanded="false" aria-controls="body-Coveragematrix">')
+    [void]$sb.Append('<i class="fas fa-chevron-right chev"></i><strong>Coverage Matrix</strong>')
+    [void]$sb.Append('<span class="sum-glance">').Append($tally).AppendLine('</span></div>')
+    [void]$sb.AppendLine('    <div class="collapse" id="body-Coveragematrix">')
     [void]$sb.AppendLine('    <div class="card-body">')
 
     # Degraded-collector banner above the matrix (ruled 5.1).
@@ -112,6 +132,7 @@ function Write-PpaCoverageMatrix {
     # ---- framing notes (ruled 5.1) ----
     [void]$sb.AppendLine('      <p class="covm-foot">Assessed via Security &amp; Compliance PowerShell only. Container labeling for SharePoint and Teams is out of scope for this matrix.</p>')
 
+    [void]$sb.AppendLine('    </div>')
     [void]$sb.AppendLine('    </div>')
     [void]$sb.AppendLine('  </div>')
     return $sb.ToString()

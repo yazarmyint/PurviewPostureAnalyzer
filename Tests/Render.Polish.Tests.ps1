@@ -386,8 +386,11 @@ Describe 'P7 - remediation snippets' {
         $card | Should -Match 'remed-learn'
         $card | Should -Match 'https://learn\.microsoft\.com/en-us/purview/communication-compliance'
     }
-    It 'remediation regions are native details elements - the drill-down collapse count is unchanged' {
-        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 26
+    It 'remediation regions are native details elements - they never inflate the collapse count' {
+        # 26 finding drill-downs + the Posture Summary header = 27. This fixture passes no
+        # coverage model, so the Coverage Matrix collapsible is not rendered. Remediation
+        # <details> add none; the vanilla collapse handler matches [data-target], adding none.
+        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 27
     }
     It 'the catalog defines an entry for every catalog check ID referenced by the dense fixture' {
         $cat = Get-PpaRemediationCatalog

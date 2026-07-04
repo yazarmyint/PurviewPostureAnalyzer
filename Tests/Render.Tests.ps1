@@ -28,8 +28,11 @@ Describe 'HTML render - structure' {
     It 'emits 20 detail tables (IRM-02 is table-less)' {
         ([regex]::Matches($script:Html, 'table table-sm detail')).Count | Should -Be 20
     }
-    It 'has one collapsible drill-down per finding' {
-        ([regex]::Matches($script:Html, 'data-toggle="collapse"')).Count | Should -Be 21
+    It 'has one collapsible drill-down per finding, plus the collapsible Posture Summary' {
+        # 21 finding drill-downs + the Posture Summary header = 22. This fixture passes no
+        # coverage model, so the Coverage Matrix (the other collapsible section) is not
+        # rendered; a report built with coverage adds one more (see the sample builder).
+        ([regex]::Matches($script:Html, 'data-toggle="collapse"')).Count | Should -Be 22
     }
 }
 

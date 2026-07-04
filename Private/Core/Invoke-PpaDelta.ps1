@@ -18,7 +18,7 @@ function Invoke-PpaDelta {
     )
 
     if (-not (Test-PpaDeltaEngine)) {
-        throw 'Delta mode requires PowerShell 7 or later (run under pwsh). Snapshot capture works on Windows PowerShell 5.1; comparing snapshots does not.'
+        throw 'Delta mode requires PowerShell 7.5 or later (run under pwsh). Snapshot capture works on Windows PowerShell 5.1; comparing snapshots does not.'
     }
 
     if ([string]::IsNullOrWhiteSpace($OutputPath)) { $OutputPath = 'Outputs' }

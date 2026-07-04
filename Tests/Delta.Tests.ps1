@@ -45,28 +45,46 @@ AfterAll {
 }
 
 Describe 'Engine gate (spec section 1) - runs on BOTH engines' {
-    It 'refuses delta below PS 7 with the ruled message (real on 5.1, injected on 7+)' {
-        # Injectable version check: redefining Test-PpaDeltaEngine simulates a 5.1
-        # host without needing one; on a real 5.1 host the injection is a no-op lie
-        # that matches reality.
+    It 'refuses delta below PS 7.5 with the ruled message (real on 5.1, injected on 7+)' {
+        # Injectable version check: redefining Test-PpaDeltaEngine simulates a
+        # too-old host without needing one; on a real 5.1 host the injection is a
+        # no-op lie that matches reality. Floor is 7.5 - the loader depends on
+        # ConvertFrom-Json -DateKind String (C-fix 1).
         function Test-PpaDeltaEngine { return $false }
         { Invoke-PpaDelta -FromPath $script:FixA -ToPath $script:FixB -OutputPath $script:TmpDir } |
-            Should -Throw '*Delta mode requires PowerShell 7 or later (run under pwsh). Snapshot capture works on Windows PowerShell 5.1; comparing snapshots does not.*'
+            Should -Throw '*Delta mode requires PowerShell 7.5 or later (run under pwsh). Snapshot capture works on Windows PowerShell 5.1; comparing snapshots does not.*'
     }
 }
 
 Describe 'Delta fixture pair - regeneration matches the checked-in pair (6.1)' {
-    It 'checked-in A/B exist and regeneration deep-compares equal (drift guard)' {
+    It 'checked-in pairs (torture + showcase) exist and regeneration deep-compares equal (drift guard)' {
         Skip-OnPs51
         Test-Path -LiteralPath $script:FixA | Should -BeTrue
         Test-Path -LiteralPath $script:FixB | Should -BeTrue
         $regen = Join-Path $script:TmpDir 'regen'
         & (Join-Path $script:RepoRoot 'tools\New-DeltaFixturePair.ps1') -OutDir $regen | Out-Null
-        foreach ($n in @('dense-delta-A.json', 'dense-delta-B.json')) {
+        foreach ($n in @('dense-delta-A.json', 'dense-delta-B.json', 'showcase-delta-A.json', 'showcase-delta-B.json')) {
             $fresh = [System.IO.File]::ReadAllText((Join-Path $regen $n), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
             $gold  = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot "Samples\delta-fixtures\$n"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
             (ConvertTo-Json -InputObject $fresh -Depth 16) | Should -Be (ConvertTo-Json -InputObject $gold -Depth 16)
         }
+    }
+    It 'the showcase pair is degradation-free and yields a clean, presentable delta (C-fix 7)' {
+        Skip-OnPs51
+        $a = Import-PpaSnapshot -Path (Join-Path $script:RepoRoot 'Samples\delta-fixtures\showcase-delta-A.json')
+        $b = Import-PpaSnapshot -Path (Join-Path $script:RepoRoot 'Samples\delta-fixtures\showcase-delta-B.json')
+        $d = Compare-PpaSnapshotPair -From $a -To $b -WarningAction SilentlyContinue
+        @($d.sections | Where-Object { $_.state -ne 'Compared' }).Count | Should -Be 0
+        $d.spanDays | Should -Be 91
+        $dlp = @($d.sections | Where-Object { $_.id -eq 'Data_Loss_Prevention' })[0]
+        @($dlp.added).Count | Should -Be 1
+        $labels = @($d.sections | Where-Object { $_.id -eq 'Sensitivity_Labels' })[0]
+        @($labels.added).Count | Should -Be 1
+        $ret = @($d.sections | Where-Object { $_.id -eq 'Retention' })[0]
+        @($ret.modified | Where-Object { $_.renamed -and $_.renameTo -eq 'HR Records EU - 7yr' }).Count | Should -Be 1
+        # No visibility block content at all: the report leads with real change.
+        $html = Export-PpaDeltaReport -Delta $d
+        $html | Should -Not -Match 'id="delta-visibility"'
     }
 }
 
@@ -176,6 +194,37 @@ Describe 'Visibility precedence in all three directions (6.2 #5)' {
         $s.state | Should -Be 'VisibilityChanged'
         $s.fromOutcome | Should -Be 'CmdletUnavailable'
         $s.toOutcome | Should -Be 'CmdletUnavailable'
+    }
+    It 'equal degraded outcomes read as visibility UNCHANGED - never implying a change (C-fix 3)' {
+        Skip-OnPs51
+        $s = Get-PpaDeltaSection $script:D 'Insider_Risk'
+        $s.visibilityNote | Should -Be 'visibility unchanged - not readable on either side (CmdletUnavailable)'
+    }
+}
+
+Describe 'One-sided checks are never silent (C-fix 2)' {
+    It 'a check present only in the TO snapshot notices the older side, listed by checkId' {
+        Skip-OnPs51
+        $a = Get-PpaSnapshotCopy $script:FixA
+        $b = Get-PpaSnapshotCopy $script:FixA
+        $a.findings = @($a.findings | Where-Object { [string]$_.checkId -ne 'DLP-04' })
+        $d = Compare-PpaSnapshotPair -From $a -To $b -WarningAction SilentlyContinue
+        $s = Get-PpaDeltaSection $d 'Data_Loss_Prevention'
+        $n = @($s.findingNotices | Where-Object { $_.checkId -eq 'DLP-04' })
+        $n.Count | Should -Be 1
+        $n[0].reason | Should -Be 'check not present in the older snapshot - likely tool version difference'
+        @($s.findingChanges | Where-Object { $_.checkId -eq 'DLP-04' }).Count | Should -Be 0
+    }
+    It 'a check present only in the FROM snapshot notices the newer side' {
+        Skip-OnPs51
+        $a = Get-PpaSnapshotCopy $script:FixA
+        $b = Get-PpaSnapshotCopy $script:FixA
+        $b.findings = @($b.findings | Where-Object { [string]$_.checkId -ne 'DLP-04' })
+        $d = Compare-PpaSnapshotPair -From $a -To $b -WarningAction SilentlyContinue
+        $s = Get-PpaDeltaSection $d 'Data_Loss_Prevention'
+        $n = @($s.findingNotices | Where-Object { $_.checkId -eq 'DLP-04' })
+        $n.Count | Should -Be 1
+        $n[0].reason | Should -Be 'check not present in the newer snapshot - likely tool version difference'
     }
 }
 
@@ -329,6 +378,30 @@ Describe 'Delta report render (4.5) + redaction (6.2 #14, delta half)' {
         $html | Should -Match 'Shadow IT Guard'
         $html | Should -Match 'US SSN Guard'
         $html | Should -Match 'Not compared'
+    }
+    It 'embeds the SAME shared CSS block as the main report (C-fix 4, structural)' {
+        Skip-OnPs51
+        $shared = Get-PpaSharedReportCss
+        $shared | Should -Match '@media print\{'
+        $deltaHtml = Export-PpaDeltaReport -Delta (Get-PpaTestDelta)
+        $deltaHtml.Contains($shared) | Should -BeTrue
+        (Get-PpaReportHead).Contains($shared) | Should -BeTrue
+    }
+    It 'groups ALL visibility and not-compared notices into one Assessment visibility block (C-fix 6)' {
+        Skip-OnPs51
+        $html = Export-PpaDeltaReport -Delta (Get-PpaTestDelta)
+        $html | Should -Match 'id="delta-visibility"'
+        # Notices live in the block, never as interleaved per-section cards:
+        $html | Should -Not -Match 'id="delta-Audit"'
+        $html | Should -Not -Match 'id="delta-Insider_Risk"'
+        $html | Should -Not -Match 'id="delta-eDiscovery"'
+        $html | Should -Not -Match 'id="delta-Communication_Compliance"'
+        $block = ($html -split 'id="delta-visibility"')[1]
+        $block = ($block -split '</div></div>')[0]
+        $block | Should -Match 'Audit'
+        $block | Should -Match 'Insider Risk'
+        $block | Should -Match 'not compared'
+        $block | Should -Match 'visibility unchanged - not readable on either side \(CmdletUnavailable\)'
     }
     It 'renders the identity-failure banner text with a _keySource pointer when triggered' {
         Skip-OnPs51

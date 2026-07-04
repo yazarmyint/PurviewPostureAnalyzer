@@ -277,16 +277,11 @@ function Write-PpaLearnMore {
 # Static document chunks (verbatim from posture-report-mock-v5.html; CDN assets)
 # ---------------------------------------------------------------------------
 
-function Get-PpaReportHead {
+function Get-PpaSharedReportCss {
+    # The single shared stylesheet (C-fix 4): consumed by BOTH the main report head
+    # and the delta report head, so the two artifacts render as one product family.
+    # Never hand-copy these rules into another template.
 @'
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" crossorigin="anonymous">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-<style>
   .navbar-custom{ background-color:#005494; color:white; padding-bottom:10px; }
   .card-header{ background-color:#0078D4; color:white; }
   .card-header a{ color:white; text-decoration:none; }
@@ -397,11 +392,39 @@ function Get-PpaReportHead {
     .finding-head{ cursor:default; }
     .card{ border:1px solid #d7e0ea; }
   }
-</style>
-<title>Configuration Analyzer for Microsoft Purview</title>
-</head>
-<body class="app bg-light">
 '@
+}
+
+function Get-PpaHtmlHead {
+    # Shared document head (C-fix 4): doctype, CDN assets, the shared stylesheet
+    # plus optional artifact-specific extra CSS, the title, and the opening body
+    # tag. Both the main report and the delta report build their head here.
+    param(
+        [Parameter(Mandatory = $true)][string]$Title,
+        [string]$ExtraCss = ''
+    )
+    $css = Get-PpaSharedReportCss
+    if (-not [string]::IsNullOrEmpty($ExtraCss)) { $css = $css + "`n" + $ExtraCss }
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.AppendLine('<!doctype html>')
+    [void]$sb.AppendLine('<html lang="en">')
+    [void]$sb.AppendLine('<head>')
+    [void]$sb.AppendLine('<meta charset="utf-8">')
+    [void]$sb.AppendLine('<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">')
+    [void]$sb.AppendLine('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" crossorigin="anonymous">')
+    [void]$sb.AppendLine('<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">')
+    [void]$sb.AppendLine('<style>')
+    [void]$sb.AppendLine($css)
+    [void]$sb.AppendLine('</style>')
+    [void]$sb.Append('<title>').Append($Title).AppendLine('</title>')
+    [void]$sb.AppendLine('</head>')
+    [void]$sb.AppendLine('<body class="app bg-light">')
+    return $sb.ToString()
+}
+
+function Get-PpaReportHead {
+    # The main report head - composed from the shared asset (C-fix 4).
+    return Get-PpaHtmlHead -Title 'Configuration Analyzer for Microsoft Purview'
 }
 
 function Get-PpaNavbarHtml {

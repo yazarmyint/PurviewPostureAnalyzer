@@ -14,10 +14,12 @@
 Set-StrictMode -Off
 
 function Test-PpaDeltaEngine {
-    # The injectable engine gate (spec section 1): the delta entry point refuses to
-    # run below PS 7. Tests redefine this function to exercise the refusal without
-    # a real 5.1 host.
-    return ($PSVersionTable.PSVersion.Major -ge 7)
+    # The injectable engine gate (spec section 1, floor raised at C-fix 1): delta
+    # requires PS 7.5+ because the loader depends on ConvertFrom-Json -DateKind
+    # String (7.5+) to keep date-like leaves as verbatim strings. Tests redefine
+    # this function to exercise the refusal without a too-old host.
+    $v = $PSVersionTable.PSVersion
+    return (($v.Major -gt 7) -or ($v.Major -eq 7 -and $v.Minor -ge 5))
 }
 
 function Get-PpaSignificantPropertyMap {
@@ -200,7 +202,7 @@ function Compare-PpaSnapshotPair {
             toOutcome   = [string]$To.collectorOutcomes.$id
             visibilityNote = ''
             added = @(); removed = @(); modified = @()
-            findingChanges = @(); unchangedCount = 0
+            findingChanges = @(); findingNotices = @(); unchangedCount = 0
             identityWarning = $false
         }
 
@@ -229,6 +231,10 @@ function Compare-PpaSnapshotPair {
             }
             elseif (($readable -contains $fo) -and ($readable -notcontains $to2)) {
                 $rec.visibilityNote = ("{0} -> {1}: object-level comparison suppressed until visibility returns." -f $fo, $to2)
+            }
+            elseif ($fo -ceq $to2) {
+                # C-fix 3: equal degraded outcomes must never imply a change.
+                $rec.visibilityNote = ("visibility unchanged - not readable on either side ({0})" -f $fo)
             }
             else {
                 $rec.visibilityNote = ("{0} -> {1}: visibility degraded on both sides; nothing object-level can be asserted." -f $fo, $to2)
@@ -332,6 +338,23 @@ function Compare-PpaSnapshotPair {
         $fFind = @($From.findings | Where-Object { [string]$_.section -eq $id })
         $tFind = @($To.findings | Where-Object { [string]$_.section -eq $id })
         $fc = New-Object System.Collections.Generic.List[object]
+        $fn = New-Object System.Collections.Generic.List[object]
+        # C-fix 2: a check present in only one snapshot is never silent - it is a
+        # NotCompared-flavored notice by checkId (no new taxonomy member). The
+        # missing side is labeled older/newer by capture time (from is older when
+        # the span is non-negative).
+        $olderLabel = 'older'; $newerLabel = 'newer'
+        if ($spanDays -lt 0) { $olderLabel = 'newer'; $newerLabel = 'older' }
+        foreach ($ff in $fFind) {
+            if (@($tFind | Where-Object { [string]$_.checkId -eq [string]$ff.checkId }).Count -eq 0) {
+                $fn.Add([pscustomobject]@{ checkId = [string]$ff.checkId; reason = ("check not present in the {0} snapshot - likely tool version difference" -f $newerLabel) })
+            }
+        }
+        foreach ($tf2 in $tFind) {
+            if (@($fFind | Where-Object { [string]$_.checkId -eq [string]$tf2.checkId }).Count -eq 0) {
+                $fn.Add([pscustomobject]@{ checkId = [string]$tf2.checkId; reason = ("check not present in the {0} snapshot - likely tool version difference" -f $olderLabel) })
+            }
+        }
         foreach ($ff in $fFind) {
             $tf = @($tFind | Where-Object { [string]$_.checkId -eq [string]$ff.checkId })
             if ($tf.Count -eq 0) { continue }
@@ -351,6 +374,7 @@ function Compare-PpaSnapshotPair {
             }
         }
         $rec.findingChanges = $fc.ToArray()
+        $rec.findingNotices = $fn.ToArray()
 
         $sections.Add([pscustomobject]$rec)
     }

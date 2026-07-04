@@ -38,7 +38,11 @@ to retrofit; matrix is a pure view with no schema gravity.
 |----------------------|------------------------------|--------------|
 | Collectors/analyzers/HTML report | required (unchanged repo convention) | should also pass |
 | Snapshot WRITER      | REQUIRED - must be fully 5.1-compatible | should also pass |
-| Delta mode (loader + differ + delta report) | REFUSED with actionable message | REQUIRED |
+| Delta mode (loader + differ + delta report) | REFUSED with actionable message | REQUIRED (floor 7.5+, see addendum) |
+
+ADDENDUM (C-fix 1, 2026-07-03): the delta engine floor is PS 7.5+, not 7.0 -
+the loader depends on ConvertFrom-Json -DateKind String (added in 7.5) to
+keep date-like leaves as verbatim strings. Gate message updated accordingly.
 
 Rationale (recorded for posterity): engagement collection runs may execute
 on client-provided jump boxes where installing PS 7 is change-management
@@ -48,8 +52,8 @@ consultant machines.
 Gates:
 - Delta entry point checks engine version via an injectable version-check
   function (so Pester can test the refusal without a real 5.1 host). Refusal
-  message must name the requirement and the reason, e.g.:
-  "Delta mode requires PowerShell 7 or later (run under pwsh). Snapshot
+  message must name the requirement and the reason (7.5 floor per C-fix 1):
+  "Delta mode requires PowerShell 7.5 or later (run under pwsh). Snapshot
   capture works on Windows PowerShell 5.1; comparing snapshots does not."
 - TASK 0 FOR CODE, before anything else: verify both engines are available
   on DEV (powershell.exe 5.1 and pwsh 7+). The Pester suite will be run

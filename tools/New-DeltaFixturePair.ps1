@@ -1,8 +1,12 @@
-# New-DeltaFixturePair.ps1 - derives the checked-in delta fixture snapshots A and B
-# from the dense fixture using the EXPLICIT mutation table (Wave 4 spec 6.1,
-# tools/delta-fixture-mutations.json). Fully deterministic: fixed snapshot ids,
-# fixed capture times, injected environment - regenerating must deep-compare equal
-# to the checked-in pair (drift guard test in Tests/Delta.Tests.ps1).
+# New-DeltaFixturePair.ps1 - derives the checked-in delta fixture snapshot pairs
+# from the dense fixture using EXPLICIT mutation tables (Wave 4 spec 6.1 + C-fix 7):
+#   dense-delta-A/B.json    <- tools/delta-fixture-mutations.json (torture pair:
+#                              every required mutation incl. degradations)
+#   showcase-delta-A/B.json <- tools/delta-fixture-mutations-showcase.json (clean,
+#                              presentable pair: no degraded collectors)
+# Fully deterministic: fixed snapshot ids, capture times, injected environment -
+# regenerating must deep-compare equal to the checked-in pairs (drift guard test
+# in Tests/Delta.Tests.ps1).
 #
 #   pwsh -File tools/New-DeltaFixturePair.ps1 [-OutDir <dir>]
 #
@@ -63,11 +67,7 @@ $baseModel = New-PpaSnapshotModel `
 # Two independent parsed copies to mutate (snapshot-level mutation, like a real
 # pair of runs would differ).
 $baseJson = ConvertTo-Json -InputObject $baseModel -Depth 16
-$snapA = ConvertFrom-Json -InputObject $baseJson @script:ParseArgs
-$snapB = ConvertFrom-Json -InputObject $baseJson @script:ParseArgs
-
 $schema = Get-PpaSnapshotSchema
-$table = ConvertFrom-Json -InputObject ([System.IO.File]::ReadAllText((Join-Path $root 'tools\delta-fixture-mutations.json'), [System.Text.Encoding]::UTF8)) @script:ParseArgs
 
 function Get-PpaMutationTarget {
     param($Snap, [string]$Type, [string]$Key)
@@ -75,6 +75,17 @@ function Get-PpaMutationTarget {
     if ($hit.Count -ne 1) { throw "Mutation target not found (or ambiguous): type '$Type' key '$Key'." }
     return $hit[0]
 }
+
+$variants = @(
+    @{ Table = 'tools\delta-fixture-mutations.json';          Prefix = 'dense-delta' },
+    @{ Table = 'tools\delta-fixture-mutations-showcase.json'; Prefix = 'showcase-delta' }
+)
+
+foreach ($variant in $variants) {
+
+$snapA = ConvertFrom-Json -InputObject $baseJson @script:ParseArgs
+$snapB = ConvertFrom-Json -InputObject $baseJson @script:ParseArgs
+$table = ConvertFrom-Json -InputObject ([System.IO.File]::ReadAllText((Join-Path $root $variant.Table), [System.Text.Encoding]::UTF8)) @script:ParseArgs
 
 foreach ($op in @($table.ops)) {
     $snap = if ([string]$op.side -eq 'A') { $snapA } else { $snapB }
@@ -123,9 +134,11 @@ foreach ($op in @($table.ops)) {
     }
 }
 
-$pathA = Join-Path $OutDir 'dense-delta-A.json'
-$pathB = Join-Path $OutDir 'dense-delta-B.json'
+$pathA = Join-Path $OutDir ($variant.Prefix + '-A.json')
+$pathB = Join-Path $OutDir ($variant.Prefix + '-B.json')
 [System.IO.File]::WriteAllText($pathA, (ConvertTo-Json -InputObject $snapA -Depth 16), (New-Object System.Text.UTF8Encoding($false)))
 [System.IO.File]::WriteAllText($pathB, (ConvertTo-Json -InputObject $snapB -Depth 16), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "Delta fixture A : $pathA"
 Write-Host "Delta fixture B : $pathB"
+
+}

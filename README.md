@@ -142,7 +142,29 @@ displayed text only, never executed, and every draft is tracked for human review
 
 To preview all of this without a tenant, run `pwsh -File tools/Build-SampleReports.ps1` —
 it renders five fixture-driven sample reports (standard, dense, sparse, redacted, and
-profile-filtered) into the gitignored `Samples/sample-reports/` folder and prints the paths.
+profile-filtered) plus a sample snapshot and two delta reports into the gitignored
+`Samples/sample-reports/` folder and prints the paths.
+
+### Snapshots and the delta report (Wave 4, optional)
+
+Every report run also writes a versioned JSON **snapshot** of what the tool observed
+(suppress with `-NoSnapshot`). Snapshots are **unredacted** — they contain UPNs and
+scope identities; treat them as engagement-confidential (the console notice says
+exactly that on every capture). The redacted HTML report remains the artifact that
+travels.
+
+The **delta report** compares two snapshots from the same client — typically the
+kickoff snapshot against the engagement-close one — completely offline, with no
+tenant session, on **PowerShell 7.5+ only**:
+
+```powershell
+Invoke-PurviewPostureAnalyzer -DeltaFrom .\kickoff.json -DeltaTo .\close.json
+```
+
+It leads with real change (adds, removes, renames, enforcement flips), keeps
+everything the assessment could *not* see in a single "Assessment visibility"
+block, and states per-section unchanged counts as the confidence signal. Full
+guidance: [`docs/delta-report.md`](docs/delta-report.md).
 
 ---
 

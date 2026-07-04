@@ -60,6 +60,18 @@ function Get-PpaSensitivityLabels {
             name                = [string]$a.Name
             guid                = Get-PpaOptionalGuid $a
             mode                = [string]$a.Mode
+            # Part D matrix grounding (documented-only shape): auto-labeling
+            # supports Exchange/SharePoint/OneDrive locations only.
+            locationScope       = [pscustomobject]@{
+                exchange   = (Get-PpaLocationScopeToken $a.ExchangeLocation)
+                sharePoint = (Get-PpaLocationScopeToken $a.SharePointLocation)
+                oneDrive   = (Get-PpaLocationScopeToken $a.OneDriveLocation)
+            }
+            locationExceptions  = [pscustomobject]@{
+                exchange   = (Test-PpaLocationException $a.ExchangeLocationException)
+                sharePoint = (Test-PpaLocationException $a.SharePointLocationException)
+                oneDrive   = (Test-PpaLocationException $a.OneDriveLocationException)
+            }
             sits                = @($a.SensitiveInformationTypeNames | ForEach-Object { [string]$_ })
             simulationStartDate = ConvertTo-PpaIso8601 $a.SimulationStartDate
             simulationItemCount = [int]($a.SimulationItemCount)

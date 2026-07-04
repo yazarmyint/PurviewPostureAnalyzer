@@ -30,6 +30,17 @@ function Get-PpaRetention {
             guid      = Get-PpaOptionalGuid $p
             adaptive  = (@($p.AdaptiveScopeLocation).Count -gt 0)
             locations = @($locs)
+            # Part D matrix grounding (documented-only shape, additive; the token
+            # array above stays the analyzer contract). Includes the documented
+            # Teams retention locations not surfaced in the legacy tokens.
+            locationScope = [pscustomobject]@{
+                exchange     = (Get-PpaLocationScopeToken $p.ExchangeLocation)
+                sharePoint   = (Get-PpaLocationScopeToken $p.SharePointLocation)
+                oneDrive     = (Get-PpaLocationScopeToken $p.OneDriveLocation)
+                groups       = (Get-PpaLocationScopeToken $p.ModernGroupLocation)
+                teamsChannel = (Get-PpaLocationScopeToken $p.TeamsChannelLocation)
+                teamsChat    = (Get-PpaLocationScopeToken $p.TeamsChatLocation)
+            }
             labels    = @($ruleLabels)
         }
     }

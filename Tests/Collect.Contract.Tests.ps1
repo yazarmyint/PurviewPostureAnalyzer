@@ -221,6 +221,42 @@ Describe 'Session artifact stripping (A.3)' {
     }
 }
 
+Describe 'Location scope projection (Part D: matrix grounding, documented-only)' {
+    BeforeEach { $script:PpaReadStubMap = @{} }
+    It 'DLP policies project locationScope (All/Scoped/None) and locationExceptions per workload' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-DlpCompliancePolicy'].Data[0].ExchangeLocation = @('All')
+        $script:PpaReadStubMap['Get-DlpCompliancePolicy'].Data[0].SharePointLocation = @('https://contoso.sharepoint.com/sites/hr')
+        $script:PpaReadStubMap['Get-DlpCompliancePolicy'].Data[0] | Add-Member -NotePropertyName SharePointLocationException -NotePropertyValue @('https://contoso.sharepoint.com/sites/legal') -Force
+        $p = (Get-PpaDlp).policies.items[0]
+        $p.locationScope.exchange | Should -Be 'All'
+        $p.locationScope.sharePoint | Should -Be 'Scoped'
+        $p.locationScope.oneDrive | Should -Be 'None'
+        $p.locationScope.powerBI | Should -Be 'None'   # property absent on the raw -> None
+        $p.locationExceptions.sharePoint | Should -BeTrue
+        $p.locationExceptions.exchange | Should -BeFalse
+    }
+    It 'auto-label policies project the documented three-workload locationScope' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-AutoSensitivityLabelPolicy'].Data[0] | Add-Member -NotePropertyName ExchangeLocation -NotePropertyValue @('All') -Force
+        $script:PpaReadStubMap['Get-AutoSensitivityLabelPolicy'].Data[0] | Add-Member -NotePropertyName OneDriveLocation -NotePropertyValue @() -Force
+        $a = (Get-PpaSensitivityLabels).autoLabels.items[0]
+        $a.locationScope.exchange | Should -Be 'All'
+        $a.locationScope.oneDrive | Should -Be 'None'
+        $a.locationExceptions.exchange | Should -BeFalse
+    }
+    It 'retention policies project locationScope incl. the documented Teams locations' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-RetentionCompliancePolicy'].Data[0] | Add-Member -NotePropertyName TeamsChannelLocation -NotePropertyValue @('All') -Force
+        $r = (Get-PpaRetention).policies.items[0]
+        $r.locationScope.sharePoint | Should -Be 'All'
+        $r.locationScope.teamsChannel | Should -Be 'All'
+        $r.locationScope.teamsChat | Should -Be 'None'
+        # The legacy locations token array is untouched (analyzer contract).
+        @($r.locations) | Should -Contain 'SharePoint'
+    }
+}
+
 Describe 'Resolve-PpaCollectorOutcome mapping (A.4)' {
     It 'all reads Ok with items -> Populated' {
         Resolve-PpaCollectorOutcome -ReadStatuses @('Ok', 'Ok') -ItemCount 3 | Should -Be 'Populated'

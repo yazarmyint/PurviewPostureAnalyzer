@@ -44,6 +44,24 @@ function Get-PpaOptionalGuid {
     return $g
 }
 
+function Get-PpaLocationScopeToken {
+    # Part D matrix grounding: collapse a raw *Location property to the closed
+    # scope token set - 'All' (contains the All token), 'Scoped' (specific
+    # includes), 'None' (absent or empty). StrictMode is off, so passing a
+    # property that does not exist on the raw object arrives as $null -> 'None'.
+    param($Location)
+    $vals = @($Location | Where-Object { $null -ne $_ })
+    if ($vals.Count -eq 0) { return 'None' }
+    foreach ($v in $vals) { if ([string]$v -eq 'All') { return 'All' } }
+    return 'Scoped'
+}
+
+function Test-PpaLocationException {
+    # True when a raw *LocationException property carries any entry.
+    param($LocationException)
+    return (@($LocationException | Where-Object { $_ }).Count -gt 0)
+}
+
 function Get-PpaSessionArtifactNames {
     # Property names PowerShell remoting stamps on deserialized objects. Generic
     # projections (ones that copy every property) must skip these; explicit

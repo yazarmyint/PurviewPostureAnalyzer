@@ -32,6 +32,25 @@ function Get-PpaDlp {
                 teams      = (Test-PpaLocationInScope $p.TeamsLocation)
                 endpoint   = (Test-PpaLocationInScope $p.EndpointDlpLocation)
             }
+            # Part D coverage-matrix grounding (additive; the booleans above stay
+            # the analyzer contract). All/Scoped/None per workload + exception
+            # presence, incl. the documented PowerBIDlpLocation pair.
+            locationScope = [pscustomobject]@{
+                exchange   = (Get-PpaLocationScopeToken $p.ExchangeLocation)
+                sharePoint = (Get-PpaLocationScopeToken $p.SharePointLocation)
+                oneDrive   = (Get-PpaLocationScopeToken $p.OneDriveLocation)
+                teams      = (Get-PpaLocationScopeToken $p.TeamsLocation)
+                endpoint   = (Get-PpaLocationScopeToken $p.EndpointDlpLocation)
+                powerBI    = (Get-PpaLocationScopeToken $p.PowerBIDlpLocation)
+            }
+            locationExceptions = [pscustomobject]@{
+                exchange   = (Test-PpaLocationException $p.ExchangeLocationException)
+                sharePoint = (Test-PpaLocationException $p.SharePointLocationException)
+                oneDrive   = (Test-PpaLocationException $p.OneDriveLocationException)
+                teams      = (Test-PpaLocationException $p.TeamsLocationException)
+                endpoint   = (Test-PpaLocationException $p.EndpointDlpLocationException)
+                powerBI    = (Test-PpaLocationException $p.PowerBIDlpLocationException)
+            }
             testModeSince = ConvertTo-PpaIso8601 $p.LastStatusChangeDate
         }
     }

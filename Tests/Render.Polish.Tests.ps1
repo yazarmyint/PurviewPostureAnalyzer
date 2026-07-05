@@ -431,3 +431,55 @@ Describe 'Every fixture variant - client safety invariants' {
         $html | Should -Match 'no document, email or prompt content'
     }
 }
+
+Describe 'Mockup A v2 port - wider layout + solution section icons' {
+    It 'ports the wider responsive shell (1680px), not full-bleed' {
+        $script:DenseHtml | Should -Match '\.app-body\{ max-width:1680px'
+    }
+    It 'caps prose measure and uses a two-column top-findings grid at width' {
+        $script:DenseHtml | Should -Match 'max-width:82ch'
+        $script:DenseHtml | Should -Match 'grid-template-columns:1fr 1fr'
+    }
+    It 'defines exactly one decorative ::before icon rule, scoped to solution section headers' {
+        # Empty ::before content => screen-reader silent. Exactly one such rule exists and
+        # it is .seccard-scoped, so no other element (Solutions Summary, glance) gets an icon.
+        ([regex]::Matches($script:DenseHtml, 'a::before\{ content:""')).Count | Should -Be 1
+        $script:DenseHtml | Should -Match '\.seccard > \.card-header \.col-sm > a::before\{ content:""'
+    }
+    It 'maps exactly one icon custom property per known solution section (8)' {
+        ([regex]::Matches($script:DenseHtml, '--sec-icon:url\(')).Count | Should -Be 8
+        foreach ($id in @('Sensitivity_Labels', 'Data_Loss_Prevention', 'Retention', 'Insider_Risk', 'Audit', 'eDiscovery', 'Communication_Compliance', 'DSPM_for_AI')) {
+            $script:DenseHtml | Should -Match ('#' + $id + '\{ --sec-icon:url\(')
+        }
+    }
+    It 'provides a neutral fallback icon for unmapped sections' {
+        $script:DenseHtml | Should -Match 'background:var\(--sec-icon, url\("data:image/svg\+xml'
+    }
+    It 'never gives the Solutions Summary table an icon' {
+        $script:DenseHtml | Should -Not -Match '#Solutionsummary\{ --sec-icon'
+        $script:DenseHtml | Should -Not -Match 'ssparent[^{]*--sec-icon'
+    }
+    It 'adds no icon elements or icon ids (CSS-only, no body markup change)' {
+        $script:DenseHtml | Should -Not -Match 'class="secicon"'
+        $script:DenseHtml | Should -Not -Match 'id="secicon'
+        # section anchors/ids and count are unchanged by the icon feature
+        ([regex]::Matches($script:DenseHtml, 'class="card mt-3 seccard"')).Count | Should -Be 8
+        foreach ($id in @('Sensitivity_Labels', 'Data_Loss_Prevention', 'Retention', 'Insider_Risk', 'Audit', 'eDiscovery', 'Communication_Compliance', 'DSPM_for_AI')) {
+            $script:DenseHtml | Should -Match ('id="' + $id + '"')
+        }
+    }
+    It 'keeps icons offline: data-uri SVG only, no external image/font/CDN' {
+        $script:DenseHtml | Should -Match 'url\("data:image/svg\+xml'
+        $script:DenseHtml | Should -Not -Match '(?i)<img |cdnjs|jsdelivr|googleapis|fonts\.g|font-awesome'
+    }
+    It 'adds the additive posture-at-a-glance band script, with no stale Executive copy' {
+        $script:DenseHtml | Should -Match 'ppa-execband'
+        $script:DenseHtml | Should -Match 'Posture at a glance'
+        $script:DenseHtml | Should -Not -Match 'Executive Summary'
+        $script:DenseHtml | Should -Not -Match 'execsum'
+    }
+    It 'icons and band inflate neither the collapse-toggle count nor the finding count' {
+        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 27
+        ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count | Should -Be 26
+    }
+}

@@ -7,9 +7,18 @@
 Set-StrictMode -Off
 
 function ConvertTo-PpaScopeDisplay {
+    # The internal-name -> friendly-name mapping table for sensitivity-label scope
+    # display (Wave 5 cleanup Part 3 formalized the policy). DISPLAY-TIME ONLY:
+    # collectors and snapshots keep the raw canonical ContentType tokens - mapping
+    # earlier would make old raw snapshots diff against new friendly ones, turning
+    # a display tweak into phantom delta churn (guard pinned in Snapshot.Tests.ps1).
+    # Entries are added ONLY for internal values confirmed to render in a real
+    # report - no speculative rows; unconfirmed tokens pass through raw below.
+    # 'Teamwork' -> 'Teams' confirmed on the live TEST report (Wave 5 Part 3).
     param([string[]]$Tokens)
     $map = @{
         'File' = 'Files'; 'Email' = 'Emails'; 'Site' = 'Sites'; 'UnifiedGroup' = 'Groups'
+        'Teamwork' = 'Teams'
         'TeamworkChannel' = 'Teams channels'; 'SchematizedData' = 'Schematized data'; 'PurviewAssets' = 'Purview assets'
     }
     $out = foreach ($t in @($Tokens)) { if ($map.ContainsKey($t)) { $map[$t] } else { $t } }

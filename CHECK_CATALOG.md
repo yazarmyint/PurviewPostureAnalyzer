@@ -53,6 +53,9 @@ read degrades the conditions display only, never the section outcome)*
 ### LABELS-01 — Taxonomy is defined
 - **Reads:** `Get-Label` → `Name`, `Priority`, `ContentType` (scope), `ParentId` (sub-labels)
 - **Columns:** Label → `Name` · Priority → `Priority` · Scope → `ContentType` · Status
+- **Scope cell:** internal `ContentType` tokens map to friendly names at the display boundary only
+  (Wave 5 cleanup Part 3: `Teamwork` → `Teams`, confirmed live; confirmed-only table, unconfirmed
+  tokens render raw). Collector output and snapshots keep the raw canonical values — delta safety.
 - **Status:** labels present → **Informational** (inventory). Zero labels → **Improvement** (no taxonomy).
 - **Links:** Purview portal — Information Protection; Overview of sensitivity labels.
 

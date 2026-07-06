@@ -395,3 +395,27 @@ Describe 'Snapshot emission (3.1)' {
         @(Get-ChildItem -Path $script:TmpDir3 -Filter 'PPA-RawCapture_*').Count | Should -Be 1
     }
 }
+
+Describe 'Scope display mapping never leaks into snapshots (Wave 5 cleanup Part 3)' {
+    # Delta-safety guard for the Teamwork -> Teams DISPLAY mapping: snapshots
+    # serialize collector output verbatim, so the SensitivityLabel scopes array
+    # must keep the raw canonical value. If a future change maps names before the
+    # display boundary, old raw snapshots would diff against new friendly ones -
+    # a pure display change masquerading as a data change. This guard pins the
+    # raw side of the pair (the friendly render side is pinned in
+    # Analyzer.Labels.Tests.ps1 against the SAME fixture).
+    It 'the fixture label with raw scope Teamwork snapshots as Teamwork, never Teams' {
+        $rawMap = @{ Sensitivity_Labels = (Read-PpaFixtureJson 'Samples\sample-raw\labels-autolabel-cases.json') }
+        $model = New-PpaSnapshotModel `
+            -RawMap $rawMap -Sections @() `
+            -Meta ([pscustomobject]@{ version = '2.0'; tenantId = 'scope-map-guard-fixture' }) `
+            -CapturedAt ([datetime]::new(2026, 7, 6, 12, 0, 0, [System.DateTimeKind]::Utc)) `
+            -SnapshotId 'aaaaaaaa-bbbb-cccc-dddd-eeeeffff0001' `
+            -SectionIds @('Sensitivity_Labels') `
+            -Environment ([ordered]@{ psEdition = 'Desktop'; psVersion = '5.1.guard'; modules = [ordered]@{} })
+        $meetings = @($model.objects.SensitivityLabel | Where-Object { $_._key -eq 'guid-al-cases-meetings' })
+        $meetings.Count | Should -Be 1
+        @($meetings[0].scopes) | Should -Contain 'Teamwork'
+        @($meetings[0].scopes) | Should -Not -Contain 'Teams'
+    }
+}

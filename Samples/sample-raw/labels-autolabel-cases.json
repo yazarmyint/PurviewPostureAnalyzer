@@ -5,7 +5,8 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Confidential", "guid": "guid-al-cases-confidential", "priority": 1, "scopes": ["File", "Email"], "parentId": "" }
+      { "name": "Confidential", "guid": "guid-al-cases-confidential", "priority": 1, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Meetings - Confidential", "guid": "guid-al-cases-meetings", "priority": 2, "scopes": ["File", "Email", "Teamwork"], "parentId": "" }
     ]
   },
   "policies": {

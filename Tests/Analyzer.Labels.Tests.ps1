@@ -195,3 +195,35 @@ Describe 'LABELS-03 condition states (Wave 5 cleanup Part 2: grouped AdvancedRul
         $row.remark | Should -Match 'since 08-Apr-2026 \(77 days\)'
     }
 }
+
+Describe 'LABELS-01 scope display mapping (Wave 5 cleanup Part 3)' {
+    # Internal-name -> friendly-name mapping applied at the display boundary only.
+    # Seeded with the maintainer-confirmed Teamwork -> Teams; the table maps ONLY
+    # values confirmed to render today (no speculative entries), and unconfirmed
+    # internal tokens pass through raw so nothing renders as a wrong guess.
+    BeforeAll {
+        $script:CasesRaw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-raw\labels-autolabel-cases.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $script:SecCases = Invoke-PpaLabelAnalyzer -Raw $script:CasesRaw -AsOf ([datetime]'2026-07-01')
+        $script:F01c = $script:SecCases.findings | Where-Object { $_.id -eq 'LABELS-01' }
+    }
+    It 'renders Teams for the fixture label whose raw scope is Teamwork' {
+        $row = $script:F01c.table.rows | Where-Object { $_.cells[0] -eq 'Meetings - Confidential' }
+        $row.cells[2] | Should -Be 'Files, Emails, Teams'
+    }
+    It 'the fixture itself still carries the raw Teamwork value (mapping is display-time only)' {
+        @(($script:CasesRaw.labels.items | Where-Object { $_.name -eq 'Meetings - Confidential' }).scopes) | Should -Contain 'Teamwork'
+    }
+    It 'an unconfirmed internal token passes through raw - the table never guesses' {
+        $raw = [pscustomobject]@{
+            outcome    = 'Populated'
+            labels     = [pscustomobject]@{ status = 'Ok'; error = $null; items = @(
+                [pscustomobject]@{ name = 'Future label'; guid = 'guid-future'; priority = 1; scopes = @('File', 'SomeFutureInternalScope'); parentId = '' }) }
+            policies   = [pscustomobject]@{ status = 'Ok'; error = $null; items = @() }
+            autoLabels = [pscustomobject]@{ status = 'Ok'; error = $null; rulesStatus = 'Ok'; rulesError = $null; items = @() }
+            containers = [pscustomobject]@{ status = 'NotCollected'; groups = $null; sites = $null }
+        }
+        $sec = Invoke-PpaLabelAnalyzer -Raw $raw -AsOf ([datetime]'2026-07-01')
+        $f01 = $sec.findings | Where-Object { $_.id -eq 'LABELS-01' }
+        $f01.table.rows[0].cells[2] | Should -Be 'Files, SomeFutureInternalScope'
+    }
+}

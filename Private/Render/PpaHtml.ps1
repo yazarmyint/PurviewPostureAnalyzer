@@ -895,7 +895,7 @@ function Get-PpaFooterHtml {
 @'
 <footer class="app-footer"><div class="container-fluid">
   <strong>CAMP v2 &middot; read-only.</strong> Reads configuration metadata only &mdash; no document, email or prompt content, no matched values.
-  Does not create, modify or delete tenant configuration. Statuses are inputs to consultant judgment, not compliance determinations,
+  Does not create, modify or delete tenant configuration. Statuses are inputs to user judgment, not compliance determinations,
   and are not mapped to any regulatory framework.
 </div></footer>
 </body>

@@ -41,7 +41,7 @@ function Get-PpaRunContext {
     return [pscustomobject]@{
         reportTitle = 'Configuration Analyzer for Microsoft Purview'
         version     = '2.0'
-        versionDate = 'June 2026'
+        versionDate = 'July 2026'
         dateDisplay = ($now.ToString('dd-MMM-yyyy HH:mm') + ' UTC')
         organization = $org
         tenant      = $tenant

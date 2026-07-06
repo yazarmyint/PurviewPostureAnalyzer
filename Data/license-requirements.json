@@ -33,6 +33,14 @@
       "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
       "basis": "Insider Risk Management: as IRM-01 (Risky AI usage is an IRM policy template)"
     },
+    "IRM-04": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+      "basis": "Insider Risk Management: as IRM-01 (departing-user data theft is an IRM policy template)"
+    },
+    "IRM-05": {
+      "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+      "basis": "Insider Risk Management: as IRM-01 (the data-leaks templates are IRM policy templates)"
+    },
     "CC-01": {
       "requires": "Microsoft 365 E5 (or Microsoft Purview Suite)",
       "basis": "Communications Compliance: feature table lists Microsoft 365 E5/A5/G5, Microsoft Purview Suite and add-on plans"

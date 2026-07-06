@@ -138,6 +138,11 @@ Describe 'All eight analyzers - zero-object collector results' {
         Assert-ValidSection $sec
         ($sec.findings | Where-Object { $_.id -eq 'ED-01' }).status | Should -Be 'Informational'
     }
+    It 'IRM: null count leaves IRM-04/05 unemitted (scenario absence never asserted from a failed read)' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; count = $null; items = @() } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        @($sec.findings | Where-Object { $_.id -in @('IRM-04', 'IRM-05') }).Count | Should -Be 0
+    }
     It 'IRM: null count (enumeration unavailable) -> Verify manually, never a claimed zero' {
         $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; count = $null } }
         $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map

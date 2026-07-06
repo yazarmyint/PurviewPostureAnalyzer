@@ -157,7 +157,7 @@ BeforeAll {
                 }) }
             'Get-InsiderRiskPolicy' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ Name = 'IRM_Tenant_Setting_abc'; InsiderRiskScenario = 'TenantSetting' },
-                [pscustomobject]@{ Name = 'Data theft'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000005'; InsiderRiskScenario = 'DataTheft'; Workload = @('Exchange', 'Teams'); WhenCreatedUTC = [datetime]::new(2026, 3, 15, 8, 0, 0, [System.DateTimeKind]::Utc) }) }
+                [pscustomobject]@{ Name = 'Data theft'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000005'; InsiderRiskScenario = 'DataTheft'; Mode = 'Enable'; Workload = @('Exchange', 'Teams'); WhenCreatedUTC = [datetime]::new(2026, 3, 15, 8, 0, 0, [System.DateTimeKind]::Utc) }) }
             'Get-AdminAuditLogConfig' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ UnifiedAuditLogIngestionEnabled = $true }) }
             'Get-IRMConfiguration' = @{ Status = 'Ok'; Data = @(
@@ -414,6 +414,20 @@ Describe 'Per-collector outcome (A.4)' {
         $script:PpaReadStubMap['Get-InsiderRiskPolicy'] = @{ Status = 'Ok'; Data = @(
             [pscustomobject]@{ Name = 'IRM_Tenant_Setting_abc'; InsiderRiskScenario = 'TenantSetting' }); Error = $null }
         (Get-PpaInsiderRisk).outcome | Should -Be 'Empty'
+    }
+    It 'insider risk: projects the policy Mode as-is for scenario-coverage gating (IRM-04/05)' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $item = @((Get-PpaInsiderRisk).policies.items)[0]
+        $item.PSObject.Properties.Name | Should -Contain 'mode'
+        $item.mode | Should -Be 'Enable'
+    }
+    It 'insider risk: a missing Mode property projects an empty string - never invented' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-InsiderRiskPolicy'] = @{ Status = 'Ok'; Data = @(
+            [pscustomobject]@{ Name = 'Old shape'; InsiderRiskScenario = 'DataTheft' }); Error = $null }
+        $item = @((Get-PpaInsiderRisk).policies.items)[0]
+        $item.PSObject.Properties.Name | Should -Contain 'mode'
+        $item.mode | Should -Be ''
     }
     It 'retention: all reads Ok and nothing configured -> Empty' {
         $script:PpaReadStubMap = Get-PpaRichStubMap

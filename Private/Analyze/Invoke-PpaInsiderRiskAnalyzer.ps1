@@ -5,6 +5,10 @@
 # rides alongside and never changes the verdict.
 # Policy counts and inventories EXCLUDE the tenant-settings pseudo-policy
 # (InsiderRiskScenario = TenantSetting) - the collector filters it (VERIFIED 2026-07-02).
+# Wave 6 reincorporation Part 3 adds IRM-04 (departing-user data theft) and IRM-05
+# (data-leaks family, one finding spanning the three CAMP-2022 leak enums), both
+# modeled on IRM-03: pattern-matched scenarios until confirmed live, absence never
+# asserted from a failed read, and unknown policy mode treated as enabled.
 # ASCII-only source. Depends on New-PpaFinding/New-PpaSection/Get-PpaRequirement.
 
 Set-StrictMode -Off
@@ -21,6 +25,78 @@ function Test-PpaIrmAiScenario {
     param([string]$Scenario)
     if ([string]::IsNullOrEmpty($Scenario)) { return $false }
     return (($Scenario -cmatch 'AI') -or ($Scenario -match '(?i)(^|[^a-z0-9])ai([^a-z0-9]|$)'))
+}
+
+function Test-PpaIrmTheftScenario {
+    # True when a policy's InsiderRiskScenario looks like the departing-user /
+    # data-theft template family (IRM-04). Known shapes: IntellectualPropertyTheft
+    # (CAMP-2022 enum) and DataTheft. The exact live enum is UNVERIFIED - when first
+    # observed on a populated tenant, record it here and tighten to an -eq match
+    # (same discipline as Test-PpaIrmAiScenario). Policy Name is corroboration only.
+    param([string]$Scenario)
+    if ([string]::IsNullOrEmpty($Scenario)) { return $false }
+    return ($Scenario -match '(?i)theft')
+}
+
+function Test-PpaIrmLeakScenario {
+    # True when a policy's InsiderRiskScenario looks like the data-leaks template
+    # family (IRM-05) - ONE check spanning the three CAMP-2022 enums
+    # (LeakOfInformation, DisgruntledEmployeeDataLeak, HighValueEmployeeDataLeak),
+    # deliberately never split into per-enum cards. Same tighten-to-eq discipline
+    # as above once the live values are observed.
+    param([string]$Scenario)
+    if ([string]::IsNullOrEmpty($Scenario)) { return $false }
+    return ($Scenario -match '(?i)leak')
+}
+
+function Test-PpaIrmPolicyEnabled {
+    # Enabled unless the projected mode SAYS otherwise: '' (older captures or the
+    # property missing live) counts as enabled - unknown metadata never turns a
+    # scenario match into a false gap.
+    param($Policy)
+    $mode = ''
+    if ($Policy.PSObject.Properties.Name -contains 'mode') { $mode = [string]$Policy.mode }
+    if ([string]::IsNullOrEmpty($mode)) { return $true }
+    return ($mode -match '(?i)^enable')
+}
+
+function New-PpaIrmScenarioFinding {
+    # Shared IRM-04/IRM-05 shape: OK inventory when any enabled policy carries the
+    # scenario; Recommendation otherwise (matched-but-not-enabled policies are
+    # listed with a remark, never counted as coverage). Caller guards on a
+    # completed read - absence is never asserted from a failed read.
+    param(
+        [string]$Id, [string]$DomId, [string]$TitleOk, [string]$TitleGap,
+        [string]$WhyOk, [string]$WhyGap, [string]$GapRowLabel,
+        $Matched, $Requires, $LearnMore
+    )
+    $enabled = @($Matched | Where-Object { Test-PpaIrmPolicyEnabled $_ })
+    if ($enabled.Count -gt 0) {
+        $rows = foreach ($p in $Matched) {
+            $isOn = Test-PpaIrmPolicyEnabled $p
+            $remark = $null
+            if (-not $isOn) { $remark = "Policy is not enabled (mode: $([string]$p.mode)) - it is not counted as coverage." }
+            elseif ([string]::IsNullOrEmpty([string]$p.mode)) { $remark = 'Policy mode not readable this run - treated as enabled.' }
+            New-PpaRow -Cells @([string]$p.name, [string]$p.scenario, [string]$p.workloads, [string]$p.created) -Status ($(if ($isOn) { 'OK' } else { 'Informational' })) -Remark $remark
+        }
+        return (New-PpaFinding -Id $Id -DomId $DomId -Title $TitleOk -Status 'OK' -Requires $Requires `
+            -Whyline $WhyOk `
+            -Table (New-PpaTable -Columns @('IRM Policy', 'Scenario', 'Workloads', 'Created', 'Status') -Rows @($rows)) -LearnMore $LearnMore)
+    }
+    if (@($Matched).Count -gt 0) {
+        $rows = foreach ($p in $Matched) {
+            New-PpaRow -Cells @([string]$p.name, [string]$p.scenario, [string]$p.workloads, [string]$p.created) -Status 'Informational' `
+                -Remark "Policy is not enabled (mode: $([string]$p.mode)) - it is not counted as coverage."
+        }
+        return (New-PpaFinding -Id $Id -DomId $DomId -Title $TitleGap -Status 'Recommendation' -Requires $Requires `
+            -Whyline $WhyGap `
+            -Table (New-PpaTable -Columns @('IRM Policy', 'Scenario', 'Workloads', 'Created', 'Status') -Rows @($rows)) -LearnMore $LearnMore)
+    }
+    return (New-PpaFinding -Id $Id -DomId $DomId -Title $TitleGap -Status 'Recommendation' -Requires $Requires `
+        -Whyline $WhyGap `
+        -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @(
+            New-PpaRow -Cells @($GapRowLabel, '0') -Status 'Recommendation'
+        )) -LearnMore $LearnMore)
 }
 
 function Invoke-PpaInsiderRiskAnalyzer {
@@ -104,6 +180,29 @@ function Invoke-PpaInsiderRiskAnalyzer {
                     New-PpaRow -Cells @('IRM policies with an AI scenario', '0') -Status 'Recommendation'
                 )) -LearnMore $lm03))
         }
+    }
+
+    # --- IRM-04 / IRM-05: universal-scenario coverage (Wave 6 reincorporation Part 3) ---
+    # Modeled on IRM-03: only assertable from a completed read; on a failed read the
+    # IRM-01 Verify-manually degradation covers the section. Two items, split by
+    # scenario family - departing-user data theft (IRM-04) and the data-leaks family
+    # (IRM-05, ONE finding spanning the three CAMP-2022 leak enums).
+    if ($null -ne $count) {
+        $lmTpl = @(@{ label = 'IRM policy templates'; url = 'https://learn.microsoft.com/en-us/purview/insider-risk-management-policy-templates'; tag = 'docs' })
+        $theftMatched = @($items | Where-Object { Test-PpaIrmTheftScenario ([string]$_.scenario) })
+        $findings.Add((New-PpaIrmScenarioFinding -Id 'IRM-04' -DomId 'f-irm-4' `
+            -TitleOk 'Departing-employee data theft policy in place' -TitleGap 'No departing-employee data theft policy' `
+            -WhyOk 'An Insider Risk policy with a data-theft scenario is scoring exfiltration signals around departing and offboarding users.' `
+            -WhyGap 'No enabled Insider Risk policy carries the departing-user data theft template - exfiltration signals around resignation and offboarding are not being scored.' `
+            -GapRowLabel 'IRM policies with a data-theft scenario' `
+            -Matched $theftMatched -Requires (Get-PpaRequirement $LicenseMap 'IRM-04') -LearnMore $lmTpl))
+        $leakMatched = @($items | Where-Object { Test-PpaIrmLeakScenario ([string]$_.scenario) })
+        $findings.Add((New-PpaIrmScenarioFinding -Id 'IRM-05' -DomId 'f-irm-5' `
+            -TitleOk 'Data leaks policy in place' -TitleGap 'No data leaks policy' `
+            -WhyOk 'An Insider Risk policy with a data-leak scenario is scoring accidental oversharing and intentional leak signals.' `
+            -WhyGap 'No enabled Insider Risk policy carries a data-leaks template - accidental oversharing and intentional leak signals are not being scored.' `
+            -GapRowLabel 'IRM policies with a data-leak scenario' `
+            -Matched $leakMatched -Requires (Get-PpaRequirement $LicenseMap 'IRM-05') -LearnMore $lmTpl))
     }
 
     # --- glance ---

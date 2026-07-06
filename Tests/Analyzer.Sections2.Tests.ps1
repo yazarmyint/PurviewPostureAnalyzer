@@ -171,6 +171,73 @@ Describe 'Insider Risk - IRM-03 risky-AI template (spec F5)' {
     }
 }
 
+Describe 'Insider Risk - IRM-04 departing-employee theft + IRM-05 data leaks (Wave 6 Part 3)' {
+    It 'both are skipped on an unknown inventory (absence never asserted from a failed read)' {
+        @($script:IRM.findings | Where-Object { $_.id -eq 'IRM-04' }).Count | Should -Be 0
+        @($script:IRM.findings | Where-Object { $_.id -eq 'IRM-05' }).Count | Should -Be 0
+    }
+    It 'zero policies -> both Recommendation with Requires annotations' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 0; items = @() } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        $f4 = FindingOf $sec 'IRM-04'
+        $f4.status | Should -Be 'Recommendation'
+        $f4.requires | Should -Match 'E5'
+        $f5 = FindingOf $sec 'IRM-05'
+        $f5.status | Should -Be 'Recommendation'
+        $f5.requires | Should -Match 'E5'
+    }
+    It 'theft-scenario policy with Mode Enable -> IRM-04 OK inventory row' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 1; items = @(
+            [pscustomobject]@{ name = 'Departing users - IP'; scenario = 'IntellectualPropertyTheft'; mode = 'Enable'; workloads = 'Exchange, SharePoint'; created = '2026-02-01' }
+        ) } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        $f = FindingOf $sec 'IRM-04'
+        $f.status | Should -Be 'OK'
+        $f.table.rows[0].cells[0] | Should -Be 'Departing users - IP'
+        $f.table.rows[0].cells[1] | Should -Be 'IntellectualPropertyTheft'
+        (FindingOf $sec 'IRM-05').status | Should -Be 'Recommendation'
+    }
+    It 'the three CAMP leak-family scenarios land in ONE IRM-05 finding, never three cards' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 3; items = @(
+            [pscustomobject]@{ name = 'General leaks'; scenario = 'LeakOfInformation'; mode = 'Enable'; workloads = 'Exchange'; created = '' }
+            [pscustomobject]@{ name = 'Disgruntled'; scenario = 'DisgruntledEmployeeDataLeak'; mode = 'Enable'; workloads = 'Exchange'; created = '' }
+            [pscustomobject]@{ name = 'High value'; scenario = 'HighValueEmployeeDataLeak'; mode = 'Enable'; workloads = 'Exchange'; created = '' }
+        ) } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        $found = @($sec.findings | Where-Object { $_.id -eq 'IRM-05' })
+        $found.Count | Should -Be 1
+        $found[0].status | Should -Be 'OK'
+        @($found[0].table.rows).Count | Should -Be 3
+        (FindingOf $sec 'IRM-04').status | Should -Be 'Recommendation'
+    }
+    It 'a scenario-matched policy explicitly not enabled does NOT count as coverage but is listed' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 1; items = @(
+            [pscustomobject]@{ name = 'Leaks (paused)'; scenario = 'LeakOfInformation'; mode = 'TestWithNotifications'; workloads = 'Exchange'; created = '' }
+        ) } }
+        $f = FindingOf (Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map) 'IRM-05'
+        $f.status | Should -Be 'Recommendation'
+        $f.table.rows[0].cells[0] | Should -Be 'Leaks (paused)'
+        $f.table.rows[0].remark | Should -Match 'not enabled'
+    }
+    It 'an unreadable mode never punishes: scenario match without a mode property counts as present' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 1; items = @(
+            [pscustomobject]@{ name = 'Data theft'; scenario = 'DataTheft'; workloads = 'Exchange'; created = '' }
+        ) } }
+        (FindingOf (Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map) 'IRM-04').status | Should -Be 'OK'
+    }
+    It 'scenario matchers have word-boundary care and are mutually exclusive on the known families' {
+        Test-PpaIrmTheftScenario 'IntellectualPropertyTheft' | Should -BeTrue
+        Test-PpaIrmTheftScenario 'DataTheft' | Should -BeTrue
+        Test-PpaIrmTheftScenario 'LeakOfInformation' | Should -BeFalse
+        Test-PpaIrmTheftScenario '' | Should -BeFalse
+        Test-PpaIrmLeakScenario 'LeakOfInformation' | Should -BeTrue
+        Test-PpaIrmLeakScenario 'DisgruntledEmployeeDataLeak' | Should -BeTrue
+        Test-PpaIrmLeakScenario 'HighValueEmployeeDataLeak' | Should -BeTrue
+        Test-PpaIrmLeakScenario 'IntellectualPropertyTheft' | Should -BeFalse
+        Test-PpaIrmLeakScenario 'RiskyAIUsage' | Should -BeFalse
+    }
+}
+
 Describe 'Insider Risk collector - TenantSetting pseudo-policy exclusion (spec F5, VERIFIED)' {
     It 'excludes InsiderRiskScenario=TenantSetting from count and items' {
         Mock Invoke-PpaReadCmdlet {

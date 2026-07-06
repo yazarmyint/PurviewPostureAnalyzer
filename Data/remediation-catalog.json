@@ -72,6 +72,16 @@
       "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies",
       "grounding": "skill"
     },
+    "IRM-04": {
+      "portalPath": "Under Insider risk management > Policies, create a policy from the 'Data theft by departing users' template; it only has a trigger once the HR connector (or the Microsoft Entra account-deletion signal) is wired, so connect that feed first. Start in analytics mode with the same privacy controls as the rest of IRM and baseline alert volume before anyone acts on scores.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policy-templates",
+      "grounding": "skill"
+    },
+    "IRM-05": {
+      "portalPath": "Under Insider risk management > Policies, create a policy from the 'Data leaks' template, choosing the triggering event deliberately - a DLP policy match is the usual choice, so point it at a high-signal DLP policy rather than a noisy one. Scope a pilot population and run in analytics mode first; a tenant-wide leak policy on day one buries reviewers in benign alerts.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policy-templates",
+      "grounding": "skill"
+    },
     "AUD-01": {
       "portalPath": "In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach.",
       "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable",

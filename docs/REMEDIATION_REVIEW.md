@@ -36,6 +36,8 @@ Skills read (2026-07-03): `purview-data-classification`, `purview-dlp-policy`,
 | IRM-01 | **YES** | skill: purview-insider-risk-management | Privacy controls (pseudonymization, role separation, legal/works-council review) BEFORE the first policy; start one template in analytics mode |
 | IRM-02 | **YES** | skill: purview-insider-risk-management | HR/Legal alignment plus the HRIS connector - without it the departing-users template has no trigger |
 | IRM-03 | **YES** | skill: purview-insider-risk-management | DSPM for AI signals are the upstream prerequisite - the Risky AI usage template has nothing to score without them |
+| IRM-04 | **YES** | skill: purview-insider-risk-management (added 2026-07-06, Wave 6 reincorporation Part 3) | The departing-users template has no trigger without the HR connector (or Entra account-deletion signal) - wire the feed first, then analytics mode |
+| IRM-05 | **YES** | skill: purview-insider-risk-management (added 2026-07-06, Wave 6 reincorporation Part 3) | Choose the data-leaks triggering event deliberately (a high-signal DLP policy) and pilot in analytics mode - tenant-wide on day one buries reviewers |
 | AUD-01 | **YES** | skill: purview-audit + finding Learn link (verified 2026-07-03) | Needs the Audit Logs role (Exchange Online); allow up to 60 minutes; then set retention for crucial events before an incident needs them |
 | AUD-02 | **YES** | skill: purview-audit | Confirm ingestion with a sample search for known-recent activity; audit search has latency - "enabled" is not "ingesting" |
 | AUD-03 | **YES** | skill: purview-audit | Match the retention tier to the investigation window (default retention is the most common gap found post-breach) |
@@ -50,7 +52,7 @@ Skills read (2026-07-03): `purview-data-classification`, `purview-dlp-policy`,
 | AI-05 | **YES** | skill: purview-data-lifecycle + finding Learn link | Decide the retain/delete period for Copilot interactions with the records owner; mind retention precedence with existing policies |
 | AI-06 | **YES** | skills: purview-communication-compliance, purview-dspm-ai | Same privacy prerequisites as CC-01; start from the Copilot-interactions template and decide the supervised population |
 
-**Tally: 26 GROUNDED / 2 NOT GROUNDED (DLP-04, AI-04).** *(AUD-04, LABELS-05 added 2026-07-06.)*
+**Tally: 28 GROUNDED / 2 NOT GROUNDED (DLP-04, AI-04).** *(AUD-04, LABELS-05, IRM-04, IRM-05 added 2026-07-06; the IRM-04/05 drafts are pending Yazar's wording approval.)*
 
 Renders-in-report note: only Improvement/Recommendation findings show the region, so on
 the current fixtures DLP-04 (Verify manually), RET-01/AUD-02/AUD-03/ED-01/ED-02/AI-01/AI-04
@@ -63,7 +65,7 @@ The rendered text lives in `Data/remediation-catalog.json`; each entry carries a
 `grounding` field (`skill` / `learn` / `established` / `none`) matching the table.
 Hard cap honored: no entry exceeds 3 sentences; no PowerShell anywhere.
 
-### Grounded drafts (26)
+### Grounded drafts (28)
 
 - **LABELS-01** - "In the Purview portal under Information protection > Sensitivity labels, build a small taxonomy - four or fewer top-level labels with business-language names (for example Public / General / Confidential / Highly Confidential). Get data-owner sign-off on the tiers before publishing; an IT-invented taxonomy with many levels stalls adoption and users default to General."
 - **LABELS-02** - "Under Information protection > Label publishing policies, publish the labels to the users who create content, deciding the audience scope and the default label for each group. Verify pilot users see the label menu with the intended default in Word and Outlook before widening the rollout."
@@ -79,6 +81,8 @@ Hard cap honored: no entry exceeds 3 sentences; no PowerShell anywhere.
 - **IRM-01** - "Before creating any policy under Insider risk management, configure the privacy controls - pseudonymized usernames, separated admin/analyst/investigator roles, and legal or works-council review where required. Then start with a single template in analytics mode for about two weeks to baseline alert volume; enabling every template on day one buries the team in untriaged alerts."
 - **IRM-02** - "Treat this as a scoping conversation, not a configuration task: the departing-users template needs HR/Legal alignment and an HR data connector before it has a trigger to fire on. Settle licensing, privacy controls, and the HR feed first, then scope the policy."
 - **IRM-03** - "The Risky AI usage template is created under Insider risk management > Policies, but it scores on DSPM for AI signals - enable that visibility first or the policy has nothing to evaluate. Pair it with the same privacy controls and analytics-mode baseline as any other IRM template."
+- **IRM-04** - "Under Insider risk management > Policies, create a policy from the 'Data theft by departing users' template; it only has a trigger once the HR connector (or the Microsoft Entra account-deletion signal) is wired, so connect that feed first. Start in analytics mode with the same privacy controls as the rest of IRM and baseline alert volume before anyone acts on scores."
+- **IRM-05** - "Under Insider risk management > Policies, create a policy from the 'Data leaks' template, choosing the triggering event deliberately - a DLP policy match is the usual choice, so point it at a high-signal DLP policy rather than a noisy one. Scope a pilot population and run in analytics mode first; a tenant-wide leak policy on day one buries reviewers in benign alerts."
 - **AUD-01** - "In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach."
 - **AUD-02** - "In Audit > New search, run a query for activity you know happened recently and confirm events return - enabled is not the same as ingesting on time. Audit search has latency, so allow for it before concluding events are missing."
 - **AUD-03** - "Where the tenant tier includes Audit (Premium), decide retention deliberately: match the retention period to how far back an investigation may need to reach, and add audit retention policies for the crucial events (for example mailbox access) rather than relying on defaults."

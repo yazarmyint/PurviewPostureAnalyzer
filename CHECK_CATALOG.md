@@ -198,6 +198,28 @@ cmdlet-unavailable / access-denied as "not licensed."
   a zero-policy tenant otherwise reports as having one.
 - **Links:** IRM policy templates.
 
+### IRM-04 — Departing-employee data theft template coverage *(Wave 6 reincorporation Part 3)*
+- **Reads:** `Get-InsiderRiskPolicy` → `InsiderRiskScenario` ✓ + `Mode` (**⚠ unverified live** —
+  projected as-is; an absent property never punishes: unknown mode counts as enabled).
+  Scenario matched by pattern (`theft` word-family: `IntellectualPropertyTheft` is the CAMP-2022
+  enum) with policy `Name` as corroboration only; **tighten to `-eq` once observed live**
+  (IRM-03 discipline).
+- **Columns:** IRM Policy · Scenario · Workloads · Created · Status
+- **Status:** enabled scenario-matched policy → **OK** inventory. Licensed-assumed tenant with a
+  readable inventory and no enabled match → **Recommendation** (matched-but-not-enabled policies
+  are listed with a remark, never counted). Unreadable inventory → **skipped** (IRM-01's
+  Verify-manually covers the section; absence is never asserted from a failed read).
+- **Links:** IRM policy templates.
+
+### IRM-05 — Data leaks template coverage *(Wave 6 reincorporation Part 3)*
+- **One finding for the whole leak family** — spans the three CAMP-2022 enums
+  (`LeakOfInformation`, `DisgruntledEmployeeDataLeak`, `HighValueEmployeeDataLeak`); present when
+  ANY of them has an enabled policy. Deliberately never split into three cards.
+- **Reads / Status / discipline:** identical to IRM-04 (pattern `leak` word-family, `Mode`
+  gating with unknown-mode-counts-as-enabled, skipped on unreadable read, tighten to `-eq` live).
+- **Columns:** IRM Policy · Scenario · Workloads · Created · Status
+- **Links:** IRM policy templates.
+
 ---
 
 ## 05 · Audit

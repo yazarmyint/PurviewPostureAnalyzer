@@ -29,6 +29,47 @@ BeforeAll {
         return [pscustomobject]@{ Name = $Name; Status = 'CommandNotFound'; Data = @(); Error = "Cmdlet '$Name' is not available in this session." }
     }
 
+    # ---- auto-labeling AdvancedRule harness (Wave 5 cleanup Part 2) --------------
+    # Fixture of record: the committed real Get-AutoSensitivityLabelRule capture
+    # (grouped = bracket-repaired parseable blob; malformed = the as-pasted
+    # truncated string). Helpers live here per the Pester 5 top-level BeforeAll rule.
+    function Get-PpaAlrFixture {
+        [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-raw\autolabel-advancedrule.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+    }
+    function Get-PpaAlrExpectedNames {
+        # The RULED pin (maintainer-confirmed at Part 2 kickoff): 10 distinct names
+        # from the real blob - 7 named SITs + 3 trainable classifiers - in
+        # ordinal-ignore-case sorted order.
+        @(
+            'All Full Names'
+            'All Medical Terms And Conditions'
+            'Business - Health care'
+            'Drug Enforcement Agency (DEA) Number'
+            'Employee Insurance Files'
+            'Health/Medical Forms'
+            'International Classification of Diseases (ICD-10-CM)'
+            'International Classification of Diseases (ICD-9-CM)'
+            'U.S. Physical Addresses'
+            'U.S. Social Security Number (SSN)'
+        )
+    }
+    function New-PpaAutoLabelStubMap {
+        # Minimal labels-collector stub: one auto-label policy whose rules are the
+        # test's to shape. The policy name matches the fixture rules'
+        # ParentPolicyName so association exercises the reference path.
+        param($PolicySits = @(), $Rules = @(), [string]$RulesStatus = 'Ok')
+        @{
+            'Get-Label'       = @{ Status = 'Ok'; Data = @() }
+            'Get-LabelPolicy' = @{ Status = 'Ok'; Data = @() }
+            'Get-AutoSensitivityLabelPolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'Auto-label grouped health data'; Guid = [guid]'bbbbbbbb-0000-0000-0000-000000000001'
+                    Mode = 'Enable'; SensitiveInformationTypeNames = @($PolicySits)
+                }) }
+            'Get-AutoSensitivityLabelRule' = @{ Status = $RulesStatus; Data = @($Rules) }
+        }
+    }
+
     # ---- primitive-leaf walker ---------------------------------------------------
     # Returns "path: TypeName" for every leaf that is not string/number/boolean/null.
     # Arrays, dictionaries and PSCustomObjects are structure and recurse; anything
@@ -404,5 +445,73 @@ Describe 'Opportunistic Guid capture (A.5)' {
             $violations += @(Get-PpaLeafViolation -Value $out -Path 'out')
         }
         ($violations -join "`n") | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Auto-labeling AdvancedRule capture (Wave 5 cleanup Part 2)' {
+    # Grouped-condition auto-label policies leave the flat property empty; the SITs
+    # live in the rule-level AdvancedRule JSON. The collector reads
+    # Get-AutoSensitivityLabelRule, flattens the names (SITs + trainable classifiers,
+    # AND/OR groups discarded) into sits, and stamps conditionsSource so the analyzer
+    # can render flat / grouped / unparsed / none / unreadable distinctly. Expected
+    # values below are the RULED pin from the committed real capture
+    # (Samples/sample-raw/autolabel-advancedrule.json): 10 distinct names, ordinal-
+    # ignore-case sorted - maintainer-confirmed at Part 2 kickoff.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'grouped: flat empty + parseable AdvancedRule -> the pinned 10-name sorted flat set' {
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @((Get-PpaAlrFixture).grouped)
+        $a = (Get-PpaSensitivityLabels).autoLabels.items[0]
+        @($a.sits) | Should -Be (Get-PpaAlrExpectedNames)
+        $a.conditionsSource | Should -Be 'grouped'
+    }
+    It 'grouped: trainable classifiers from the blob are captured, never dropped' {
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @((Get-PpaAlrFixture).grouped)
+        $sits = @((Get-PpaSensitivityLabels).autoLabels.items[0].sits)
+        $sits | Should -Contain 'Business - Health care'
+        $sits | Should -Contain 'Employee Insurance Files'
+        $sits | Should -Contain 'Health/Medical Forms'
+    }
+    It 'malformed: the as-pasted truncated blob -> conditionsSource unparsed, empty sits' {
+        # The fixture's malformed rule carries its own policy name; re-parent it to
+        # the stub policy so the association holds and the blob itself is what fails.
+        $mal = [pscustomobject]@{
+            Name = 'Auto-label grouped health data'; ParentPolicyName = 'Auto-label grouped health data'
+            AdvancedRule = [string](Get-PpaAlrFixture).malformed.AdvancedRule
+        }
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @($mal)
+        $a = (Get-PpaSensitivityLabels).autoLabels.items[0]
+        $a.conditionsSource | Should -Be 'unparsed'
+        @($a.sits).Count | Should -Be 0
+    }
+    It 'none: flat empty and no AdvancedRule on the rule -> conditionsSource none' {
+        $bare = [pscustomobject]@{ Name = 'Auto-label grouped health data'; ParentPolicyName = 'Auto-label grouped health data' }
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @($bare)
+        (Get-PpaSensitivityLabels).autoLabels.items[0].conditionsSource | Should -Be 'none'
+    }
+    It 'none: flat empty and no associated rule at all -> conditionsSource none' {
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @()
+        (Get-PpaSensitivityLabels).autoLabels.items[0].conditionsSource | Should -Be 'none'
+    }
+    It 'flat populated stays untouched: cmdlet order kept, source flat, AdvancedRule ignored' {
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -PolicySits @('U.S. HIPAA', 'Credit Card Number') -Rules @((Get-PpaAlrFixture).grouped)
+        $a = (Get-PpaSensitivityLabels).autoLabels.items[0]
+        @($a.sits) | Should -Be @('U.S. HIPAA', 'Credit Card Number')
+        $a.conditionsSource | Should -Be 'flat'
+    }
+    It 'rule read failure + empty flat -> conditionsSource unreadable; rulesStatus surfaced' {
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @() -RulesStatus 'AccessDenied'
+        $out = Get-PpaSensitivityLabels
+        $out.autoLabels.items[0].conditionsSource | Should -Be 'unreadable'
+        $out.autoLabels.rulesStatus | Should -Be 'AccessDenied'
+    }
+    It 'the rule read NEVER degrades the collector outcome (containers precedent)' {
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @() -RulesStatus 'CommandNotFound'
+        (Get-PpaSensitivityLabels).outcome | Should -Be 'Populated'
+    }
+    It 'rules are associated by Policy/ParentPolicyName reference or name equality, not position' {
+        $other = [pscustomobject]@{ Name = 'Unrelated rule'; ParentPolicyName = 'Some other policy'; AdvancedRule = [string](Get-PpaAlrFixture).grouped.AdvancedRule }
+        $script:PpaReadStubMap = New-PpaAutoLabelStubMap -Rules @($other)
+        (Get-PpaSensitivityLabels).autoLabels.items[0].conditionsSource | Should -Be 'none'
     }
 }

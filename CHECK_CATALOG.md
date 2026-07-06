@@ -45,8 +45,10 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
 
 ## 01 · Sensitivity Labels
 
-**Section reads:** `Get-Label` ✓, `Get-LabelPolicy` ✓, `Get-AutoSensitivityLabelPolicy` ✓
-**Collector plan:** pull all three once into `normalized/labels.json`; the four analyzers below read from that.
+**Section reads:** `Get-Label` ✓, `Get-LabelPolicy` ✓, `Get-AutoSensitivityLabelPolicy` ✓,
+`Get-AutoSensitivityLabelRule` ✓ *(Wave 5 cleanup Part 2 — grouped-condition `AdvancedRule` JSON; this
+read degrades the conditions display only, never the section outcome)*
+**Collector plan:** pull all four once into `normalized/labels.json`; the four analyzers below read from that.
 
 ### LABELS-01 — Taxonomy is defined
 - **Reads:** `Get-Label` → `Name`, `Priority`, `ContentType` (scope), `ParentId` (sub-labels)
@@ -61,8 +63,15 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
 - **Links:** Create and publish sensitivity labels.
 
 ### LABELS-03 — Auto-labeling is not enforcing
-- **Reads:** `Get-AutoSensitivityLabelPolicy` → `Name`, `Mode`, conditions
+- **Reads:** `Get-AutoSensitivityLabelPolicy` → `Name`, `Mode`, `SensitiveInformationTypeNames` (flat conditions);
+  `Get-AutoSensitivityLabelRule` → `AdvancedRule` JSON when the flat property is empty (grouped conditions —
+  Wave 5 cleanup Part 2, shape pinned from a real TEST capture).
 - **Columns:** Auto-labeling Policy → `Name` · Conditions (SITs) → rule conditions · Mode → `Mode` · Status
+- **Conditions cell:** flat list unchanged when the flat property is populated; grouped policies render the
+  flat deduplicated **sorted** name list (named SITs + trainable classifiers) plus the distinct count;
+  `AdvancedRule` present but unparseable → *"Conditions present - not parsed"* (**Verify manually** row);
+  genuinely none → *"None detected"*; rule read failed → *"Conditions not readable this run"*
+  (**Verify manually** row). The three empty-flat states are deliberately distinct.
 - **Status:** `Mode = Enforce` → **OK**. `Mode = TestWithNotifications`/`TestWithoutNotifications` (simulation) →
   **Improvement**. No auto-labeling policy at all → **Recommendation**.
 - **Links:** Purview portal — Information Protection; Compliance Manager; Overview of sensitivity labels;

@@ -66,11 +66,11 @@ BeforeAll {
 }
 
 Describe 'Dense fixture - shape for Wave 3 regression cases' {
-    It 'renders all 8 sections and 26 findings' {
+    It 'renders all 8 sections and 25 findings (26 until DLP-04 retired, Wave 5 Part 4)' {
         foreach ($id in @('Sensitivity_Labels', 'Data_Loss_Prevention', 'Retention', 'Insider_Risk', 'Audit', 'eDiscovery', 'Communication_Compliance', 'DSPM_for_AI')) {
             $script:DenseHtml | Should -Match ('id="' + $id + '"')
         }
-        ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count | Should -Be 26
+        ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count | Should -Be 25
     }
     It 'uses every one of the five statuses at finding level' {
         $counts = Get-PpaBodyStatusCounts $script:DenseNorm
@@ -239,8 +239,8 @@ Describe 'P5 - run profile: section include/exclude' {
         $tiles = [regex]::Matches($script:ProfHtml, 'es-num">(\d+)</span>') | ForEach-Object { [int]$_.Groups[1].Value }
         $tiles[0] | Should -Be ([int]$body['Recommendation'])
         $tiles[1] | Should -Be ([int]$body['Improvement'])
-        # Dense body has 26 findings; Audit (3) + DSPM (6) excluded -> 17 remain.
-        ($tiles | Measure-Object -Sum).Sum | Should -Be 17
+        # Dense body has 25 findings (DLP-04 retired); Audit (3) + DSPM (6) excluded -> 16 remain.
+        ($tiles | Measure-Object -Sum).Sum | Should -Be 16
     }
     It 'include means "only these"' {
         $sel = Select-PpaSections -Sections $script:DenseNorm.sections -IncludeSection @('Audit', 'eDiscovery')
@@ -344,7 +344,7 @@ Describe 'P7 - remediation snippets' {
     It 'never renders remediation on OK / Informational / Verify-manually findings' {
         # These have catalog entries but must not show the region. Capture each card
         # from its anchor to the next finding card (or the section back-link).
-        foreach ($id in @('DLP-04', 'LABELS-01', 'ED-01', 'AUD-03', 'LABELS-02')) {
+        foreach ($id in @('LABELS-01', 'ED-01', 'AUD-03', 'LABELS-02')) {
             $card = [regex]::Match($script:DenseHtml, '(?s)id="finding-' + $id + '".*?(?=<div class="finding"|<div class="text-right backlink")').Value
             $card | Should -Not -BeNullOrEmpty
             $card | Should -Not -Match 'class="remed"'
@@ -387,10 +387,11 @@ Describe 'P7 - remediation snippets' {
         $card | Should -Match 'https://learn\.microsoft\.com/en-us/purview/communication-compliance'
     }
     It 'remediation regions are native details elements - they never inflate the collapse count' {
-        # 26 finding drill-downs + the Posture Summary header = 27. This fixture passes no
-        # coverage model, so the Coverage Matrix collapsible is not rendered. Remediation
-        # <details> add none; the vanilla collapse handler matches [data-target], adding none.
-        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 27
+        # 25 finding drill-downs (26 until DLP-04 retired, Wave 5 Part 4) + the Posture
+        # Summary header = 26. This fixture passes no coverage model, so the Coverage
+        # Matrix collapsible is not rendered. Remediation <details> add none; the vanilla
+        # collapse handler matches [data-target], adding none.
+        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 26
     }
     It 'the catalog defines an entry for every catalog check ID referenced by the dense fixture' {
         $cat = Get-PpaRemediationCatalog
@@ -408,12 +409,16 @@ Describe 'P7 - remediation snippets' {
             @('skill', 'learn', 'established', 'none') | Should -Contain $g
         }
     }
-    It 'not-grounded entries (DLP-04, AI-04) carry the minimal fallback, grounded entries carry decision-naming prose' {
+    It 'not-grounded entries (AI-04) carry the minimal fallback, grounded entries carry decision-naming prose' {
         $cat = Get-PpaRemediationCatalog
-        foreach ($id in @('DLP-04', 'AI-04')) { [string]$cat.checks.$id.grounding | Should -Be 'none' }
+        [string]$cat.checks.'AI-04'.grounding | Should -Be 'none'
         # Spot-check a grounded entry names the decision, not just a blade path.
         [string]$cat.checks.'LABELS-03'.portalPath | Should -Match 'simulation'
         [string]$cat.checks.'IRM-01'.portalPath | Should -Match 'privacy'
+    }
+    It 'the retired DLP-04 has no live remediation catalog entry (tombstoned in CHECK_CATALOG.md only)' {
+        $cat = Get-PpaRemediationCatalog
+        @($cat.checks.PSObject.Properties.Name) | Should -Not -Contain 'DLP-04'
     }
 }
 
@@ -479,7 +484,7 @@ Describe 'Mockup A v2 port - wider layout + solution section icons' {
         $script:DenseHtml | Should -Not -Match 'execsum'
     }
     It 'icons and band inflate neither the collapse-toggle count nor the finding count' {
-        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 27
-        ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count | Should -Be 26
+        ([regex]::Matches($script:DenseHtml, 'data-toggle="collapse"')).Count | Should -Be 26
+        ([regex]::Matches($script:DenseHtml, 'class="finding"')).Count | Should -Be 25
     }
 }

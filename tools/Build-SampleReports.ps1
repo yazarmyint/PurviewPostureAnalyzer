@@ -119,10 +119,9 @@ Write-PpaSampleReport -Name 'sample-dense-profile.html' -Html (Export-PpaHtmlRep
 $fixtureTenantId = 'contoso-dense-fixture'
 $snapRawMap = $fixtureRawMap
 $snapAsOf = [datetime]'2026-06-24'
-$sitMap = Read-PpaFixture 'Data\dlp-sit-tiers.json'
 $snapSections = @(
     Invoke-PpaLabelAnalyzer -Raw $snapRawMap.Sensitivity_Labels -AsOf $snapAsOf -LicenseMap $licMap
-    Invoke-PpaDlpAnalyzer -Raw $snapRawMap.Data_Loss_Prevention -AsOf $snapAsOf -LicenseMap $licMap -SitTierMap $sitMap
+    Invoke-PpaDlpAnalyzer -Raw $snapRawMap.Data_Loss_Prevention -AsOf $snapAsOf -LicenseMap $licMap
     Invoke-PpaRetentionAnalyzer -Raw $snapRawMap.Retention -LicenseMap $licMap
     Invoke-PpaInsiderRiskAnalyzer -Raw $snapRawMap.Insider_Risk -LicenseMap $licMap
     Invoke-PpaAuditAnalyzer -Raw $snapRawMap.Audit -LicenseMap $licMap

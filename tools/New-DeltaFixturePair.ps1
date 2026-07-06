@@ -45,11 +45,10 @@ $rawMap = @{
     DSPM_for_AI              = Read-PpaFixture 'Samples\sample-raw\dspm.json'
 }
 $licMap = Get-PpaLicenseRequirements -Path (Join-Path $root 'Data\license-requirements.json')
-$sitMap = Read-PpaFixture 'Data\dlp-sit-tiers.json'
 $asOf = [datetime]'2026-06-24'
 $sections = @(
     Invoke-PpaLabelAnalyzer -Raw $rawMap.Sensitivity_Labels -AsOf $asOf -LicenseMap $licMap
-    Invoke-PpaDlpAnalyzer -Raw $rawMap.Data_Loss_Prevention -AsOf $asOf -LicenseMap $licMap -SitTierMap $sitMap
+    Invoke-PpaDlpAnalyzer -Raw $rawMap.Data_Loss_Prevention -AsOf $asOf -LicenseMap $licMap
     Invoke-PpaRetentionAnalyzer -Raw $rawMap.Retention -LicenseMap $licMap
     Invoke-PpaInsiderRiskAnalyzer -Raw $rawMap.Insider_Risk -LicenseMap $licMap
     Invoke-PpaAuditAnalyzer -Raw $rawMap.Audit -LicenseMap $licMap

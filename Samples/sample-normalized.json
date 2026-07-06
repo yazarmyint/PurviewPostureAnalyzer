@@ -164,26 +164,6 @@
           "learnmore": [
             { "label": "Learn about Endpoint DLP", "url": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about", "tag": "docs" }
           ]
-        },
-        {
-          "id": "DLP-04",
-          "domId": "f-dlp-4",
-          "title": "HIPAA template references named-entity SITs that require E5 — verify tenant tier",
-          "status": "Verify manually",
-          "requires": "Microsoft 365 E5 (named-entity SITs)",
-          "whyline": "The client may believe they have full HIPAA coverage while named-entity detectors are inactive below E5 — confirm at the tenant tier.",
-          "table": {
-            "columns": ["Detector (SIT)", "Availability", "Status"],
-            "rows": [
-              { "cells": ["U.S. Social Security Number", "Tier not confirmed read-only"], "status": "Verify manually" },
-              { "cells": ["Drug Enforcement Agency (DEA) Number", "Tier not confirmed read-only"], "status": "Verify manually" },
-              { "cells": ["International Classification of Diseases (ICD-10-CM)", "Named-entity SIT · requires E5 · verify tenant tier"], "status": "Verify manually" },
-              { "cells": ["International Classification of Diseases (ICD-9-CM)", "Named-entity SIT · requires E5 · verify tenant tier"], "status": "Verify manually", "remark": "this tool does not read licensing — confirm which detectors are active at the tenant tier; E5-gated SIT map last reviewed 2026-07-01." }
-            ]
-          },
-          "learnmore": [
-            { "label": "DLP policy reference", "url": "https://learn.microsoft.com/en-us/purview/dlp-policy-reference", "tag": "docs" }
-          ]
         }
       ]
     },

@@ -17,10 +17,6 @@
       "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / IP&G add-on)",
       "basis": "Endpoint DLP: feature table lists Microsoft 365 E5/A5/G5, Microsoft Purview Suite, IP&G add-on"
     },
-    "DLP-04": {
-      "requires": "Microsoft 365 E5 (named-entity SITs)",
-      "basis": "Named-entity SIT tiering tracked in Data/dlp-sit-tiers.json (separately dated); see DLP policy reference"
-    },
     "RET-02": {
       "requires": "Microsoft 365 E5 / Office 365 E5 (or IP&G add-on)",
       "basis": "Data Lifecycle & Records Management: 'If the retention policy uses an adaptive policy scope' license list (E5/A5/G5, Office 365 E5/A5/G5, IP&G)"

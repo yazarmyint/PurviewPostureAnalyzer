@@ -7,31 +7,15 @@ value. This file is maintained as the build continues.
 
 ---
 
-## DLP-04 - HIPAA / enhanced-template detector tiering
+## DLP-04 - RETIRED (Wave 5 cleanup Part 4)
 
-**Limitation.** There is no reliable read-only way to determine which sensitive-information-type
-(SIT) detectors are active at a tenant's licensing tier. Several named-entity detectors in the
-enhanced HIPAA template (for example ICD-10-CM, ICD-9-CM) require Microsoft 365 E5 / E5 Compliance.
-
-**How it's handled (fail-safe).** A small, dated map — `Data/dlp-sit-tiers.json` — lists only the
-**well-known E5-gated** named-entity SITs. Because the tool reads no licensing (decision D9):
-
-- A **mapped** E5-gated SIT -> **Verify manually** ("named-entity SIT - requires E5 - verify tenant
-  tier"). The tool never claims the detector is active or inactive on this tenant.
-- Any **unmapped** SIT -> **Verify manually** ("tier not confirmed"). It is **never** silently
-  marked OK/available.
-
-**Map contents (last reviewed 2026-07-01):**
-
-| SIT | Required license | Category |
-|-----|------------------|----------|
-| International Classification of Diseases (ICD-10-CM) | E5 | named-entity |
-| International Classification of Diseases (ICD-9-CM)  | E5 | named-entity |
-
-**Maintenance.** Microsoft re-tiers SITs over time. Re-verify every entry against current
-`learn.microsoft.com` before each release, update `lastReviewed` in the JSON, and expand the list
-**conservatively** — an entry that turns out not to be E5-gated would wrongly downgrade a tenant.
-The fail-safe (unmapped -> Verify manually) means an incomplete map is safe; an incorrect map is not.
+The HIPAA / enhanced-template detector-tiering check and its dated SIT map
+(`Data/dlp-sit-tiers.json`) were removed with nothing in their place: the check presumed a
+healthcare engagement, and the DLP section already surfaces the industry-neutral hygiene signals
+(enforcement mode via DLP-01 remarks, workload coverage via DLP-02, endpoint posture via DLP-03).
+The `DLP-04` ID is tombstoned in `CHECK_CATALOG.md` and is never reused. The underlying limitation
+remains true - detector availability per licensing tier is not readable read-only - it simply no
+longer drives a check.
 
 ---
 
@@ -89,10 +73,8 @@ entirely (no module, no scopes, no consent prompts). It cannot know the tenant's
 - **Microsoft 365 Copilot is a separate add-on outside the E5 assumption.** The AI section stays
   evidence-based: Copilot-location DLP artifacts put the AI surface in scope; with none, Copilot
   deployment is *"not detectable from this session"* - never asserted absent.
-- DLP-04 says a referenced named-entity SIT *requires E5 - verify tenant tier*; it never claims the
-  detector is inactive on this tenant.
 
-**Maintenance.** Same rule as the SIT map: re-verify every entry against the source page before each
+**Maintenance.** Re-verify every entry against the source page before each
 release, update `lastReviewed`, and never add tiers the page does not state. Unannotated checks are
 E3-baseline per the same page. Guarded by tests: no-Graph guard + no-license-confirmation-language
 guard in `Tests/Module.Tests.ps1`.

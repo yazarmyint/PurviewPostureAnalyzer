@@ -74,8 +74,9 @@ Describe 'DLP analyzer - sparse tenant data (0 rules for 6 policies)' {
         $f01 = $script:DlpSec.findings | Where-Object { $_.id -eq 'DLP-01' }
         ($f01.table.rows | Where-Object { $_.cells[0] -like 'Lab Policy 5*' }).cells[2] | Should -Be 'Enforcing'
     }
-    It 'DLP-04 with no HIPAA SITs anywhere is Informational, not a throw or false verdict' {
-        ($script:DlpSec.findings | Where-Object { $_.id -eq 'DLP-04' }).status | Should -Be 'Informational'
+    It 'the retired DLP-04 never emits - not even the "No HIPAA-template policies detected" line (Wave 5 cleanup Part 4)' {
+        @($script:DlpSec.findings.id) | Should -Not -Contain 'DLP-04'
+        @($script:DlpSec.findings | Where-Object { $_.title -match '(?i)HIPAA' }).Count | Should -Be 0
     }
 }
 

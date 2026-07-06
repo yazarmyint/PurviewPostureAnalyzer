@@ -10,16 +10,15 @@ BeforeAll {
 
     . (Join-Path $script:RepoRoot 'Private\Core\Get-PpaLicenseRequirements.ps1')
     $script:Raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-raw\dlp.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-    $script:SitMap = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Data\dlp-sit-tiers.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
     $script:Map = Get-PpaLicenseRequirements -Path (Join-Path $script:RepoRoot 'Data\license-requirements.json')
-    $script:Sec = Invoke-PpaDlpAnalyzer -Raw $script:Raw -AsOf ([datetime]'2026-06-24') -LicenseMap $script:Map -SitTierMap $script:SitMap
+    $script:Sec = Invoke-PpaDlpAnalyzer -Raw $script:Raw -AsOf ([datetime]'2026-06-24') -LicenseMap $script:Map
     $script:F = @{}
     foreach ($f in $script:Sec.findings) { $script:F[$f.id] = $f }
 }
 
 Describe 'DLP analyzer - shape' {
-    It 'produces four findings DLP-01..04' {
-        @($script:Sec.findings.id) | Should -Be @('DLP-01', 'DLP-02', 'DLP-03', 'DLP-04')
+    It 'produces three findings DLP-01..03 (DLP-04 retired, Wave 5 cleanup Part 4)' {
+        @($script:Sec.findings.id) | Should -Be @('DLP-01', 'DLP-02', 'DLP-03')
     }
 }
 
@@ -57,27 +56,22 @@ Describe 'DLP-03 Endpoint DLP' {
     }
 }
 
-Describe 'DLP-04 HIPAA template (Verify-flavored, no tenant-tier assertion)' {
-    It 'is Verify manually - the tool cannot assert detectors are inactive on this tenant' {
-        $script:F['DLP-04'].status | Should -Be 'Verify manually'
-        $script:F['DLP-04'].title | Should -Match 'verify tenant tier'
+Describe 'DLP-04 retired (Wave 5 cleanup Part 4): the HIPAA check is gone, the section is whole' {
+    # Removed with nothing in its place (ruled): the check presumed a healthcare
+    # engagement, and the section already carries the industry-neutral signals
+    # (enforcement mode in DLP-01 remarks, workload coverage in DLP-02, endpoint
+    # posture in DLP-03). The ID is tombstoned in CHECK_CATALOG.md, never reused.
+    It 'emits NO DLP-04 finding even when HIPAA-flavored policies exist in the fixture' {
+        @($script:Sec.findings.id) | Should -Not -Contain 'DLP-04'
     }
-    It 'flags mapped named-entity detectors as requires-E5 / verify' {
-        $icd = $script:F['DLP-04'].table.rows | Where-Object { $_.cells[0] -like '*ICD-10-CM*' }
-        $icd.status | Should -Be 'Verify manually'
-        $icd.cells[1] | Should -Match 'requires E5'
+    It 'emits no HIPAA-titled finding at all - neither branch of the retired check survives' {
+        @($script:Sec.findings | Where-Object { $_.title -match '(?i)HIPAA' }).Count | Should -Be 0
     }
-    It 'marks an unmapped SIT tier-not-confirmed - never a silent OK' {
-        ($script:F['DLP-04'].table.rows | Where-Object { $_.cells[0] -eq 'U.S. SSN' }).status | Should -Be 'Verify manually'
-        @($script:F['DLP-04'].table.rows | Where-Object { $_.status -eq 'OK' }).Count | Should -Be 0
-    }
-    It 'records the map review date and the no-detection caveat in a remark' {
-        $remark = ($script:F['DLP-04'].table.rows | Where-Object { $_.remark }).remark
-        $remark | Should -Match 'last reviewed 2026-07-01'
-        $remark | Should -Match 'does not read licensing'
-    }
-    It 'carries the Requires annotation' {
-        $script:F['DLP-04'].requires | Should -Match 'E5'
+    It 'the DLP section still assembles cleanly without it: three findings, glance intact' {
+        @($script:Sec.findings).Count | Should -Be 3
+        $script:Sec.id | Should -Be 'Data_Loss_Prevention'
+        $script:Sec.title | Should -Be 'Data Loss Prevention'
+        $script:Sec.glance.metric | Should -Be '6 policies'
     }
 }
 

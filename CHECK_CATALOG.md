@@ -115,13 +115,14 @@ read degrades the conditions display only, never the section outcome)*
   count is not retrievable read-only, that row becomes **Verify manually** rather than a false 0.
 - **Links:** Learn about Endpoint DLP.
 
-### DLP-04 — HIPAA template detectors reduced under sub-E5
-- **Reads:** `Get-DlpComplianceRule` → referenced SITs; cross-ref `Get-DlpSensitiveInformationType`
-  + detected license to flag named-entity SITs that need E5 **⚠ confirm** the SKU-to-SIT mapping
-- **Columns:** Detector (SIT) · Availability at tenant SKU · Status
-- **Status:** named-entity / enhanced detectors unavailable at tenant tier → **Improvement** on those rows;
-  base detectors active → **OK**. Remark states the functional-detector count.
-- **Links:** DLP policy reference.
+### DLP-04 — RETIRED (Wave 5 cleanup Part 4) · was: HIPAA template detectors reduced under sub-E5
+- **Tombstone.** Removed 2026-07 with nothing in its place: the check presumed a healthcare
+  engagement, and the section already surfaces the industry-neutral hygiene signals (enforcement
+  mode via DLP-01 remarks, workload coverage via DLP-02, endpoint posture via DLP-03). The dated
+  SIT tier map (`Data/dlp-sit-tiers.json`) was removed with it. **The `DLP-04` ID stays reserved
+  and is never reused** — stable IDs outlive their checks so old snapshots keep meaning; a delta
+  against a pre-retirement snapshot legitimately reports this check as disappeared
+  (cross-tool-version artifact, not a config change).
 
 ---
 
@@ -333,8 +334,8 @@ scope/SITs/location/audience decision, which is what the guidance names.
 
 Sourcing rule (non-negotiable): guidance is written **only where grounded** — a skills
 self-audit (B2) judged each check against the local Purview skill library and the
-finding's own Learn material before any prose was drafted. Not-grounded checks (DLP-04,
-AI-04) carry portal path + Learn link only. The determination table and every draft live
+finding's own Learn material before any prose was drafted. Not-grounded checks (AI-04;
+DLP-04 until its Wave 5 retirement) carry portal path + Learn link only. The determination table and every draft live
 in `docs/REMEDIATION_REVIEW.md`; all of it is DRAFT until human-reviewed.
 
 ---
@@ -344,7 +345,8 @@ in `docs/REMEDIATION_REVIEW.md`; all of it is DRAFT until human-reviewed.
 1. **Device onboarding count** (DLP-03) — find a read-only source or downgrade to Verify.
 2. **License detection** — settle one mechanism (Graph `Get-MgSubscribedSku` vs. cmdlet-availability probing)
    used consistently for every E5 gate (IRM, CC, Audit Premium, eDiscovery Premium, Copilot).
-3. **SKU-to-SIT mapping** (DLP-04) — confirm which HIPAA named-entity detectors are inactive sub-E5.
+3. **SKU-to-SIT mapping** (DLP-04) — ~~confirm which HIPAA named-entity detectors are inactive sub-E5~~
+   closed by retirement: DLP-04 was removed in Wave 5 cleanup Part 4 (see its tombstone above).
 4. **Copilot service-plan id** (AI-01) — confirm the exact plan string.
 5. **Learn-more URLs** — the Sensitivity Labels links are verified; validate the rest before shipping.
 6. **Read-only guard** — add a repo test asserting no mutating cmdlets appear in collector code.

@@ -66,12 +66,12 @@ Describe 'ConvertTo-PpaNormalized' {
         $raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
         $script:Norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections -Observations $raw.observations
     }
-    It 'computes the All-Solutions totals (2/8/3/7/1, assume-E5 model)' {
+    It 'computes the All-Solutions totals (2/8/3/7/0, assume-E5 model; DLP-04 retired Wave 5 Part 4)' {
         $script:Norm.summary.totals.OK              | Should -Be 2
         $script:Norm.summary.totals.Improvement     | Should -Be 8
         $script:Norm.summary.totals.Recommendation  | Should -Be 3
         $script:Norm.summary.totals.Informational   | Should -Be 7
-        $script:Norm.summary.totals.'Verify manually' | Should -Be 1
+        $script:Norm.summary.totals.'Verify manually' | Should -Be 0
     }
     It 'preserves an explicit glance override (Audit stays OK despite a Verify finding)' {
         ($script:Norm.sections | Where-Object { $_.id -eq 'Audit' }).glance.status | Should -Be 'OK'
@@ -80,7 +80,7 @@ Describe 'ConvertTo-PpaNormalized' {
         $g = $script:Norm.summary.groups | Where-Object { $_.name -eq 'Insider Risk' }
         ($g.sections.title) | Should -Contain 'Communication Compliance'
     }
-    It 'keeps all 21 findings' {
-        (@($script:Norm.sections) | ForEach-Object { @($_.findings).Count } | Measure-Object -Sum).Sum | Should -Be 21
+    It 'keeps all 20 findings (21 until DLP-04 retired, Wave 5 cleanup Part 4)' {
+        (@($script:Norm.sections) | ForEach-Object { @($_.findings).Count } | Measure-Object -Sum).Sum | Should -Be 20
     }
 }

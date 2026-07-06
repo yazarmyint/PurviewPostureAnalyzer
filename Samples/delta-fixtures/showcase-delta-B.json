@@ -755,13 +755,6 @@
       "title": "Endpoint DLP is not configured"
     },
     {
-      "checkId": "DLP-04",
-      "status": "Verify manually",
-      "severity": null,
-      "section": "Data_Loss_Prevention",
-      "title": "HIPAA template references named-entity SITs that require E5 - verify tenant tier"
-    },
-    {
       "checkId": "RET-01",
       "status": "Informational",
       "severity": null,

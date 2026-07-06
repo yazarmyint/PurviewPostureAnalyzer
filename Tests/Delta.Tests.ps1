@@ -203,26 +203,30 @@ Describe 'Visibility precedence in all three directions (6.2 #5)' {
 }
 
 Describe 'One-sided checks are never silent (C-fix 2)' {
+    # Example check: DLP-01 filtered from one side at runtime. (These tests used
+    # DLP-04 until its Wave 5 Part 4 retirement removed it from the fixtures - which
+    # is itself the real-world case this notice exists for: a pre-retirement snapshot
+    # compared against a post-retirement one reports DLP-04 as a one-sided check.)
     It 'a check present only in the TO snapshot notices the older side, listed by checkId' {
         Skip-OnPs51
         $a = Get-PpaSnapshotCopy $script:FixA
         $b = Get-PpaSnapshotCopy $script:FixA
-        $a.findings = @($a.findings | Where-Object { [string]$_.checkId -ne 'DLP-04' })
+        $a.findings = @($a.findings | Where-Object { [string]$_.checkId -ne 'DLP-01' })
         $d = Compare-PpaSnapshotPair -From $a -To $b -WarningAction SilentlyContinue
         $s = Get-PpaDeltaSection $d 'Data_Loss_Prevention'
-        $n = @($s.findingNotices | Where-Object { $_.checkId -eq 'DLP-04' })
+        $n = @($s.findingNotices | Where-Object { $_.checkId -eq 'DLP-01' })
         $n.Count | Should -Be 1
         $n[0].reason | Should -Be 'check not present in the older snapshot - likely tool version difference'
-        @($s.findingChanges | Where-Object { $_.checkId -eq 'DLP-04' }).Count | Should -Be 0
+        @($s.findingChanges | Where-Object { $_.checkId -eq 'DLP-01' }).Count | Should -Be 0
     }
     It 'a check present only in the FROM snapshot notices the newer side' {
         Skip-OnPs51
         $a = Get-PpaSnapshotCopy $script:FixA
         $b = Get-PpaSnapshotCopy $script:FixA
-        $b.findings = @($b.findings | Where-Object { [string]$_.checkId -ne 'DLP-04' })
+        $b.findings = @($b.findings | Where-Object { [string]$_.checkId -ne 'DLP-01' })
         $d = Compare-PpaSnapshotPair -From $a -To $b -WarningAction SilentlyContinue
         $s = Get-PpaDeltaSection $d 'Data_Loss_Prevention'
-        $n = @($s.findingNotices | Where-Object { $_.checkId -eq 'DLP-04' })
+        $n = @($s.findingNotices | Where-Object { $_.checkId -eq 'DLP-01' })
         $n.Count | Should -Be 1
         $n[0].reason | Should -Be 'check not present in the newer snapshot - likely tool version difference'
     }

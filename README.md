@@ -196,11 +196,10 @@ The card header and Solutions Summary counts are computed from these finding-lev
 ## Known limitations
 
 See **`LIMITATIONS.md`**. In short: a few signals cannot be read safely read-only (device
-onboarding count, container/site inventory, audit ingestion, IRM policy enumeration, named-entity
-SIT tiering, and the tenant's license tier itself), so they are reported as *Verify manually* or
-annotated rather than guessed. Two dated maps — `Data/license-requirements.json` (which tier each
-feature requires, from the Purview service description) and `Data/dlp-sit-tiers.json` (E5-gated
-SITs) — must be re-verified against current Microsoft Learn periodically.
+onboarding count, container/site inventory, audit ingestion, IRM policy enumeration, and the
+tenant's license tier itself), so they are reported as *Verify manually* or annotated rather than
+guessed. One dated map — `Data/license-requirements.json` (which tier each feature requires, from
+the Purview service description) — must be re-verified against current Microsoft Learn periodically.
 
 ---
 

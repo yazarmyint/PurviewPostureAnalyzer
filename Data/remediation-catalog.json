@@ -37,11 +37,6 @@
       "learnUrl": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about",
       "grounding": "skill"
     },
-    "DLP-04": {
-      "portalPath": "Configure in the Microsoft Purview portal under Data classification > Sensitive info types; see the linked guidance for which detectors apply at your tenant's service plan.",
-      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-policy-reference",
-      "grounding": "none"
-    },
     "RET-01": {
       "portalPath": "Under Data lifecycle management, anchor the retention inventory to a file plan: map each retention rule to a policy (broad, location-level) or a label (item-level precision), each citing a regulation or a named business owner. Rules that exist in the portal but not in the plan are the ones that fail audit.",
       "learnUrl": "https://learn.microsoft.com/en-us/purview/retention",

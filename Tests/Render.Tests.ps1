@@ -22,25 +22,25 @@ Describe 'HTML render - structure' {
             $script:Html | Should -Match ('id="' + $id + '"')
         }
     }
-    It 'emits 21 findings' {
-        ([regex]::Matches($script:Html, 'class="finding"')).Count | Should -Be 21
+    It 'emits 20 findings (21 until DLP-04 retired, Wave 5 cleanup Part 4)' {
+        ([regex]::Matches($script:Html, 'class="finding"')).Count | Should -Be 20
     }
-    It 'emits 20 detail tables (IRM-02 is table-less)' {
-        ([regex]::Matches($script:Html, 'table table-sm detail')).Count | Should -Be 20
+    It 'emits 19 detail tables (IRM-02 is table-less)' {
+        ([regex]::Matches($script:Html, 'table table-sm detail')).Count | Should -Be 19
     }
     It 'has one collapsible drill-down per finding, plus the collapsible Posture Summary' {
-        # 21 finding drill-downs + the Posture Summary header = 22. This fixture passes no
+        # 20 finding drill-downs + the Posture Summary header = 21. This fixture passes no
         # coverage model, so the Coverage Matrix (the other collapsible section) is not
         # rendered; a report built with coverage adds one more (see the sample builder).
-        ([regex]::Matches($script:Html, 'data-toggle="collapse"')).Count | Should -Be 22
+        ([regex]::Matches($script:Html, 'data-toggle="collapse"')).Count | Should -Be 21
     }
 }
 
 Describe 'HTML render - computed counts' {
-    It 'shows the All-Solutions totals as 2 8 3 7 1 (assume-E5 model, no ingestion row)' {
+    It 'shows the All-Solutions totals as 2 8 3 7 0 (assume-E5 model; DLP-04 retired Wave 5 Part 4)' {
         $row  = [regex]::Match($script:Html, '(?s)All Solutions</strong></td>\s*<td align="right">(.*?)</td>').Groups[1].Value
         $nums = ([regex]::Matches($row, 'sscount">(\d+)<') | ForEach-Object { $_.Groups[1].Value }) -join ' '
-        $nums | Should -Be '2 8 3 7 1'
+        $nums | Should -Be '2 8 3 7 0'
     }
     It 'renders NO license banner and NO Requires tags (caveats live in docs, not the report)' {
         $script:Html | Should -Not -Match 'License context'

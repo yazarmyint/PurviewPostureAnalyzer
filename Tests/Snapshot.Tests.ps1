@@ -36,11 +36,10 @@ BeforeAll {
     function New-PpaDenseSections {
         param($RawMap)
         $licMap = Get-PpaLicenseRequirements -Path (Join-Path $script:RepoRoot 'Data\license-requirements.json')
-        $sitMap = Read-PpaFixtureJson 'Data\dlp-sit-tiers.json'
         $asOf   = [datetime]'2026-06-24'
         @(
             Invoke-PpaLabelAnalyzer          -Raw $RawMap.Sensitivity_Labels       -AsOf $asOf -LicenseMap $licMap
-            Invoke-PpaDlpAnalyzer            -Raw $RawMap.Data_Loss_Prevention     -AsOf $asOf -LicenseMap $licMap -SitTierMap $sitMap
+            Invoke-PpaDlpAnalyzer            -Raw $RawMap.Data_Loss_Prevention     -AsOf $asOf -LicenseMap $licMap
             Invoke-PpaRetentionAnalyzer      -Raw $RawMap.Retention                -LicenseMap $licMap
             Invoke-PpaInsiderRiskAnalyzer    -Raw $RawMap.Insider_Risk             -LicenseMap $licMap
             Invoke-PpaAuditAnalyzer          -Raw $RawMap.Audit                    -LicenseMap $licMap

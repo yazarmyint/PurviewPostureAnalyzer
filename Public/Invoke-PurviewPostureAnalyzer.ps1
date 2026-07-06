@@ -114,8 +114,8 @@ function Invoke-PurviewPostureAnalyzer {
     $rawCc     = & $collect 'Comms Compliance'     { Get-PpaCommsCompliance }
     $rawDspm   = & $collect 'DSPM for AI'          { Get-PpaDspmAi }
 
-    # Static maps: SIT tiering + license annotations (never detection - decision D9).
-    $sitMap = Get-PpaSitTierMap
+    # Static map: license annotations (never detection - decision D9). The SIT tier
+    # map went with the DLP-04 retirement (Wave 5 cleanup Part 4).
     $licMap = Get-PpaLicenseRequirements
     $hasSiteLabels = $false
     if ($rawLabels) {
@@ -141,7 +141,7 @@ function Invoke-PurviewPostureAnalyzer {
 
     $sections = @(
         & $analyze 'Sensitivity_Labels' 'Sensitivity Labels' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawLabels { Invoke-PpaLabelAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
-        & $analyze 'Data_Loss_Prevention' 'Data Loss Prevention' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawDlp { Invoke-PpaDlpAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap -SitTierMap $sitMap }
+        & $analyze 'Data_Loss_Prevention' 'Data Loss Prevention' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawDlp { Invoke-PpaDlpAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
         & $analyze 'Retention' 'Retention & Records' 'Data Lifecycle & Records' 'fas fa-archive' '' $rawRet { Invoke-PpaRetentionAnalyzer -Raw $Raw -LicenseMap $licMap }
         & $analyze 'Insider_Risk' 'Insider Risk Management' 'Insider Risk' 'fas fa-user-secret' '' $rawIrm { Invoke-PpaInsiderRiskAnalyzer -Raw $Raw -LicenseMap $licMap }
         & $analyze 'Audit' 'Audit' 'Discovery & Response' 'fas fa-search' '' $rawAud { Invoke-PpaAuditAnalyzer -Raw $Raw -LicenseMap $licMap }

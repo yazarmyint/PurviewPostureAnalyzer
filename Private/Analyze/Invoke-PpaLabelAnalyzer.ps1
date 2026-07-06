@@ -1,5 +1,5 @@
 # Invoke-PpaLabelAnalyzer.ps1 - analyzer for section 01 (Sensitivity Labels).
-# Turns the Get-PpaSensitivityLabels raw shape into the four findings LABELS-01..04 with
+# Turns the Get-PpaSensitivityLabels raw shape into the five findings LABELS-01..05 with
 # statuses per CHECK_CATALOG.md. Pure function of its input (+ an -AsOf date for the
 # simulation-age remark) so it is unit-testable with no tenant.
 # ASCII-only source (Windows PowerShell 5.1). Depends on New-PpaFinding.ps1 / New-PpaSection.ps1.
@@ -162,6 +162,37 @@ function Invoke-PpaLabelAnalyzer {
         $findings.Add((New-PpaFinding -Id 'LABELS-04' -DomId 'f-lab-4' -Title 'Container labels are in use' -Status 'OK' `
             -Whyline 'Container labels govern guest access, external sharing and unmanaged-device rules on collaborative workspaces.' `
             -Table (New-PpaTable -Columns @('Container type', 'Coverage', 'Status') -Rows @((New-PpaRow -Cells @('Container-scoped labels', "$($containerLabels.Count) defined") -Status 'OK'))) -LearnMore $lm04))
+    }
+
+    # --- LABELS-05: Azure Rights Management for Exchange Online (Wave 6 Part 2) ---
+    # $null means "not read this session" (EXO session absent, read failed, or the
+    # property missing) - the absence of the read is never reported as Disabled.
+    # Older raw captures carry no irmConfig block at all: same Verify manually path.
+    $lm05 = @(@{ label = 'Encryption in Microsoft 365'; url = 'https://learn.microsoft.com/en-us/purview/encryption'; tag = 'docs' })
+    $why05 = 'Azure RMS is the encryption engine behind sensitivity labels and encrypted mail; with it disabled, protection actions across Exchange silently do nothing.'
+    $rmsKnown = ($null -ne $Raw.irmConfig) -and ($null -ne $Raw.irmConfig.azureRmsEnabled)
+    $rmsOn    = $rmsKnown -and [bool]$Raw.irmConfig.azureRmsEnabled
+    if (-not $rmsKnown) {
+        $findings.Add((New-PpaFinding -Id 'LABELS-05' -DomId 'f-lab-5' -Title 'Azure Rights Management not readable this session' -Status 'Verify manually' `
+            -Whyline $why05 `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @(
+                New-PpaRow -Cells @('Azure Rights Management (Exchange Online)', 'Not readable this session (Exchange Online session not established?)') -Status 'Verify manually'
+            )) -LearnMore $lm05))
+    }
+    elseif ($rmsOn) {
+        $findings.Add((New-PpaFinding -Id 'LABELS-05' -DomId 'f-lab-5' -Title 'Azure Rights Management is enabled for Exchange Online' -Status 'OK' `
+            -Whyline $why05 `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @(
+                New-PpaRow -Cells @('Azure Rights Management (Exchange Online)', 'Enabled') -Status 'OK'
+            )) -LearnMore $lm05))
+    }
+    else {
+        $findings.Add((New-PpaFinding -Id 'LABELS-05' -DomId 'f-lab-5' -Title 'Azure Rights Management is disabled for Exchange Online' -Status 'Improvement' `
+            -Whyline $why05 `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @(
+                New-PpaRow -Cells @('Azure Rights Management (Exchange Online)', 'Disabled (AzureRMSLicensingEnabled = false)') -Status 'Improvement'
+                New-PpaRow -Cells @('Context', 'Default-on for tenants created after 2018 - a disabled state is usually a deliberate opt-out; confirm intent') -Status 'Informational'
+            )) -LearnMore $lm05))
     }
 
     # --- section glance ---

@@ -160,6 +160,8 @@ BeforeAll {
                 [pscustomobject]@{ Name = 'Data theft'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000005'; InsiderRiskScenario = 'DataTheft'; Workload = @('Exchange', 'Teams'); WhenCreatedUTC = [datetime]::new(2026, 3, 15, 8, 0, 0, [System.DateTimeKind]::Utc) }) }
             'Get-AdminAuditLogConfig' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ UnifiedAuditLogIngestionEnabled = $true }) }
+            'Get-IRMConfiguration' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{ AzureRMSLicensingEnabled = $true }) }
             'Get-OrganizationConfig' = @{ Status = 'Ok'; Data = @([pscustomobject]@{ Name = 'contoso'; AuditDisabled = $false }) }
             'Get-ComplianceCase' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ Name = 'Case-1'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000004'; Status = 'Active' }) }
@@ -348,6 +350,28 @@ Describe 'Per-collector outcome (A.4)' {
     It 'labels: the by-design NotCollected containers block does NOT drag the outcome to Partial' {
         $script:PpaReadStubMap = Get-PpaRichStubMap
         (Get-PpaSensitivityLabels).outcome | Should -Be 'Populated'
+    }
+    It 'labels: projects the Azure RMS state (AzureRMSLicensingEnabled) as a real boolean' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $out = Get-PpaSensitivityLabels
+        $out.PSObject.Properties.Name | Should -Contain 'irmConfig'
+        $out.irmConfig.azureRmsEnabled | Should -BeOfType [bool]
+        $out.irmConfig.azureRmsEnabled | Should -BeTrue
+    }
+    It 'labels: a degraded Get-IRMConfiguration read projects null and does NOT drag the outcome (containers precedent)' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-IRMConfiguration'] = @{ Status = 'CommandNotFound'; Data = @(); Error = 'no EXO session' }
+        $out = Get-PpaSensitivityLabels
+        ($null -eq $out.irmConfig.azureRmsEnabled) | Should -BeTrue
+        $out.irmConfig.status | Should -Be 'CommandNotFound'
+        $out.outcome | Should -Be 'Populated'
+    }
+    It 'labels: a missing AzureRMSLicensingEnabled property projects null - never a guessed boolean' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-IRMConfiguration'] = @{ Status = 'Ok'; Data = @([pscustomobject]@{ Name = 'irm' }); Error = $null }
+        $out = Get-PpaSensitivityLabels
+        $out.PSObject.Properties.Name | Should -Contain 'irmConfig'
+        ($null -eq $out.irmConfig.azureRmsEnabled) | Should -BeTrue
     }
     It 'DLP: policies readable but rules denied -> Partial' {
         $script:PpaReadStubMap = Get-PpaRichStubMap

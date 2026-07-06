@@ -31,5 +31,10 @@
     "status": "Collected",
     "groups": { "total": 143, "labeled": 0 },
     "sites": { "total": 168, "labeled": 0 }
+  },
+  "irmConfig": {
+    "status": "Ok",
+    "error": null,
+    "azureRmsEnabled": true
   }
 }

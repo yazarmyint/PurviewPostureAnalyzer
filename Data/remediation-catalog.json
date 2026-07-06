@@ -22,6 +22,11 @@
       "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites",
       "grounding": "skill"
     },
+    "LABELS-05": {
+      "portalPath": "Azure Rights Management is the encryption engine behind sensitivity labels and encrypted mail, and a disabled state is usually a deliberate opt-out rather than drift. Confirm with the messaging owner that nothing legacy (on-premises AD RMS) depends on it staying off, then re-enable and verify an encrypting label round-trips in Outlook before declaring protection restored.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/encryption",
+      "grounding": "skill"
+    },
     "DLP-01": {
       "portalPath": "Under Data loss prevention > Policies, review each test-mode policy's matches in Activity Explorer and define the exceptions and override justifications the business needs before switching the policy to enforce. Blocking without an exception path produces business escalations within hours.",
       "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp",

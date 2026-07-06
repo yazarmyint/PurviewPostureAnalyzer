@@ -25,6 +25,7 @@ Skills read (2026-07-03): `purview-data-classification`, `purview-dlp-policy`,
 | LABELS-02 | **YES** | skill: purview-data-classification | Publishing scope: which users get which labels, plus the default label; verify pilot users see the label menu |
 | LABELS-03 | **YES** | skill: purview-data-classification + finding Learn link | Review simulation match counts and a false-positive sample BEFORE enabling - enforce-on-day-one mislabels at scale |
 | LABELS-04 | **YES** | skills: purview-copilot-oversharing, purview-data-classification + finding Learn link | Decide what each container label enforces (guest access, external sharing, unmanaged-device limits) with site owners |
+| LABELS-05 | **YES** | skill: purview-data-classification + finding Learn link (added 2026-07-06, Wave 6 reincorporation Part 2) | A disabled Azure RMS is usually a deliberate opt-out: confirm no legacy AD RMS dependency with the messaging owner, then verify an encrypting label round-trips in Outlook |
 | DLP-01 | **YES** | skill: purview-dlp-policy | Review simulation matches in Activity Explorer and define exceptions/overrides BEFORE switching to enforce |
 | DLP-02 | **YES** | skill: purview-dlp-policy | Add the Teams location knowing it is NOT retroactive (applies to messages after the change); start with warn |
 | DLP-03 | **YES** | skills: purview-dlp-policy, defender-for-endpoint | Device onboarding (Intune / Defender for Endpoint) and per-user licensing come first; start audit-only, never block on day one |
@@ -49,7 +50,7 @@ Skills read (2026-07-03): `purview-data-classification`, `purview-dlp-policy`,
 | AI-05 | **YES** | skill: purview-data-lifecycle + finding Learn link | Decide the retain/delete period for Copilot interactions with the records owner; mind retention precedence with existing policies |
 | AI-06 | **YES** | skills: purview-communication-compliance, purview-dspm-ai | Same privacy prerequisites as CC-01; start from the Copilot-interactions template and decide the supervised population |
 
-**Tally: 25 GROUNDED / 2 NOT GROUNDED (DLP-04, AI-04).** *(AUD-04 added 2026-07-06.)*
+**Tally: 26 GROUNDED / 2 NOT GROUNDED (DLP-04, AI-04).** *(AUD-04, LABELS-05 added 2026-07-06.)*
 
 Renders-in-report note: only Improvement/Recommendation findings show the region, so on
 the current fixtures DLP-04 (Verify manually), RET-01/AUD-02/AUD-03/ED-01/ED-02/AI-01/AI-04
@@ -62,12 +63,13 @@ The rendered text lives in `Data/remediation-catalog.json`; each entry carries a
 `grounding` field (`skill` / `learn` / `established` / `none`) matching the table.
 Hard cap honored: no entry exceeds 3 sentences; no PowerShell anywhere.
 
-### Grounded drafts (25)
+### Grounded drafts (26)
 
 - **LABELS-01** - "In the Purview portal under Information protection > Sensitivity labels, build a small taxonomy - four or fewer top-level labels with business-language names (for example Public / General / Confidential / Highly Confidential). Get data-owner sign-off on the tiers before publishing; an IT-invented taxonomy with many levels stalls adoption and users default to General."
 - **LABELS-02** - "Under Information protection > Label publishing policies, publish the labels to the users who create content, deciding the audience scope and the default label for each group. Verify pilot users see the label menu with the intended default in Word and Outlook before widening the rollout."
 - **LABELS-03** - "Under Information protection > Auto-labeling, review the policy's simulation results to confirm the matched items and sensitive info types are what you intend, then turn the policy on. Enabling before reviewing simulation can mislabel content at scale."
 - **LABELS-04** - "Container labels are created under Information protection > Sensitivity labels by scoping a label to Groups & sites. The real decision is what each label enforces on a workspace - guest access, external sharing, and unmanaged-device limits - so agree those settings with site owners before publishing."
+- **LABELS-05** - "Azure Rights Management is the encryption engine behind sensitivity labels and encrypted mail, and a disabled state is usually a deliberate opt-out rather than drift. Confirm with the messaging owner that nothing legacy (on-premises AD RMS) depends on it staying off, then re-enable and verify an encrypting label round-trips in Outlook before declaring protection restored."
 - **DLP-01** - "Under Data loss prevention > Policies, review each test-mode policy's matches in Activity Explorer and define the exceptions and override justifications the business needs before switching the policy to enforce. Blocking without an exception path produces business escalations within hours."
 - **DLP-02** - "Under Data loss prevention > Policies, edit each policy's locations to add Teams chat and channel messages, deciding which policies genuinely need Teams coverage. Teams DLP applies only to messages posted after the change - it is not retroactive - so set expectations and start with warn-level actions."
 - **DLP-03** - "Endpoint DLP only works on onboarded devices, so onboard them first (Intune is the preferred path, or Defender for Endpoint) and confirm per-user licensing covers Endpoint DLP. Then add the Devices location to the relevant policies and run audit-only before warn or block - blocking on day one turns users against the agent."

@@ -86,6 +86,22 @@ read degrades the conditions display only, never the section outcome)*
 - **Status:** container-scoped labels exist and are applied → **OK**. None → **Recommendation**.
 - **Links:** Use sensitivity labels to protect containers (groups & sites).
 
+### LABELS-05 — Azure Rights Management for Exchange Online *(Wave 6 reincorporation Part 2)*
+- **Reads:** `Get-IRMConfiguration` → `AzureRMSLicensingEnabled` ✓ (**Exchange Online session** —
+  the one read in this section that is not Security & Compliance; projected as
+  `irmConfig.azureRmsEnabled`, `$null` = not read; excluded from the collector outcome per
+  the containers precedent, so a missing EXO session degrades only this finding)
+- **Columns:** Configuration · Setting · Status
+- **Status:** enabled → **OK**. Disabled → **Improvement** (Azure RMS is the encryption engine
+  behind sensitivity labels and encrypted mail — with it off, protection actions silently do
+  nothing) with an Informational context row: default-on for tenants created after ~2018, so a
+  disabled state is usually a deliberate opt-out — confirm intent. Read degraded / property
+  absent → **Verify manually**, mirroring AUD-01's degradation. Expect OK on nearly every
+  modern tenant: the value of this check is catching the rare disabled state (quiet-payoff
+  profile, same as AUD-01).
+- **Links:** Encryption in Microsoft 365. *(Deliberately not the message-encryption setup page:
+  its URL slug trips the no-PowerShell guard's case-insensitive `Set-` cmdlet scan.)*
+
 ---
 
 ## 02 · Data Loss Prevention

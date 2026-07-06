@@ -17,12 +17,42 @@ BeforeAll {
 }
 
 Describe 'Sensitivity Labels analyzer - shape' {
-    It 'produces four findings LABELS-01..04 in order' {
-        @($script:Sec.findings.id) | Should -Be @('LABELS-01', 'LABELS-02', 'LABELS-03', 'LABELS-04')
+    It 'produces five findings LABELS-01..05 in order' {
+        @($script:Sec.findings.id) | Should -Be @('LABELS-01', 'LABELS-02', 'LABELS-03', 'LABELS-04', 'LABELS-05')
     }
     It 'is the Sensitivity_Labels section under Microsoft Information Protection' {
         $script:Sec.id | Should -Be 'Sensitivity_Labels'
         $script:Sec.group | Should -Be 'Microsoft Information Protection'
+    }
+}
+
+Describe 'LABELS-05 Azure Rights Management (Exchange Online)' {
+    It 'is OK with the Enabled row pinned when AzureRMSLicensingEnabled is true (fixture)' {
+        $f = $script:F['LABELS-05']
+        $f.status | Should -Be 'OK'
+        $f.table.rows[0].cells[0] | Should -Be 'Azure Rights Management (Exchange Online)'
+        $f.table.rows[0].cells[1] | Should -Be 'Enabled'
+    }
+    It 'is Improvement with a deliberate-opt-out context row when disabled' {
+        $raw2 = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-raw\labels.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $raw2 | Add-Member -NotePropertyName 'irmConfig' -NotePropertyValue ([pscustomobject]@{ status = 'Ok'; error = $null; azureRmsEnabled = $false }) -Force
+        $sec2 = Invoke-PpaLabelAnalyzer -Raw $raw2 -AsOf ([datetime]'2026-06-24')
+        $f = @($sec2.findings | Where-Object { $_.id -eq 'LABELS-05' })[0]
+        $f.status | Should -Be 'Improvement'
+        $f.title | Should -Be 'Azure Rights Management is disabled for Exchange Online'
+        $f.table.rows[0].cells[1] | Should -Be 'Disabled (AzureRMSLicensingEnabled = false)'
+        $f.table.rows[1].status | Should -Be 'Informational'
+    }
+    It 'is Verify manually when the EXO read degrades - never a false Disabled' {
+        $raw3 = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-raw\labels.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $raw3 | Add-Member -NotePropertyName 'irmConfig' -NotePropertyValue ([pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; azureRmsEnabled = $null }) -Force
+        $sec3 = Invoke-PpaLabelAnalyzer -Raw $raw3 -AsOf ([datetime]'2026-06-24')
+        @($sec3.findings | Where-Object { $_.id -eq 'LABELS-05' })[0].status | Should -Be 'Verify manually'
+    }
+    It 'is Verify manually when the raw shape predates the irmConfig block (older captures)' {
+        $raw4 = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-raw\labels-autolabel-cases.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $sec4 = Invoke-PpaLabelAnalyzer -Raw $raw4 -AsOf ([datetime]'2026-07-01')
+        @($sec4.findings | Where-Object { $_.id -eq 'LABELS-05' })[0].status | Should -Be 'Verify manually'
     }
 }
 

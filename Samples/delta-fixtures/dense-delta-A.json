@@ -699,6 +699,13 @@
       "title": "No container labels for Teams / Sites / Groups"
     },
     {
+      "checkId": "LABELS-05",
+      "status": "OK",
+      "severity": null,
+      "section": "Sensitivity_Labels",
+      "title": "Azure Rights Management is enabled for Exchange Online"
+    },
+    {
       "checkId": "DLP-01",
       "status": "Informational",
       "severity": null,

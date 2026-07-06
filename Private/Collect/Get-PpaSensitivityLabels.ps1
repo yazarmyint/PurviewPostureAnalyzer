@@ -86,6 +86,11 @@ function Get-PpaSensitivityLabels {
     $rawPols      = Invoke-PpaReadCmdlet -Name 'Get-LabelPolicy'
     $rawAuto      = Invoke-PpaReadCmdlet -Name 'Get-AutoSensitivityLabelPolicy'
     $rawAutoRules = Invoke-PpaReadCmdlet -Name 'Get-AutoSensitivityLabelRule'
+    # LABELS-05 (Wave 6 reincorporation Part 2): Azure RMS state. Exchange Online
+    # cmdlet - the ONE read in this collector that needs the EXO session rather
+    # than Security & Compliance; a missing session degrades only the LABELS-05
+    # finding (containers precedent), never the section outcome.
+    $rawIrm       = Invoke-PpaReadCmdlet -Name 'Get-IRMConfiguration'
 
     $labelItems = foreach ($l in @($rawLabels.Data)) {
         $displayName = if ($l.DisplayName) { [string]$l.DisplayName } else { [string]$l.Name }
@@ -176,11 +181,24 @@ function Get-PpaSensitivityLabels {
         }
     }
 
+    # LABELS-05: $null means "not read this session" (failed EXO read OR the property
+    # absent from the returned object) - distinct from $false, so the analyzer degrades
+    # to Verify manually instead of guessing a boolean.
+    $rmsEnabled = $null
+    if ($rawIrm.Status -eq 'Ok' -and @($rawIrm.Data).Count -gt 0) {
+        $irm = $rawIrm.Data[0]
+        if ($irm.PSObject.Properties.Name -contains 'AzureRMSLicensingEnabled' -and $null -ne $irm.AzureRMSLicensingEnabled) {
+            $rmsEnabled = [bool]$irm.AzureRMSLicensingEnabled
+        }
+    }
+
     # Outcome from the three original reads only - the containers block is NotCollected
     # by design and must not degrade the outcome, and the Wave 5 Part 2 rule read is
     # excluded the same way (containers precedent): a tenant/session without
     # Get-AutoSensitivityLabelRule degrades ONLY the conditions display
     # (conditionsSource 'unreadable'), never the section or the coverage matrix.
+    # The Get-IRMConfiguration read (EXO session) is excluded for the same reason:
+    # it degrades only LABELS-05.
     return [pscustomobject]@{
         outcome    = Resolve-PpaCollectorOutcome -ReadStatuses @($rawLabels.Status, $rawPols.Status, $rawAuto.Status) -ItemCount (@($labelItems).Count + @($policyItems).Count + @($autoItems).Count)
         labels     = [pscustomobject]@{ status = $rawLabels.Status; error = $rawLabels.Error; items = @($labelItems) }
@@ -191,5 +209,6 @@ function Get-PpaSensitivityLabels {
             items = @($autoItems)
         }
         containers = [pscustomobject]@{ status = 'NotCollected';    groups = $null;           sites = $null }
+        irmConfig  = [pscustomobject]@{ status = $rawIrm.Status; error = $rawIrm.Error; azureRmsEnabled = $rmsEnabled }
     }
 }

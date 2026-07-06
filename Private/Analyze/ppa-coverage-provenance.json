@@ -1,9 +1,11 @@
 {
-  "_comment": "Per-cell provenance registry for the coverage matrix (Wave 4 spec 5.4) - reviewed data file. live-verified = the grounding property shape was observed on a live tenant; documented-only = Microsoft Learn documents the shape but it has not been probed live, so the cell renders the provisional marker until TEST-day verification (see docs/testday-activation.md). Column-level entries apply to every row in that column unless a row override exists.",
+  "_comment": "Per-cell provenance registry for the coverage matrix (Wave 4 spec 5.4) - reviewed data file. live-verified = the grounding property shape was observed on a live tenant; documented-only = Microsoft Learn documents the shape but it has not been probed live, so the cell renders the provisional marker until verified (docs/testday-activation.md). Column-level entries apply to every row in that column unless a rowOverrides entry (keyed '<rowKey>.<columnKey>') exists for the cell. Wave 5 cleanup Part 1: all shipped entries are live-verified; the registry keeps documented-only semantics for future additions.",
   "columns": {
     "dlp":       { "provenance": "live-verified",   "grounding": "Per-location properties on Get-DlpCompliancePolicy (ExchangeLocation, SharePointLocation, OneDriveLocation, TeamsLocation, EndpointDlpLocation, PowerBIDlpLocation + *LocationException) - on the verified property list; Copilot row via VERIFIED EnforcementPlanes/Locations signals (2026-07-02 sandbox)." },
-    "autoLabel": { "provenance": "documented-only", "grounding": "Get-AutoSensitivityLabelPolicy location properties (ExchangeLocation, SharePointLocation, OneDriveLocation + exceptions) - documented, not yet observed live." },
-    "retention": { "provenance": "documented-only", "grounding": "Get-RetentionCompliancePolicy location properties (ExchangeLocation, SharePointLocation, OneDriveLocation, ModernGroupLocation, TeamsChannelLocation, TeamsChatLocation) - documented, projection marked best-effort since Wave 1." }
+    "autoLabel": { "provenance": "live-verified",   "grounding": "Get-AutoSensitivityLabelPolicy location and exception property shapes (ExchangeLocation, SharePointLocation, OneDriveLocation + *Exception) observed live (2026-07 TEST sandbox, Wave 5 cleanup Part 1)." },
+    "retention": { "provenance": "live-verified",   "grounding": "Get-RetentionCompliancePolicy location properties (ExchangeLocation, SharePointLocation, OneDriveLocation, ModernGroupLocation, TeamsChannelLocation, TeamsChatLocation) observed live (2026-07 TEST sandbox, Wave 5 cleanup Part 1)." }
   },
-  "rowOverrides": {}
+  "rowOverrides": {
+    "copilot.retention": { "provenance": "live-verified", "grounding": "Get-AppRetentionCompliancePolicy Applications token observed live: Users:M365Copilot (plural 'Users:' - the doc-grounded 'User:' singular was not the live shape). Cell un-held Wave 5 cleanup Part 1 per docs/testday-activation.md item 1." }
+  }
 }

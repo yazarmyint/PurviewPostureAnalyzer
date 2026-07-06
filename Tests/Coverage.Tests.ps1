@@ -1,10 +1,13 @@
 # Coverage.Tests.ps1 - Wave 4 Part D pins: the coverage matrix (spec section 5).
 # Pure projection (no reads, no findings), closed six-state cell enum with mandatory
 # Partial reason codes, best-of aggregation, Unknown gating on governing collector
-# outcome, Copilot x Retention render-hold, provenance markers, audit strip grounded
-# on the AuditConfig singleton, principal strip, N/A applicability, print-safe
-# None-vs-Unknown, and matrix redaction. Non-delta: must pass under PS 5.1 AND 7+.
-# Pester 5. ASCII-only source.
+# outcome, provenance markers, audit strip grounded on the AuditConfig singleton,
+# principal strip, N/A applicability, print-safe None-vs-Unknown, and matrix
+# redaction. Wave 5 cleanup Part 1: the Copilot x Retention render-hold is LIFTED
+# (the cell classifies live from the DSPM app-retention projection) and the
+# auto-labeling / retention provenance upgraded to live-verified, with the
+# provisional-marker legend invariant pinned both ways.
+# Non-delta: must pass under PS 5.1 AND 7+. Pester 5. ASCII-only source.
 
 BeforeAll {
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -110,15 +113,17 @@ Describe 'Cell classification against the dense fixture (6.2 #12)' {
         (Get-PpaCell $script:DenseModel 'endpoint' 'retention').state | Should -Be 'N/A'
         foreach ($c in $na) { $c.naReason | Should -Not -BeNullOrEmpty }
     }
-    It 'Copilot x Retention is HELD: outside the state enum, excluded from totals' {
+    It 'Copilot x Retention is in the state enum (un-held): dense reads Unknown off the degraded DSPM collector, anchored to AI-05' {
         $c = Get-PpaCell $script:DenseModel 'copilot' 'retention'
-        $c.state | Should -Be 'Held'
+        $c.state | Should -Be 'Unknown'
         $c.checkId | Should -Be 'AI-05'
     }
-    It 'Unknown and Held are NEVER counted in the gap total; None cells are' {
+    It 'Unknown is NEVER counted in the gap total; None cells are' {
         # Dense None cells: teams/dlp, endpoint/dlp, oneDrive/retention, teams/retention.
+        # Dense Unknown cells: copilot/dlp AND copilot/retention (both governed by the
+        # degraded DSPM collector since the un-hold).
         $script:DenseModel.totals.gaps | Should -Be 4
-        $script:DenseModel.totals.unknown | Should -Be 1
+        $script:DenseModel.totals.unknown | Should -Be 2
     }
     It 'raises the degraded-collector banner (DSPM outcome AccessDenied governs Copilot x DLP)' {
         $script:DenseModel.banner.show | Should -BeTrue
@@ -184,11 +189,84 @@ Describe 'Aggregation precedence with multiple policies per cell (6.2 #13)' {
     }
 }
 
-Describe 'Provenance registry (spec 5.4)' {
-    It 'DLP cells are live-verified; auto-labeling and retention cells are documented-only' {
+Describe 'Copilot x Retention live cell (Wave 5 cleanup Part 1: un-held)' {
+    BeforeAll {
+        # Inline app-retention fixtures around the VERIFIED Applications token
+        # (observed live: 'Users:M365Copilot' - plural 'Users:', not the doc-grounded
+        # 'User:' singular). Shape mirrors Get-PpaAppRetentionItems output.
+        function New-PpaAppRetRawMap {
+            param($Items)
+            @{
+                DSPM_for_AI = [pscustomobject]@{
+                    outcome         = 'Populated'
+                    copilotPolicies = [pscustomobject]@{ status = 'Ok'; error = $null; items = @(); thirdPartyAiDlpPolicies = @() }
+                    appRetention    = [pscustomobject]@{ status = 'Ok'; error = $null; items = @($Items) }
+                }
+            }
+        }
+        function New-PpaAppRetItem {
+            param([string]$Name, [string[]]$Applications, [string]$Enabled = 'True')
+            [pscustomobject]@{
+                name = $Name; guid = "guid-$Name"; enabled = $Enabled
+                hasApplications = $true; applications = @($Applications)
+                copilotCovered  = (@(@($Applications) -match '(?i)M365Copilot').Count -gt 0)
+            }
+        }
+    }
+    It 'reads Covered when a policy carries the Users:M365Copilot Applications token, and joins the totals' {
+        $m = Get-PpaCoverageModel -RawMap (New-PpaAppRetRawMap @(New-PpaAppRetItem 'AI retention' @('Users:M365Copilot')))
+        $c = Get-PpaCell $m 'copilot' 'retention'
+        $c.state | Should -Be 'Covered'
+        @($c.contributors) | Should -Contain 'AI retention'
+        $c.checkId | Should -Be 'AI-05'
+        $m.totals.covered | Should -Be 1
+    }
+    It 'reads None when app-retention policies exist but none carries the Copilot token' {
+        $m = Get-PpaCoverageModel -RawMap (New-PpaAppRetRawMap @(New-PpaAppRetItem 'Teams app retention' @('Group:Teams')))
+        (Get-PpaCell $m 'copilot' 'retention').state | Should -Be 'None'
+    }
+    It 'reads None when the app-retention read is clean but empty, and the None IS gap-counted' {
+        $m = Get-PpaCoverageModel -RawMap (New-PpaAppRetRawMap @())
+        (Get-PpaCell $m 'copilot' 'retention').state | Should -Be 'None'
+        # Gaps for this map: copilot/dlp (no Copilot DLP policies) + copilot/retention.
+        $m.totals.gaps | Should -Be 2
+    }
+    It 'a disabled policy carrying the token still reads Covered - the cell mirrors the AI-05 verdict, which reports coverage with the Enabled state visible in its drill-down' {
+        $m = Get-PpaCoverageModel -RawMap (New-PpaAppRetRawMap @(New-PpaAppRetItem 'AI retention off' @('Users:M365Copilot') 'False'))
+        (Get-PpaCell $m 'copilot' 'retention').state | Should -Be 'Covered'
+    }
+    It 'falls back to matching the applications tokens when copilotCovered is absent (older captures)' {
+        $legacy = [pscustomobject]@{ name = 'legacy shape'; guid = 'guid-legacy'; enabled = 'True'; hasApplications = $true; applications = @('Users:M365Copilot') }
+        $m = Get-PpaCoverageModel -RawMap (New-PpaAppRetRawMap @($legacy))
+        (Get-PpaCell $m 'copilot' 'retention').state | Should -Be 'Covered'
+    }
+}
+
+Describe 'Provenance registry (spec 5.4 + Wave 5 cleanup Part 1 upgrades)' {
+    It 'all three columns read live-verified after the TEST-day provenance upgrades' {
         (Get-PpaCell $script:DenseModel 'exchange' 'dlp').provenance | Should -Be 'live-verified'
-        (Get-PpaCell $script:DenseModel 'exchange' 'autoLabel').provenance | Should -Be 'documented-only'
-        (Get-PpaCell $script:DenseModel 'exchange' 'retention').provenance | Should -Be 'documented-only'
+        (Get-PpaCell $script:DenseModel 'exchange' 'autoLabel').provenance | Should -Be 'live-verified'
+        (Get-PpaCell $script:DenseModel 'exchange' 'retention').provenance | Should -Be 'live-verified'
+    }
+    It 'the shipped registry records the copilot x retention row override with the verified token grounding' {
+        $reg = Get-PpaCoverageProvenance
+        $reg.rowOverrides.'copilot.retention'.provenance | Should -Be 'live-verified'
+        $reg.rowOverrides.'copilot.retention'.grounding | Should -Match 'Users:M365Copilot'
+    }
+    It 'a rowOverrides entry beats the column provenance for its cell only' {
+        Mock Get-PpaCoverageProvenance {
+            [pscustomobject]@{
+                columns = [pscustomobject]@{
+                    dlp       = [pscustomobject]@{ provenance = 'live-verified' }
+                    autoLabel = [pscustomobject]@{ provenance = 'live-verified' }
+                    retention = [pscustomobject]@{ provenance = 'documented-only' }
+                }
+                rowOverrides = [pscustomobject]@{ 'copilot.retention' = [pscustomobject]@{ provenance = 'live-verified' } }
+            }
+        }
+        $m = Get-PpaCoverageModel -RawMap (New-PpaDenseRawMap)
+        (Get-PpaCell $m 'copilot' 'retention').provenance | Should -Be 'live-verified'
+        (Get-PpaCell $m 'exchange' 'retention').provenance | Should -Be 'documented-only'
     }
 }
 
@@ -241,14 +319,31 @@ Describe 'Matrix render (spec 5.1/5.5/5.6/5.8)' {
         # And the print block preserves the patterns without relying on color.
         $css | Should -Match 'print-color-adjust'
     }
-    It 'Copilot x Retention renders held: em-dash, no state class, AI-05 footnote from the catalog' {
-        $script:Html | Should -Match 'covm-held'
+    It 'Copilot x Retention renders live (un-held): no held cell, no deferral footnote, AI-05 anchor kept' {
+        $script:Html | Should -Not -Match 'covm-held'
+        $script:Html | Should -Not -Match 'deferred pending live verification'
         $script:Html | Should -Match '#finding-AI-05'
-        $script:Html | Should -Match 'deferred pending live verification of the Applications token'
     }
-    It 'documented-only cells carry the provisional marker with its tooltip' {
-        $script:Html | Should -Match 'covm-prov'
-        $script:Html | Should -Match 'property shape documented but not yet verified on a live tenant'
+    It 'legend invariant: NO provisional marker or legend remains when the registry leaves no documented-only cells' {
+        # The shipped registry is all live-verified after the Wave 5 Part 1 flip, so
+        # neither the dagger nor the text explaining it may render anywhere.
+        $script:Html | Should -Not -Match 'covm-prov'
+        $script:Html | Should -Not -Match 'property shape documented but not yet verified'
+    }
+    It 'legend invariant: the marker and its explanatory legend render while >=1 documented-only cell remains' {
+        Mock Get-PpaCoverageProvenance {
+            [pscustomobject]@{
+                columns = [pscustomobject]@{
+                    dlp       = [pscustomobject]@{ provenance = 'live-verified' }
+                    autoLabel = [pscustomobject]@{ provenance = 'live-verified' }
+                    retention = [pscustomobject]@{ provenance = 'documented-only' }
+                }
+                rowOverrides = [pscustomobject]@{}
+            }
+        }
+        $html = Write-PpaCoverageMatrix -Coverage (Get-PpaCoverageModel -RawMap (New-PpaDenseRawMap))
+        $html | Should -Match 'covm-prov'
+        $html | Should -Match 'property shape documented but not yet verified on a live tenant'
     }
     It 'renders the tenant audit strip and the principal strip with section anchors' {
         $script:Html | Should -Match 'Unified audit'
@@ -292,6 +387,9 @@ Describe 'Sparse fixture: graceful absence (6.1)' {
     }
     It 'builds and renders without the DSPM/Audit collectors present' {
         (Get-PpaCell $script:SparseModel 'copilot' 'dlp').state | Should -Be 'Unknown'
+        # Un-held: with no DSPM collector the Copilot x Retention cell degrades to
+        # Unknown like any cell whose governing collector did not run.
+        (Get-PpaCell $script:SparseModel 'copilot' 'retention').state | Should -Be 'Unknown'
         $script:SparseModel.auditStrip.state | Should -Be 'NotObserved'
         (Write-PpaCoverageMatrix -Coverage $script:SparseModel) | Should -Match 'covm-grid'
     }

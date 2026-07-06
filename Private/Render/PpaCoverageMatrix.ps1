@@ -18,6 +18,8 @@ function Get-PpaCoverageCellStyle {
         'None'      { return [pscustomobject]@{ Css = 'covm-none';     Glyph = '&#10007;' } }
         'Unknown'   { return [pscustomobject]@{ Css = 'covm-unknown';  Glyph = '?' } }
         'N/A'       { return [pscustomobject]@{ Css = 'covm-na';       Glyph = '&#8211;' } }
+        # Defensive default for out-of-enum states; nothing produces one since the
+        # Copilot x Retention render-hold was lifted (Wave 5 cleanup Part 1).
         default     { return [pscustomobject]@{ Css = 'covm-held';     Glyph = '&#8212;' } }
     }
 }
@@ -34,7 +36,7 @@ function Write-PpaCoverageMatrix {
     # Collapsible glanceable header (Wave 5 addendum): the card-header toggles the grid via
     # the shared vanilla collapse handler; collapsed-by-default reclaims vertical space. The
     # one-line coverage tally (assessed cell states) stays visible - aggregate metrics, so
-    # safe to show even under redaction. N/A and Held cells are excluded from the tally.
+    # safe to show even under redaction. N/A cells are excluded from the tally.
     $stateCounts = [ordered]@{ 'Covered'=0; 'Partial'=0; 'Test-only'=0; 'None'=0; 'Unknown'=0 }
     foreach ($cell in @($Coverage.cells)) {
         $cs = [string]$cell.state
@@ -78,27 +80,24 @@ function Write-PpaCoverageMatrix {
             $sty = Get-PpaCoverageCellStyle ([string]$cell.state)
             [void]$sb.Append('<td class="covm-cell ').Append($sty.Css).Append('">')
 
-            if ([string]$cell.state -eq 'Held') {
-                # Render-hold (ruled 5.6): em-dash, no state assertion, footnote link.
-                [void]$sb.Append('&#8212;<sup><a href="#finding-').Append((ConvertTo-PpaHtmlAttr ([string]$cell.checkId))).Append('">1</a></sup>')
+            $title = ''
+            if (@($cell.contributors).Count -gt 0) {
+                $title = 'Contributing policies: ' + ((@($cell.contributors)) -join ', ')
             }
-            else {
-                $title = ''
-                if (@($cell.contributors).Count -gt 0) {
-                    $title = 'Contributing policies: ' + ((@($cell.contributors)) -join ', ')
-                }
-                elseif ([string]$cell.state -eq 'N/A') { $title = [string]$cell.naReason }
-                [void]$sb.Append('<a class="covm-link" href="#finding-').Append((ConvertTo-PpaHtmlAttr ([string]$cell.checkId))).Append('"')
-                if (-not [string]::IsNullOrEmpty($title)) {
-                    [void]$sb.Append(' title="').Append((ConvertTo-PpaHtmlAttr $title)).Append('"')
-                }
-                [void]$sb.Append('><span class="covm-glyph">').Append($sty.Glyph).Append('</span><span class="covm-text">').Append((ConvertTo-PpaHtmlText ([string]$cell.state))).Append('</span></a>')
-                foreach ($r in @($cell.reasons)) {
-                    [void]$sb.Append('<br><span class="covm-reason">').Append((ConvertTo-PpaHtmlText ([string]$r))).Append('</span>')
-                }
-                if ([string]$cell.provenance -eq 'documented-only' -and @('Covered', 'Partial', 'Test-only', 'None') -contains [string]$cell.state) {
-                    [void]$sb.Append('<span class="covm-prov" title="property shape documented but not yet verified on a live tenant.">&#8224;</span>')
-                }
+            elseif ([string]$cell.state -eq 'N/A') { $title = [string]$cell.naReason }
+            [void]$sb.Append('<a class="covm-link" href="#finding-').Append((ConvertTo-PpaHtmlAttr ([string]$cell.checkId))).Append('"')
+            if (-not [string]::IsNullOrEmpty($title)) {
+                [void]$sb.Append(' title="').Append((ConvertTo-PpaHtmlAttr $title)).Append('"')
+            }
+            [void]$sb.Append('><span class="covm-glyph">').Append($sty.Glyph).Append('</span><span class="covm-text">').Append((ConvertTo-PpaHtmlText ([string]$cell.state))).Append('</span></a>')
+            foreach ($r in @($cell.reasons)) {
+                [void]$sb.Append('<br><span class="covm-reason">').Append((ConvertTo-PpaHtmlText ([string]$r))).Append('</span>')
+            }
+            # Provisional-marker legend invariant (Wave 5 cleanup Part 1): the dagger
+            # and its explanatory tooltip render if and only if the cell is still
+            # documented-only, so no orphaned legend can survive a provenance flip.
+            if ([string]$cell.provenance -eq 'documented-only' -and @('Covered', 'Partial', 'Test-only', 'None') -contains [string]$cell.state) {
+                [void]$sb.Append('<span class="covm-prov" title="property shape documented but not yet verified on a live tenant.">&#8224;</span>')
             }
             [void]$sb.Append('</td>')
         }
@@ -106,9 +105,6 @@ function Write-PpaCoverageMatrix {
     }
     [void]$sb.AppendLine('        </tbody>')
     [void]$sb.AppendLine('      </table>')
-
-    # Held footnote - links the EXISTING Wave 2 check (never a new id).
-    [void]$sb.AppendLine('      <p class="covm-foot">1. Retention assessment for Copilot deferred pending live verification of the Applications token &mdash; see <a href="#finding-AI-05">check AI-05</a>.</p>')
 
     # ---- tenant-level strip: audit, once, never per-row (ruled 5.2 + A addendum) ----
     $audText = switch ([string]$Coverage.auditStrip.state) {

@@ -158,10 +158,12 @@ function Get-PpaDspmPolicyItems {
 function Get-PpaAppRetentionItems {
     # Projection of Get-AppRetentionCompliancePolicy - the modern AI retention locations
     # ("Microsoft Copilot experiences", "Enterprise AI apps", "Other AI apps") live in the
-    # App retention family. [DOC-GROUNDED] the carrier property is 'Applications' with
-    # values like 'User:M365Copilot'; not yet observed live (0 objects in the sandbox), so
-    # each item records whether the property was present at all - absent/odd shapes degrade
-    # to a not-assertable transparency line in the analyzer, never a false absence.
+    # App retention family. [VERIFIED 2026-07, Wave 5 cleanup Part 1] the carrier property
+    # is 'Applications'; the observed Copilot token is 'Users:M365Copilot' (plural 'Users:',
+    # not the doc-grounded 'User:' singular - the M365Copilot containment match below covers
+    # both). Each item still records whether the property was present at all - absent/odd
+    # shapes degrade to a not-assertable transparency line in the analyzer, never a false
+    # absence.
     param($Data)
     $items = New-Object System.Collections.Generic.List[object]
     foreach ($p in @($Data)) {

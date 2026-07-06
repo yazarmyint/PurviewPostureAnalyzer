@@ -5,8 +5,10 @@
 # the read-only guard scans this file like every other Private file.
 #
 # Grid: 7 workloads x 3 location-scoped controls. Cell states (closed enum):
-#   Covered | Partial | Test-only | None | Unknown | N/A     (+ 'Held' OUTSIDE the
-# enum for the Copilot x Retention render-hold - excluded from every total).
+#   Covered | Partial | Test-only | None | Unknown | N/A
+# (The Wave 4 'Held' render-hold on Copilot x Retention was LIFTED in Wave 5
+# cleanup Part 1: the cell now classifies live from the DSPM app-retention
+# projection and counts in the totals like any other cell.)
 # Partial always carries >=1 reason code: ScopedInclude, HasExceptions,
 # SubsetOfLocations, AdaptiveScope, RuleDisabled.
 # Aggregation across policies: best-of Covered > Partial > Test-only > None.
@@ -164,6 +166,29 @@ function Get-PpaCoverageModel {
         return $out.ToArray()
     }
 
+    function Get-CopilotRetentionContribution {
+        # Wave 5 cleanup Part 1 (docs/testday-activation.md item 1): grounded in the
+        # DSPM collector's app-retention projection. Coverage = the VERIFIED
+        # 'Users:M365Copilot' Applications token (the provenance registry rowOverrides
+        # entry carries the grounding). A covered policy contributes Covered regardless
+        # of its Enabled flag - the cell mirrors the AI-05 verdict, which reports
+        # coverage with the Enabled state visible in its drill-down. Falls back to
+        # matching the applications tokens when copilotCovered is absent (older
+        # captures), like the legacy-shape fallbacks in Get-PpaCoverageItemScope.
+        $raw = Get-RawFor 'DSPM_for_AI'
+        if ($null -eq $raw) { return @() }
+        $out = New-Object System.Collections.Generic.List[object]
+        foreach ($p in @($raw.appRetention.items)) {
+            if ($null -eq $p) { continue }
+            $covered = $false
+            if ($p.PSObject.Properties.Name -contains 'copilotCovered') { $covered = [bool]$p.copilotCovered }
+            elseif ($p.PSObject.Properties.Name -contains 'applications') { $covered = (@(@($p.applications) -match '(?i)M365Copilot').Count -gt 0) }
+            if (-not $covered) { continue }
+            $out.Add([pscustomobject]@{ name = [string]$p.name; tier = 'Covered'; reasons = @() })
+        }
+        return $out.ToArray()
+    }
+
     function Get-AutoLabelContribution([string]$RowKey) {
         $raw = Get-RawFor 'Sensitivity_Labels'
         if ($null -eq $raw) { return @() }
@@ -219,23 +244,29 @@ function Get-PpaCoverageModel {
         foreach ($col in $colDefs) {
             $rowKey = [string]$row.key; $colKey = [string]$col.key
 
+            # Cell provenance: column-level registry entry unless a rowOverrides
+            # entry (keyed '<rowKey>.<columnKey>') exists for this exact cell.
+            $prov = [string]$proven.columns.$colKey.provenance
+            $ovKey = $rowKey + '.' + $colKey
+            if ($null -ne $proven.rowOverrides -and $proven.rowOverrides.PSObject.Properties.Name -contains $ovKey) {
+                $prov = [string]$proven.rowOverrides.$ovKey.provenance
+            }
+
             $cell = [ordered]@{
                 row = $rowKey; rowLabel = [string]$row.label
                 column = $colKey; columnLabel = [string]$col.label
                 state = ''; reasons = @(); contributors = @()
-                provenance = [string]$proven.columns.$colKey.provenance
+                provenance = $prov
                 checkId = [string]$col.checkId
                 naReason = ''
             }
 
-            # Copilot x Retention: RENDER-HOLD (ruled 5.6). Outside the enum,
-            # excluded from every total; capture is NOT held (Part B writes the
-            # objects regardless).
+            # Copilot x Retention: LIVE since Wave 5 cleanup Part 1 (un-held per
+            # docs/testday-activation.md item 1). Anchors to AI-05, the existing
+            # Wave 2 check that assesses this exact surface - never RET-01, which
+            # reads classic retention only.
             if ($rowKey -eq 'copilot' -and $colKey -eq 'retention') {
-                $cell.state = 'Held'
-                $cell.checkId = 'AI-05'   # existing Wave 2 check, from CHECK_CATALOG.md
-                $cells.Add([pscustomobject]$cell)
-                continue
+                $cell.checkId = 'AI-05'
             }
 
             # Static applicability (reviewed data file) drives N/A cells.
@@ -248,9 +279,10 @@ function Get-PpaCoverageModel {
                 continue
             }
 
-            # Governing collector: Copilot x DLP is grounded in the DSPM collector.
+            # Governing collector: both Copilot cells are grounded in the DSPM
+            # collector (Copilot DLP policies and the app-retention projection).
             $governId = [string]$col.section
-            if ($rowKey -eq 'copilot' -and $colKey -eq 'dlp') { $governId = 'DSPM_for_AI' }
+            if ($rowKey -eq 'copilot' -and ($colKey -eq 'dlp' -or $colKey -eq 'retention')) { $governId = 'DSPM_for_AI' }
             $outcome = Get-OutcomeFor $governId
             if ($readable -notcontains $outcome) {
                 $cell.state = 'Unknown'
@@ -269,6 +301,7 @@ function Get-PpaCoverageModel {
                 else { $contrib = Get-DlpContribution $rowKey }
             }
             elseif ($colKey -eq 'autoLabel') { $contrib = Get-AutoLabelContribution $rowKey }
+            elseif ($rowKey -eq 'copilot') { $contrib = Get-CopilotRetentionContribution }
             else { $contrib = Get-RetentionContribution $rowKey }
 
             $merged = Merge-PpaCoverageContribution $contrib
@@ -311,7 +344,7 @@ function Get-PpaCoverageModel {
         cells   = $cells.ToArray()
         totals  = [pscustomobject][ordered]@{
             covered = $counts['Covered']; partial = $counts['Partial']; testOnly = $counts['Test-only']
-            gaps = $counts['None']   # None only: Unknown, N/A and Held are NEVER gap-counted
+            gaps = $counts['None']   # None only: Unknown and N/A are NEVER gap-counted
             unknown = $counts['Unknown']; na = $counts['N/A']
         }
         banner  = [pscustomobject]@{ show = ($degraded.Count -gt 0); degraded = $degraded.ToArray() }

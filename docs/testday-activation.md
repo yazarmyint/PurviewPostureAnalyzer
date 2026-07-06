@@ -3,6 +3,16 @@
 Recorded per spec 5.6 - these items are HELD until a live TEST tenant is
 available. Nothing here is built or asserted today.
 
+> **Status update (2026-07-06, Wave 5 cleanup Part 1):** items 1 and 2 are
+> DONE. The observed `Applications` token is `Users:M365Copilot` (plural
+> `Users:` - the doc-grounded `User:` singular was not the live shape). The
+> Copilot x Retention cell is un-held and classifies live; the auto-labeling
+> and retention column provenance flipped to `live-verified`, so the
+> provisional markers no longer render. Item 1 step 5 (interim snapshot delta)
+> holds by construction - snapshots never embedded the coverage model and the
+> collector is unchanged - and the delta fixture suite stays green; confirm
+> against a real pre/post pair on TEST. Item 3 remains open.
+
 ## 1. Copilot x Retention matrix cell (render-hold)
 
 The Wave 2 app-retention collector already runs and its normalized objects are

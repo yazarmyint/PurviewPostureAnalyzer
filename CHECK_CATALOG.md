@@ -277,7 +277,8 @@ No Graph. Cmdlet-level provenance (verified / doc-grounded / unverified) is reco
 
 ### AI-05 — Copilot / AI-app retention coverage *(Wave 2)*
 - **Reads:** `Get-AppRetentionCompliancePolicy` ✓ primary — carrier property `Applications` with
-  `User:M365Copilot` tokens (**doc-grounded**, not yet observed live); `Get-RetentionCompliancePolicy` ✓
+  `Users:M365Copilot` tokens (**verified live** 2026-07, Wave 5 cleanup Part 1 — plural `Users:`,
+  not the doc-grounded `User:` singular); `Get-RetentionCompliancePolicy` ✓
   for the legacy combined `TeamsChatLocation` signal + tenant-wide total.
 - **Columns:** Configuration / Policy · Setting · Status
 - **Status:** Copilot covered → **OK**. Retention exists but no Copilot coverage → **Improvement**.

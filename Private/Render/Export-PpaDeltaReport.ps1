@@ -163,7 +163,7 @@ function Export-PpaDeltaReport {
         [void]$sb.AppendLine('  </div></div>')
     }
 
-    [void]$sb.AppendLine('  <div class="delta-note">Offline comparison of two read-only snapshots. Object changes reflect configuration metadata only; unchanged counts state how much of each section was verified identical. Statuses are inputs to consultant judgment, not compliance determinations.</div>')
+    [void]$sb.AppendLine('  <div class="delta-note">Offline comparison of two read-only snapshots. Object changes reflect configuration metadata only; unchanged counts state how much of each section was verified identical. Statuses are inputs to user judgment, not compliance determinations.</div>')
     [void]$sb.AppendLine('</div>')
     [void]$sb.Append((Get-PpaFooterHtml))
 

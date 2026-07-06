@@ -75,7 +75,7 @@ function Export-PpaHtmlReport {
     [void]$sb.Append('        <h2 class="card-title">').Append((ConvertTo-PpaHtmlText $meta.reportTitle)).AppendLine('</h2>')
     [void]$sb.Append('        <strong>Version ').Append((ConvertTo-PpaHtmlText $meta.version)).Append(' &middot; ').Append((ConvertTo-PpaHtmlText $meta.versionDate)).AppendLine('</strong>')
     [void]$sb.AppendLine('        <p>Reads your Microsoft Purview configuration and summarizes current posture across data protection, governance,')
-    [void]$sb.AppendLine('           insider risk, discovery, and AI &mdash; an input to consultant judgment, not a compliance determination.')
+    [void]$sb.AppendLine('           insider risk, discovery, and AI &mdash; an input to user judgment, not a compliance determination.')
     [void]$sb.AppendLine('           <em>Click any finding to drill down to the enumerated detail.</em></p>')
     [void]$sb.AppendLine('        <table>')
     [void]$sb.Append('          <tr><td><strong>Date</strong></td><td><strong>:&nbsp; ').Append((ConvertTo-PpaHtmlText $meta.dateDisplay)).AppendLine('</strong></td></tr>')

@@ -5,7 +5,7 @@ produces a single HTML report a consultant can hand to a delivery team at engage
 plus a JSON export of the same findings.
 
 > Not an official Microsoft product. Licensed under the MIT License (see `LICENSE` / `NOTICE`).
-> Statuses are inputs to consultant judgment, not compliance determinations, and are not mapped
+> Statuses are inputs to user judgment, not compliance determinations, and are not mapped
 > to any regulatory framework.
 
 The report covers eight workloads: **Sensitivity Labels, Data Loss Prevention, Retention & Records,

@@ -84,6 +84,26 @@ $sparseCoverage = Get-PpaCoverageModel -RawMap @{
 $sparseNorm = ConvertTo-PpaNormalized -Meta $sparseMeta -Licensing $sparseLic -Sections $sparseSections -Coverage $sparseCoverage
 Write-PpaSampleReport -Name 'sample-sparse.html' -Html (Export-PpaHtmlReport -Normalized $sparseNorm -IsSample)
 
+# ---- 3b. Auto-labeling condition cases (Wave 5 cleanup Part 2) ----
+# One policy per condition state - flat / grouped / unparsed / none / rules-unreadable -
+# so the four contract outcomes are eyeballed side by side in a single LABELS-03 table.
+# Kept out of the dense fixture on purpose (extending it would churn the golden snapshot).
+$alSections = @(
+    Invoke-PpaLabelAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\labels-autolabel-cases.json') -AsOf ([datetime]'2026-07-01') -LicenseMap $licMap
+)
+$alMeta = [pscustomobject]@{
+    reportTitle  = 'Configuration Analyzer for Microsoft Purview'
+    version      = '2.0'
+    versionDate  = 'June 2026'
+    dateDisplay  = '01-Jul-2026 10:15 UTC'
+    organization = 'Northwind Traders (auto-label conditions fixture)'
+    tenant       = 'northwindtraders.onmicrosoft.com'
+    operator     = 'sam.rivera@northwindtraders.com (Compliance Reader)'
+    mode         = 'Read-only - configuration metadata only'
+}
+$alNorm = ConvertTo-PpaNormalized -Meta $alMeta -Licensing ([pscustomobject]@{ note = [string]$std.licensing.note }) -Sections $alSections
+Write-PpaSampleReport -Name 'sample-autolabel-cases.html' -Html (Export-PpaHtmlReport -Normalized $alNorm -IsSample)
+
 # ---- 4. Redacted variant (dense fixture, -Redact -RedactNames: strictest masking) ----
 Write-PpaSampleReport -Name 'sample-dense-redacted.html' -Html (Export-PpaHtmlReport -Normalized $denseNorm -IsSample -Redact -RedactNames)
 

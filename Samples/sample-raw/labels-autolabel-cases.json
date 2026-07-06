@@ -1,0 +1,93 @@
+{
+  "_comment": "Wave 5 cleanup Part 2 DEV-validation fixture: collector-OUTPUT shape covering all four auto-labeling condition cases (flat / grouped / unparsed / none) plus the rules-unreadable degrade, one policy per case, so tools/Build-SampleReports.ps1 renders them side by side in sample-autolabel-cases.html. Case 2 sits are the pinned flat set derived from the real AdvancedRule capture in autolabel-advancedrule.json (10 distinct = 7 named SITs + 3 trainable classifiers, ordinal-ignore-case sorted). Kept OUT of the dense fixture on purpose - extending labels.json would churn the pinned golden snapshot for a display-validation concern.",
+  "outcome": "Populated",
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Confidential", "guid": "guid-al-cases-confidential", "priority": 1, "scopes": ["File", "Email"], "parentId": "" }
+    ]
+  },
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Global label publish", "guid": "guid-al-cases-publish", "labels": ["Confidential"], "enabled": true, "scope": "All users" }
+    ]
+  },
+  "autoLabels": {
+    "status": "Ok",
+    "error": null,
+    "rulesStatus": "Ok",
+    "rulesError": null,
+    "items": [
+      {
+        "name": "Case 1 - Ungrouped flat SITs",
+        "guid": "guid-al-case-1",
+        "mode": "Enforce",
+        "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All" },
+        "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false },
+        "sits": ["Credit Card Number", "U.S. Social Security Number (SSN)"],
+        "conditionsSource": "flat",
+        "simulationStartDate": "",
+        "simulationItemCount": 0
+      },
+      {
+        "name": "Case 2 - Grouped conditions (AdvancedRule)",
+        "guid": "guid-al-case-2",
+        "mode": "Enforce",
+        "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All" },
+        "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false },
+        "sits": [
+          "All Full Names",
+          "All Medical Terms And Conditions",
+          "Business - Health care",
+          "Drug Enforcement Agency (DEA) Number",
+          "Employee Insurance Files",
+          "Health/Medical Forms",
+          "International Classification of Diseases (ICD-10-CM)",
+          "International Classification of Diseases (ICD-9-CM)",
+          "U.S. Physical Addresses",
+          "U.S. Social Security Number (SSN)"
+        ],
+        "conditionsSource": "grouped",
+        "simulationStartDate": "",
+        "simulationItemCount": 0
+      },
+      {
+        "name": "Case 3 - Grouped conditions, blob not parseable",
+        "guid": "guid-al-case-3",
+        "mode": "Enforce",
+        "locationScope": { "exchange": "All", "sharePoint": "None", "oneDrive": "None" },
+        "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false },
+        "sits": [],
+        "conditionsSource": "unparsed",
+        "simulationStartDate": "",
+        "simulationItemCount": 0
+      },
+      {
+        "name": "Case 4 - No conditions configured",
+        "guid": "guid-al-case-4",
+        "mode": "Enforce",
+        "locationScope": { "exchange": "All", "sharePoint": "None", "oneDrive": "None" },
+        "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false },
+        "sits": [],
+        "conditionsSource": "none",
+        "simulationStartDate": "",
+        "simulationItemCount": 0
+      },
+      {
+        "name": "Degrade - rule read failed",
+        "guid": "guid-al-case-5",
+        "mode": "Enforce",
+        "locationScope": { "exchange": "All", "sharePoint": "None", "oneDrive": "None" },
+        "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false },
+        "sits": [],
+        "conditionsSource": "unreadable",
+        "simulationStartDate": "",
+        "simulationItemCount": 0
+      }
+    ]
+  },
+  "containers": { "status": "NotCollected", "groups": null, "sites": null }
+}

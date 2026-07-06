@@ -91,13 +91,43 @@ function Invoke-PpaLabelAnalyzer {
         $rows03 = foreach ($a in $autos) {
             $isSim    = $a.mode -match '(?i)test|simul'
             $modeDisp = if ($isSim) { 'Simulation' } elseif ($a.mode -match '(?i)enforce') { 'Enforce' } else { [string]$a.mode }
-            $remark   = $null
+            $remarks  = New-Object System.Collections.Generic.List[string]
             if ($isSim -and $a.simulationStartDate) {
                 $start = [datetime]$a.simulationStartDate
                 $days  = [int]([math]::Round(($AsOf - $start).TotalDays))
-                $remark = "running in simulation since $($start.ToString('dd-MMM-yyyy')) ($days days). Simulation shows $('{0:N0}' -f $a.simulationItemCount) items would be labeled - consider turning the policy on."
+                $remarks.Add("running in simulation since $($start.ToString('dd-MMM-yyyy')) ($days days). Simulation shows $('{0:N0}' -f $a.simulationItemCount) items would be labeled - consider turning the policy on.")
             }
-            New-PpaRow -Cells @($a.name, (@($a.sits) -join ', '), $modeDisp) -Status ($(if ($isSim) { 'Improvement' } else { 'OK' })) -Remark $remark
+            # Wave 5 cleanup Part 2: the Conditions cell distinguishes where the
+            # conditions came from - flat property (unchanged passthrough), grouped
+            # AdvancedRule (flat sorted name list + distinct count), present-but-
+            # unparsed, genuinely none, or rule-read-degraded. Items from older
+            # captures carry no conditionsSource marker and keep the legacy joined
+            # rendering exactly.
+            $rowStatus = $(if ($isSim) { 'Improvement' } else { 'OK' })
+            $condCell  = (@($a.sits) -join ', ')
+            $src = ''
+            if ($a.PSObject.Properties.Name -contains 'conditionsSource') { $src = [string]$a.conditionsSource }
+            switch ($src) {
+                'grouped' {
+                    $condCell = $condCell + ' - ' + ([string]@($a.sits).Count) + ' distinct (grouped conditions)'
+                    $remarks.Add('Conditions parsed from the grouped-condition rule (AdvancedRule): named sensitive info types and trainable classifiers combined; AND/OR grouping not shown.')
+                }
+                'unparsed' {
+                    $condCell  = 'Conditions present - not parsed'
+                    $rowStatus = 'Verify manually'
+                    $remarks.Add('The policy rule stores grouped conditions (AdvancedRule) in a shape this run could not parse - review the policy conditions in the Purview portal.')
+                }
+                'none' {
+                    $condCell = 'None detected'
+                }
+                'unreadable' {
+                    $condCell  = 'Conditions not readable this run'
+                    $rowStatus = 'Verify manually'
+                    $remarks.Add('The auto-labeling rule read did not complete, so conditions could not be read - review the policy conditions in the Purview portal.')
+                }
+            }
+            $remark = $(if ($remarks.Count -gt 0) { $remarks -join ' ' } else { $null })
+            New-PpaRow -Cells @($a.name, $condCell, $modeDisp) -Status $rowStatus -Remark $remark
         }
         $findings.Add((New-PpaFinding -Id 'LABELS-03' -DomId 'f-lab-3' -Title $title03 -Status $status03 -Requires (Get-PpaRequirement $LicenseMap 'LABELS-03') `
             -Whyline 'Automatic labeling reduces reliance on users to classify correctly; in simulation it observes but never applies.' `

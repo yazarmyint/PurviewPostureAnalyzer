@@ -83,3 +83,115 @@ Describe 'section glance' {
         $script:Sec.glance.sub | Should -Match 'auto-label in sim'
     }
 }
+
+Describe 'LABELS-03 condition states (Wave 5 cleanup Part 2: grouped AdvancedRule parsing)' {
+    # The Conditions (SITs) cell must make four outcomes visually distinct:
+    #   flat (unchanged) | grouped (flat sorted list + distinct count) |
+    #   unparsed ("present - not parsed") | none ("None detected")
+    # plus the rules-unreadable degrade. The grouped expectations are the RULED pin
+    # from the real capture (Samples/sample-raw/autolabel-advancedrule.json).
+    BeforeAll {
+        $script:GroupedNames = @(
+            'All Full Names'
+            'All Medical Terms And Conditions'
+            'Business - Health care'
+            'Drug Enforcement Agency (DEA) Number'
+            'Employee Insurance Files'
+            'Health/Medical Forms'
+            'International Classification of Diseases (ICD-10-CM)'
+            'International Classification of Diseases (ICD-9-CM)'
+            'U.S. Physical Addresses'
+            'U.S. Social Security Number (SSN)'
+        )
+        function New-PpaAutoCaseItem {
+            param([string]$Name, [string[]]$Sits, [string]$Source)
+            $o = [pscustomobject]@{
+                name = $Name; guid = "guid-$Name"; mode = 'Enforce'
+                locationScope      = [pscustomobject]@{ exchange = 'All'; sharePoint = 'All'; oneDrive = 'All' }
+                locationExceptions = [pscustomobject]@{ exchange = $false; sharePoint = $false; oneDrive = $false }
+                sits = @($Sits); simulationStartDate = ''; simulationItemCount = 0
+            }
+            if (-not [string]::IsNullOrEmpty($Source)) {
+                $o | Add-Member -NotePropertyName conditionsSource -NotePropertyValue $Source
+            }
+            return $o
+        }
+        function New-PpaAutoCaseRaw {
+            param($Items)
+            [pscustomobject]@{
+                outcome    = 'Populated'
+                labels     = [pscustomobject]@{ status = 'Ok'; error = $null; items = @() }
+                policies   = [pscustomobject]@{ status = 'Ok'; error = $null; items = @() }
+                autoLabels = [pscustomobject]@{ status = 'Ok'; error = $null; rulesStatus = 'Ok'; rulesError = $null; items = @($Items) }
+                containers = [pscustomobject]@{ status = 'NotCollected'; groups = $null; sites = $null }
+            }
+        }
+        $sec = Invoke-PpaLabelAnalyzer -Raw (New-PpaAutoCaseRaw @(
+            (New-PpaAutoCaseItem 'flat-case' @('Credit Card Number', 'U.S. SSN') 'flat')
+            (New-PpaAutoCaseItem 'grouped-case' $script:GroupedNames 'grouped')
+            (New-PpaAutoCaseItem 'unparsed-case' @() 'unparsed')
+            (New-PpaAutoCaseItem 'none-case' @() 'none')
+            (New-PpaAutoCaseItem 'unreadable-case' @() 'unreadable')
+        )) -AsOf ([datetime]'2026-07-01')
+        $script:F03b = $sec.findings | Where-Object { $_.id -eq 'LABELS-03' }
+        $script:CaseRow = @{}
+        foreach ($r in $script:F03b.table.rows) { $script:CaseRow[$r.cells[0]] = $r }
+    }
+    It 'case 1 flat: the joined flat list renders unchanged' {
+        $script:CaseRow['flat-case'].cells[1] | Should -Be 'Credit Card Number, U.S. SSN'
+        $script:CaseRow['flat-case'].status | Should -Be 'OK'
+    }
+    It 'case 2 grouped: renders the sorted flat name list plus the distinct total count' {
+        $script:CaseRow['grouped-case'].cells[1] | Should -Be (($script:GroupedNames -join ', ') + ' - 10 distinct (grouped conditions)')
+    }
+    It 'case 2 grouped: trainable classifiers appear in the rendered list' {
+        $script:CaseRow['grouped-case'].cells[1] | Should -Match 'Business - Health care'
+        $script:CaseRow['grouped-case'].cells[1] | Should -Match 'Employee Insurance Files'
+        $script:CaseRow['grouped-case'].cells[1] | Should -Match 'Health/Medical Forms'
+    }
+    It 'case 3 unparsed: "present - not parsed", Verify manually, portal remark' {
+        $script:CaseRow['unparsed-case'].cells[1] | Should -Be 'Conditions present - not parsed'
+        $script:CaseRow['unparsed-case'].status | Should -Be 'Verify manually'
+        $script:CaseRow['unparsed-case'].remark | Should -Match 'Purview portal'
+    }
+    It 'case 4 none: reads "None detected" with the row status untouched' {
+        $script:CaseRow['none-case'].cells[1] | Should -Be 'None detected'
+        $script:CaseRow['none-case'].status | Should -Be 'OK'
+    }
+    It 'rules-unreadable degrade: distinct wording, Verify manually' {
+        $script:CaseRow['unreadable-case'].cells[1] | Should -Be 'Conditions not readable this run'
+        $script:CaseRow['unreadable-case'].status | Should -Be 'Verify manually'
+    }
+    It 'the three empty-flat renderings are pairwise distinct' {
+        $texts = @(
+            $script:CaseRow['unparsed-case'].cells[1]
+            $script:CaseRow['none-case'].cells[1]
+            $script:CaseRow['unreadable-case'].cells[1]
+        )
+        $texts[0] | Should -Not -Be $texts[1]
+        $texts[0] | Should -Not -Be $texts[2]
+        $texts[1] | Should -Not -Be $texts[2]
+        foreach ($t in $texts) { $t | Should -Not -BeNullOrEmpty }
+    }
+    It 'legacy shape (no conditionsSource marker) keeps the old rendering exactly' {
+        $legacyItems = @(
+            (New-PpaAutoCaseItem 'legacy-flat' @('U.S. HIPAA') '')
+            (New-PpaAutoCaseItem 'legacy-empty' @() '')
+        )
+        $secL = Invoke-PpaLabelAnalyzer -Raw (New-PpaAutoCaseRaw $legacyItems) -AsOf ([datetime]'2026-07-01')
+        $f = $secL.findings | Where-Object { $_.id -eq 'LABELS-03' }
+        ($f.table.rows | Where-Object { $_.cells[0] -eq 'legacy-flat' }).cells[1] | Should -Be 'U.S. HIPAA'
+        ($f.table.rows | Where-Object { $_.cells[0] -eq 'legacy-empty' }).cells[1] | Should -Be ''
+    }
+    It 'a simulating grouped policy keeps BOTH the simulation remark and the grouped tag' {
+        $sim = New-PpaAutoCaseItem 'sim-grouped' $script:GroupedNames 'grouped'
+        $sim.mode = 'TestWithoutNotifications'
+        $sim.simulationStartDate = '2026-04-08'
+        $sim.simulationItemCount = 2140
+        $secS = Invoke-PpaLabelAnalyzer -Raw (New-PpaAutoCaseRaw @($sim)) -AsOf ([datetime]'2026-06-24')
+        $row = ($secS.findings | Where-Object { $_.id -eq 'LABELS-03' }).table.rows[0]
+        $row.cells[1] | Should -Match '10 distinct \(grouped conditions\)'
+        $row.cells[2] | Should -Be 'Simulation'
+        $row.remark | Should -Match 'since 08-Apr-2026 \(77 days\)'
+    }
+}

@@ -401,3 +401,69 @@ Describe 'Sparse fixture: graceful absence (6.1)' {
         (Get-PpaCell $script:SparseModel 'exchange' 'autoLabel').state | Should -Be 'None'
     }
 }
+
+Describe 'Canonical solution order (Wave 5 cleanup Part 5: body / summary / matrix)' {
+    # ONE canonical ordered list (Get-PpaCanonicalSectionOrder) drives the report
+    # body and - via first-appearance grouping in ConvertTo-PpaNormalized - the
+    # Solutions Summary. The coverage matrix column axis is defined separately in
+    # colDefs, so the three-way guardrail below is what keeps it from drifting.
+    # Display-only: the orchestrator passes the analyze-order sections to
+    # New-PpaSnapshotModel BEFORE assembly, so snapshot content never reorders.
+    BeforeAll {
+        $script:Canon = @(
+            'Sensitivity_Labels', 'Data_Loss_Prevention', 'DSPM_for_AI', 'Retention',
+            'Insider_Risk', 'Communication_Compliance', 'Audit', 'eDiscovery'
+        )
+        $dense = Read-PpaFixtureJson 'Samples\sample-normalized-dense.json'
+        $script:NormDense = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations -Coverage $script:DenseModel
+        # The fixture ships sections in the historical analyze order, so the sort
+        # inside ConvertTo-PpaNormalized is what these tests observe.
+    }
+    It 'Get-PpaCanonicalSectionOrder pins the signed-off Option B sequence' {
+        @(Get-PpaCanonicalSectionOrder) | Should -Be $script:Canon
+    }
+    It 'the report body renders in canonical order (DSPM for AI up to third)' {
+        @($script:NormDense.sections.id) | Should -Be $script:Canon
+    }
+    It 'the Solutions Summary groups render in canonical family order' {
+        @($script:NormDense.summary.groups.name) | Should -Be @(
+            'Microsoft Information Protection', 'AI Security', 'Data Lifecycle & Records',
+            'Insider Risk', 'Discovery & Response'
+        )
+    }
+    It 'GUARDRAIL: flattened summary == body order == canonical list, and the matrix axis follows it' {
+        $canon = @(Get-PpaCanonicalSectionOrder)
+        $body = @($script:NormDense.sections.id)
+        $flat = @($script:NormDense.summary.groups | ForEach-Object { $_.sections } | ForEach-Object { $_.id })
+        $flat | Should -Be $body
+        $body | Should -Be $canon
+        # Matrix solution axis: each column carries its owning section; the column
+        # sequence must equal the canonical list filtered to those sections.
+        $colSections = @($script:DenseModel.columns | ForEach-Object { [string]$_.section })
+        $colSections | Should -Be @($canon | Where-Object { $colSections -contains $_ })
+    }
+    It 'the matrix column axis reads Auto-labeling, DLP, Retention (canonical projection)' {
+        @($script:DenseModel.columns.key)   | Should -Be @('autoLabel', 'dlp', 'retention')
+        @($script:DenseModel.columns.label) | Should -Be @('Auto-labeling', 'DLP', 'Retention')
+    }
+    It 'a section with an unknown id sorts after the canonical ones, arrival order kept' {
+        $zz = New-PpaSection -Id 'Zz_Test' -Title 'Zz Test' -Group 'G' -GroupIcon 'fas fa-cog' `
+            -Glance (New-PpaGlance -Name 'Zz') -Findings @(
+                New-PpaFinding -Id 'ZZZ-99' -DomId 'f-zz-1' -Title 'Unmapped' -Status 'Informational' -Whyline 'w'
+            )
+        $dense = Read-PpaFixtureJson 'Samples\sample-normalized-dense.json'
+        $n = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections (@($zz) + @($dense.sections))
+        @($n.sections.id)[-1] | Should -Be 'Zz_Test'
+        @($n.sections.id).Count | Should -Be 9
+    }
+    It 'a profile subset keeps canonical relative order' {
+        $dense = Read-PpaFixtureJson 'Samples\sample-normalized-dense.json'
+        $subset = @($dense.sections | Where-Object { $_.id -in @('Retention', 'DSPM_for_AI', 'Audit') })
+        $n = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $subset
+        @($n.sections.id) | Should -Be @('DSPM_for_AI', 'Retention', 'Audit')
+    }
+    It 'titles are untouched by the reorder: summary and body keep their exact current strings' {
+        ($script:NormDense.sections | Where-Object { $_.id -eq 'Retention' }).title | Should -Be 'Retention & Records'
+        ($script:NormDense.sections | Where-Object { $_.id -eq 'DSPM_for_AI' }).title | Should -Be 'DSPM for AI - Copilot Data Security'
+    }
+}

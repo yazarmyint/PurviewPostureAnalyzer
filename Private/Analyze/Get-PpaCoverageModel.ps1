@@ -106,9 +106,13 @@ function Get-PpaCoverageModel {
         @{ key = 'powerBI';    label = 'Power BI' }
         @{ key = 'copilot';    label = 'Copilot' }
     )
+    # Column axis follows the canonical solution order (Wave 5 cleanup Part 5):
+    # each column's OWNING SECTION appears in Get-PpaCanonicalSectionOrder
+    # sequence - Sensitivity Labels (auto-labeling) before DLP before Retention.
+    # The three-surface guardrail in Tests/Coverage.Tests.ps1 pins this.
     $colDefs = @(
-        @{ key = 'dlp';       label = 'DLP';           section = 'Data_Loss_Prevention'; checkId = 'DLP-01' }
         @{ key = 'autoLabel'; label = 'Auto-labeling'; section = 'Sensitivity_Labels';   checkId = 'LABELS-03' }
+        @{ key = 'dlp';       label = 'DLP';           section = 'Data_Loss_Prevention'; checkId = 'DLP-01' }
         @{ key = 'retention'; label = 'Retention';     section = 'Retention';            checkId = 'RET-01' }
     )
 
@@ -340,7 +344,7 @@ function Get-PpaCoverageModel {
 
     return [pscustomobject][ordered]@{
         rows    = @($rowDefs | ForEach-Object { [pscustomobject]@{ key = [string]$_.key; label = [string]$_.label } })
-        columns = @($colDefs | ForEach-Object { [pscustomobject]@{ key = [string]$_.key; label = [string]$_.label } })
+        columns = @($colDefs | ForEach-Object { [pscustomobject]@{ key = [string]$_.key; label = [string]$_.label; section = [string]$_.section } })
         cells   = $cells.ToArray()
         totals  = [pscustomobject][ordered]@{
             covered = $counts['Covered']; partial = $counts['Partial']; testOnly = $counts['Test-only']

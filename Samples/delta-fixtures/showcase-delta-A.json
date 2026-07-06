@@ -54,7 +54,8 @@
         "status": "Ok",
         "error": null,
         "unifiedAuditEnabled": true,
-        "orgStatus": "Ok"
+        "orgStatus": "Ok",
+        "mailboxAuditingDisabled": false
       }
     ],
     "AutoLabelPolicy": [
@@ -767,6 +768,13 @@
       "severity": null,
       "section": "Audit",
       "title": "Audit (Premium) long-term retention not assessed"
+    },
+    {
+      "checkId": "AUD-04",
+      "status": "OK",
+      "severity": null,
+      "section": "Audit",
+      "title": "Mailbox auditing is on by default"
     },
     {
       "checkId": "ED-01",

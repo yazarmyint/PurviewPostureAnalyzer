@@ -198,12 +198,27 @@ cmdlet-unavailable / access-denied as "not licensed."
 ### AUD-02 — Ingestion / latency not confirmable this session
 - **Reads:** none reliable from a config read
 - **Status:** **Verify manually** — "enabled" ≠ "ingesting on time." (The one legitimate manual flag.)
+- **Not emitted (deliberate).** The live analyzer never emits AUD-02: the caveat moved to
+  LIMITATIONS.md ("Audit ingestion / latency — docs-only caveat") as client-facing polish,
+  and `Tests/Analyzer.Sections2.Tests.ps1` asserts the absence. The ID stays reserved —
+  do not re-flag this as a coverage gap in future diffs.
 - **Links:** Search the audit log.
 
 ### AUD-03 — Audit Premium (long-term retention) not licensed
 - **Reads:** license signal
 - **Status:** not licensed → **Informational**.
 - **Links:** Audit (Premium).
+
+### AUD-04 — Mailbox auditing organization default *(Wave 6 reincorporation Part 1)*
+- **Reads:** `Get-OrganizationConfig` → `AuditDisabled` ✓ (cmdlet already collected for this
+  section; the property is now projected as `mailboxAuditingDisabled`, `$null` = not read)
+- **Columns:** Configuration · Setting · Status
+- **Status:** `AuditDisabled = false` → **OK** (mailbox auditing on by default). `true` →
+  **Improvement** (auditing suppressed tenant-wide — a confirmed override also drags the
+  section glance to Improvement). Org read degraded or property absent → **Verify manually**
+  — the absence of the read is never reported as "Disabled". Per-mailbox bypass
+  (`Set-MailboxAuditBypassAssociation`) is deliberately not assessed: organization default only.
+- **Links:** Manage mailbox auditing.
 
 ---
 

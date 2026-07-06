@@ -3,5 +3,6 @@
   "status": "Ok",
   "error": null,
   "unifiedAuditEnabled": true,
-  "orgStatus": "Ok"
+  "orgStatus": "Ok",
+  "mailboxAuditingDisabled": false
 }

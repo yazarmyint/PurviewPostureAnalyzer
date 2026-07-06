@@ -160,7 +160,7 @@ BeforeAll {
                 [pscustomobject]@{ Name = 'Data theft'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000005'; InsiderRiskScenario = 'DataTheft'; Workload = @('Exchange', 'Teams'); WhenCreatedUTC = [datetime]::new(2026, 3, 15, 8, 0, 0, [System.DateTimeKind]::Utc) }) }
             'Get-AdminAuditLogConfig' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ UnifiedAuditLogIngestionEnabled = $true }) }
-            'Get-OrganizationConfig' = @{ Status = 'Ok'; Data = @([pscustomobject]@{ Name = 'contoso' }) }
+            'Get-OrganizationConfig' = @{ Status = 'Ok'; Data = @([pscustomobject]@{ Name = 'contoso'; AuditDisabled = $false }) }
             'Get-ComplianceCase' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ Name = 'Case-1'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000004'; Status = 'Active' }) }
             'Get-SupervisoryReviewPolicyV2' = @{ Status = 'Ok'; Data = @(
@@ -358,6 +358,27 @@ Describe 'Per-collector outcome (A.4)' {
         $script:PpaReadStubMap = Get-PpaRichStubMap
         $script:PpaReadStubMap['Get-AdminAuditLogConfig'] = @{ Status = 'Ok'; Data = @(); Error = $null }
         (Get-PpaAudit).outcome | Should -Be 'Empty'
+    }
+    It 'audit: projects the org-level mailbox auditing override (AuditDisabled) as a real boolean' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $out = Get-PpaAudit
+        $out.PSObject.Properties.Name | Should -Contain 'mailboxAuditingDisabled'
+        $out.mailboxAuditingDisabled | Should -BeOfType [bool]
+        $out.mailboxAuditingDisabled | Should -BeFalse
+    }
+    It 'audit: a missing AuditDisabled property projects null - never a guessed boolean' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-OrganizationConfig'] = @{ Status = 'Ok'; Data = @([pscustomobject]@{ Name = 'contoso' }); Error = $null }
+        $out = Get-PpaAudit
+        $out.PSObject.Properties.Name | Should -Contain 'mailboxAuditingDisabled'
+        ($null -eq $out.mailboxAuditingDisabled) | Should -BeTrue
+    }
+    It 'audit: a failed org read projects null for the mailbox auditing override' {
+        $script:PpaReadStubMap = Get-PpaRichStubMap
+        $script:PpaReadStubMap['Get-OrganizationConfig'] = @{ Status = 'AccessDenied'; Data = @(); Error = 'denied' }
+        $out = Get-PpaAudit
+        $out.PSObject.Properties.Name | Should -Contain 'mailboxAuditingDisabled'
+        ($null -eq $out.mailboxAuditingDisabled) | Should -BeTrue
     }
     It 'comms compliance: readable with zero policies -> Empty' {
         $script:PpaReadStubMap = Get-PpaRichStubMap

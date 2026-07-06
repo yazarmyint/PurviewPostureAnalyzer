@@ -38,6 +38,7 @@ Skills read (2026-07-03): `purview-data-classification`, `purview-dlp-policy`,
 | AUD-01 | **YES** | skill: purview-audit + finding Learn link (verified 2026-07-03) | Needs the Audit Logs role (Exchange Online); allow up to 60 minutes; then set retention for crucial events before an incident needs them |
 | AUD-02 | **YES** | skill: purview-audit | Confirm ingestion with a sample search for known-recent activity; audit search has latency - "enabled" is not "ingesting" |
 | AUD-03 | **YES** | skill: purview-audit | Match the retention tier to the investigation window (default retention is the most common gap found post-breach) |
+| AUD-04 | **YES** | skill: purview-audit (added 2026-07-06, Wave 6 reincorporation Part 1) | Treat an org-level off switch as a broken evidence trail, not tuning: confirm why it was disabled with the Exchange owner, then verify mailbox actions return in Audit search |
 | ED-01 | **YES** | skill: purview-ediscovery | Case hygiene: per-case role-scoped access, holds applied before searching, cases closed only when legal confirms |
 | ED-02 | **YES** | skill: purview-ediscovery | Which capabilities need E5 / add-on licensing (review sets, analytics, Copilot interaction collection) |
 | CC-01 | **YES** | skill: purview-communication-compliance | Pseudonymized, least-privilege reviewers and legal/HR sign-off before rollout; start narrow with a template on the population that needs supervision |
@@ -48,7 +49,7 @@ Skills read (2026-07-03): `purview-data-classification`, `purview-dlp-policy`,
 | AI-05 | **YES** | skill: purview-data-lifecycle + finding Learn link | Decide the retain/delete period for Copilot interactions with the records owner; mind retention precedence with existing policies |
 | AI-06 | **YES** | skills: purview-communication-compliance, purview-dspm-ai | Same privacy prerequisites as CC-01; start from the Copilot-interactions template and decide the supervised population |
 
-**Tally: 24 GROUNDED / 2 NOT GROUNDED (DLP-04, AI-04).**
+**Tally: 25 GROUNDED / 2 NOT GROUNDED (DLP-04, AI-04).** *(AUD-04 added 2026-07-06.)*
 
 Renders-in-report note: only Improvement/Recommendation findings show the region, so on
 the current fixtures DLP-04 (Verify manually), RET-01/AUD-02/AUD-03/ED-01/ED-02/AI-01/AI-04
@@ -61,7 +62,7 @@ The rendered text lives in `Data/remediation-catalog.json`; each entry carries a
 `grounding` field (`skill` / `learn` / `established` / `none`) matching the table.
 Hard cap honored: no entry exceeds 3 sentences; no PowerShell anywhere.
 
-### Grounded drafts (24)
+### Grounded drafts (25)
 
 - **LABELS-01** - "In the Purview portal under Information protection > Sensitivity labels, build a small taxonomy - four or fewer top-level labels with business-language names (for example Public / General / Confidential / Highly Confidential). Get data-owner sign-off on the tiers before publishing; an IT-invented taxonomy with many levels stalls adoption and users default to General."
 - **LABELS-02** - "Under Information protection > Label publishing policies, publish the labels to the users who create content, deciding the audience scope and the default label for each group. Verify pilot users see the label menu with the intended default in Word and Outlook before widening the rollout."
@@ -79,6 +80,7 @@ Hard cap honored: no entry exceeds 3 sentences; no PowerShell anywhere.
 - **AUD-01** - "In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach."
 - **AUD-02** - "In Audit > New search, run a query for activity you know happened recently and confirm events return - enabled is not the same as ingesting on time. Audit search has latency, so allow for it before concluding events are missing."
 - **AUD-03** - "Where the tenant tier includes Audit (Premium), decide retention deliberately: match the retention period to how far back an investigation may need to reach, and add audit retention policies for the crucial events (for example mailbox access) rather than relying on defaults."
+- **AUD-04** - "Mailbox auditing is on by default, so treat re-enabling an organization-level off switch as recovering a broken evidence trail rather than tuning. Confirm with the Exchange owner why it was disabled - legacy noise concerns are the usual reason - then verify mailbox actions appear in Audit search after the change."
 - **ED-01** - "Under eDiscovery > Cases, keep case hygiene defensible: assign per-case, role-scoped access rather than broad eDiscovery Manager grants, apply holds before searching, and close cases (releasing holds) only when legal confirms the matter is concluded."
 - **ED-02** - "Premium capabilities - review sets, analytics, and Copilot interaction collection - depend on E5 / E5 Compliance / add-on licensing per user. Confirm which features your licensing actually enables before building a workflow that assumes them."
 - **CC-01** - "Before creating a policy under Communication compliance, put the privacy guardrails in place: pseudonymized usernames for reviewers, tightly scoped reviewer access, and legal/HR sign-off on what is monitored. Then start narrow - one template scoped to the population that genuinely needs supervision - and expand once triage keeps up."

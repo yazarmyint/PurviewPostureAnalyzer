@@ -82,6 +82,11 @@
       "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-premium",
       "grounding": "skill"
     },
+    "AUD-04": {
+      "portalPath": "Mailbox auditing is on by default, so treat re-enabling an organization-level off switch as recovering a broken evidence trail rather than tuning. Confirm with the Exchange owner why it was disabled - legacy noise concerns are the usual reason - then verify mailbox actions appear in Audit search after the change.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-mailboxes",
+      "grounding": "skill"
+    },
     "ED-01": {
       "portalPath": "Under eDiscovery > Cases, keep case hygiene defensible: assign per-case, role-scoped access rather than broad eDiscovery Manager grants, apply holds before searching, and close cases (releasing holds) only when legal confirms the matter is concluded.",
       "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery",

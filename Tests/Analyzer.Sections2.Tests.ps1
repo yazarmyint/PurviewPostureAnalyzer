@@ -46,7 +46,7 @@ Describe 'Audit (evidence-only)' {
         $s['AUD-01'] | Should -Be 'OK'
         $s['AUD-03'] | Should -Be 'Informational'
         $s.ContainsKey('AUD-02') | Should -BeFalse
-        @($script:Audit.findings).Count | Should -Be 2
+        @($script:Audit.findings).Count | Should -Be 3
     }
     It 'AUD-03 makes no tenant-tier claim and carries a Requires annotation' {
         $f = FindingOf $script:Audit 'AUD-03'
@@ -57,6 +57,27 @@ Describe 'Audit (evidence-only)' {
         $script:Audit.glance.status | Should -Be 'OK'
         $script:Audit.glance.metric | Should -Be 'On'
         $script:Audit.glance.sub | Should -Not -Match 'Standard|Premium'
+    }
+    It 'AUD-04 OK from evidence with the org-default row pinned' {
+        $f = FindingOf $script:Audit 'AUD-04'
+        $f.status | Should -Be 'OK'
+        $f.table.rows[0].cells[0] | Should -Be 'Mailbox auditing (organization default)'
+        $f.table.rows[0].cells[1] | Should -Be 'On (AuditDisabled = false)'
+    }
+    It 'AUD-04 Improvement when the organization override disables mailbox auditing; glance drops to Improvement' {
+        $raw = [pscustomobject]@{ status = 'Ok'; error = $null; unifiedAuditEnabled = $true; orgStatus = 'Ok'; mailboxAuditingDisabled = $true }
+        $sec = Invoke-PpaAuditAnalyzer -Raw $raw -LicenseMap $script:Map
+        $f = FindingOf $sec 'AUD-04'
+        $f.status | Should -Be 'Improvement'
+        $f.table.rows[0].cells[1] | Should -Be 'Disabled (AuditDisabled = true)'
+        $f.table.rows[1].cells[0] | Should -Be 'Per-mailbox bypass'
+        $sec.glance.status | Should -Be 'Improvement'
+    }
+    It 'AUD-04 Verify manually when the org read degrades - never a false Disabled; glance pill unaffected' {
+        $raw = [pscustomobject]@{ status = 'Ok'; error = $null; unifiedAuditEnabled = $true; orgStatus = 'AccessDenied'; mailboxAuditingDisabled = $null }
+        $sec = Invoke-PpaAuditAnalyzer -Raw $raw -LicenseMap $script:Map
+        (FindingOf $sec 'AUD-04').status | Should -Be 'Verify manually'
+        $sec.glance.status | Should -Be 'OK'
     }
 }
 

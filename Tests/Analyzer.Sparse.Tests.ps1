@@ -129,6 +129,7 @@ Describe 'All eight analyzers - zero-object collector results' {
         $sec = Invoke-PpaAuditAnalyzer -Raw $raw -LicenseMap $script:Map
         Assert-ValidSection $sec
         ($sec.findings | Where-Object { $_.id -eq 'AUD-01' }).status | Should -Be 'Verify manually'
+        ($sec.findings | Where-Object { $_.id -eq 'AUD-04' }).status | Should -Be 'Verify manually'
         $sec.glance.metric | Should -Be 'Unknown'
     }
     It 'eDiscovery: zero cases -> Informational inventory, no throw' {

@@ -292,7 +292,7 @@ function Write-PpaLearnMore {
 }
 
 # ---------------------------------------------------------------------------
-# Static document chunks (verbatim from posture-report-mock-v5.html; CDN assets)
+# Static document chunks (fixed scaffolding for the shipped report design)
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------

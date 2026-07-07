@@ -1,10 +1,10 @@
 # CAMP v2 — Check Catalog
 
-The domain spec for the modernized report. Every finding in `posture-report-mock-v5.html`
+The domain spec for the modernized report. Every finding the report renders
 is transcribed here as: **what it reads** (cmdlet + property), **how it's shown** (table columns),
 and **how the status is decided** (the OK / Improvement / Recommendation / Informational / Verify logic).
 
-This is the second fixed target (alongside the mock) that the Claude Code session builds toward.
+This is the fixed target that the Claude Code session builds toward.
 You own the domain columns marked below; the cmdlet layer is the one place to sanity-check.
 
 ---
@@ -26,7 +26,7 @@ Links       — Learn-more targets shown in the drill-down
 - **⚠ confirm** — newer surface; the cmdlet/property is my best current understanding and should be
   validated against the tenant during the Code build before it's relied on.
 
-### Status model (unchanged from the mock)
+### Status model (unchanged from the original design)
 
 `OK` · `Improvement` · `Recommendation` · `Informational` · `Verify manually`.
 `Verify manually` is reserved for the genuinely un-assertable from a session — not a fallback for

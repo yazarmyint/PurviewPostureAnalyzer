@@ -186,7 +186,7 @@ inventory is **Verify manually**.
   (**Informational**). Unreadable inventory → **Verify manually** (unknown is never asserted as empty).
 - **Links:** Learn about Insider Risk Management.
 
-### IRM-02 — Consider licensing for departing-employee risk
+### IRM-02 — Consider IRM for departing-employee risk
 - **Reads:** n/a (advisory, fires only when IRM absent)
 - **Status:** **Recommendation** — licensing + HR/Legal alignment, not a config action.
 - **Links:** IRM policy templates.

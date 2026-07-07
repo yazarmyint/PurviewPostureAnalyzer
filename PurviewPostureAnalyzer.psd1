@@ -21,7 +21,7 @@
         PSData = @{
             Tags         = @('Microsoft365', 'Purview', 'Compliance', 'DLP', 'ReadOnly', 'CAMP', 'Security')
             LicenseUri   = 'https://opensource.org/licenses/MIT'
-            ProjectUri   = 'https://github.com/OfficeDev/Configuration-Analyzer-for-Microsoft-Purview'
+            ProjectUri   = 'https://github.com/yazarmyint/PurviewPostureAnalyzer'
             ReleaseNotes = 'v2.0 rebuild: report-first HTML deliverable, five-status model (OK / Improvement / Recommendation / Informational / Verify manually), read-only guard, and eight Purview workload sections.'
         }
     }

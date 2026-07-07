@@ -42,9 +42,13 @@ Describe 'HTML render - computed counts' {
         $nums = ([regex]::Matches($row, 'sscount">(\d+)<') | ForEach-Object { $_.Groups[1].Value }) -join ' '
         $nums | Should -Be '2 8 3 7 0'
     }
-    It 'renders NO license banner and NO Requires tags (caveats live in docs, not the report)' {
-        $script:Html | Should -Not -Match 'License context'
+    It 'renders the one-line E5-assumption caveat, but NO per-finding Requires tags and NO license-detection language (F-004, option A)' {
+        # F-004: a single read-only CONTEXT line for the HTML-only reader.
+        $script:Html | Should -Match 'assumes a Microsoft 365 E5'
+        # The verdict is never gated on tier: no per-finding "Requires" inline tag
+        # (deferred) and no license-DETECTION language (neutrality; decision D9).
         $script:Html | Should -Not -Match 'reqline'
+        $script:Html | Should -Not -Match 'License context'
         $script:Html | Should -Not -Match 'Detected licensing'
     }
     It 'renders a section-header badge for each non-zero status' {

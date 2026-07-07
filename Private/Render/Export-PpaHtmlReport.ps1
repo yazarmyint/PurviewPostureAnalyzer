@@ -88,9 +88,13 @@ function Export-PpaHtmlReport {
     [void]$sb.AppendLine('      <div class="col-auto"><div class="logo-ph">Client logo (250&times;150)</div></div>')
     [void]$sb.AppendLine('    </div>')
 
-    # No license banner in the report (client-facing polish): the E5 assumption and its
-    # caveats live in the README pre-requisite note and LIMITATIONS.md. The normalized
-    # object's licensing.note still travels in the JSON export for downstream context.
+    # E5-assumption caveat (F-004, option A): one read-only CONTEXT line so an HTML-only
+    # reader knows the report judges Purview workloads against an E5 / E5 Compliance
+    # baseline and never reads subscriptions (decision D9) - a flagged gap may be a
+    # licensing-tier decision, not a configuration gap. It NEVER gates a verdict
+    # (neutrality stands); the per-finding `requires` tier stays JSON-only, and the fuller
+    # caveat lives in README / LIMITATIONS. licensing.note still travels in the JSON export.
+    [void]$sb.AppendLine('    <p style="color:var(--muted); font-size:var(--fs-sm); font-family:var(--font-sans); margin:.15rem 0 0;"><strong>Licensing:</strong> this report assumes a Microsoft 365 E5 / E5 Compliance baseline when judging Purview workloads and does not read your subscriptions &mdash; some flagged gaps may require higher licensing rather than a configuration change.</p>')
     [void]$sb.AppendLine('  </div></div>')
     [void]$sb.AppendLine('')
 

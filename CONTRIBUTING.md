@@ -48,6 +48,16 @@ not a Microsoft product. Contributions are welcome by pull request.
   pwsh -File tools/Build-SampleReports.ps1
   ```
 
+## Continuous integration
+
+There is deliberately **no CI workflow** in this repository. The full test suite and the sample
+build are offline and fixture-driven (no tenant, no secrets), and the project validates them
+manually on both engines via the two-machine flow above. Contributors are therefore expected to
+run the **full both-engine Pester suite plus `tools/Build-SampleReports.ps1` locally** and confirm
+green before opening a pull request; a change that has not been validated on both Windows
+PowerShell 5.1 and PowerShell 7 is not ready to merge. (If the project later adopts hosted CI, this
+section is where that decision gets recorded.)
+
 ## Change flow
 
 - Work on a **branch off the current tip**; do not commit directly to `main`.

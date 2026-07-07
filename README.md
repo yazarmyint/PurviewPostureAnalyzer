@@ -204,6 +204,11 @@ Output lands in `Outputs\PurviewPosture-<timestamp>\reports\`:
 - `posture-report.html` - the report (self-contained; opens in any browser, offline).
 - `posture-report.json` - the same normalized findings, for downstream use.
 
+> **You own session teardown.** PPA does not close sessions automatically. `Disconnect-PurviewPostureSession`
+> (step 5) is the only thing that signs you out, and if the run throws part-way through, the authenticated
+> Security & Compliance and Exchange Online sessions stay open - run the disconnect yourself before you
+> leave the console.
+
 ### Run profiles: include / exclude sections
 
 ```powershell

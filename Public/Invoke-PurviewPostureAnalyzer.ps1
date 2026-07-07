@@ -155,18 +155,8 @@ function Invoke-PurviewPostureAnalyzer {
     $selection = Select-PpaSections -Sections $sections -IncludeSection $IncludeSection -ExcludeSection $ExcludeSection
     $sections  = @($selection.Sections)
 
-    # ---- DEGRADED-SECTION SUMMARY (visible without -Verbose) ----
-    $degraded = @($sections | Where-Object { @($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0 })
-    if ($degraded.Count -gt 0) {
-        Write-Warning ("{0} section(s) degraded to Verify manually: {1}. Expand each finding's Remarks for the error, or re-run with -Verbose for the underlying cmdlet failures." -f $degraded.Count, ((@($degraded).title) -join ', '))
-    }
-
-    # ---- LICENSE-CONTEXT NOTE (assume E5, annotate tier - decision D9) ----
-    $licNote = if ($licMap -and $licMap.contextNote) { [string]$licMap.contextNote }
-               else { 'This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant subscriptions; findings marked Requires note the tier the feature needs.' }
-    $licBlock = [pscustomobject]@{ note = $licNote }
-
-    # ---- COVERAGE MATRIX (Wave 4 Part D): pure projection from collected data ----
+    # ---- COLLECTOR -> SECTION MAP (keyed by section id): built once here and reused by
+    # the degraded summary below, the coverage matrix, and the snapshot. ----
     $rawMap = @{
         Sensitivity_Labels       = $rawLabels
         Data_Loss_Prevention     = $rawDlp
@@ -177,6 +167,29 @@ function Invoke-PurviewPostureAnalyzer {
         Communication_Compliance = $rawCc
         DSPM_for_AI              = $rawDspm
     }
+
+    # ---- DEGRADED-SECTION SUMMARY (visible without -Verbose) ----
+    # A section is degraded if it hard-errored to an *-ERR stub OR its collector read did
+    # not fully succeed (access denied / not connected / partial). Warning on the collector
+    # outcome - not just *-ERR - means a not-connected or partial-role run is flagged
+    # instead of silently rendering fabricated "0 / Improvement" gaps (F-001).
+    $degradedOutcomes = @('AccessDenied', 'CmdletUnavailable', 'Failed', 'Partial')
+    $degraded = @($sections | Where-Object {
+        $sid = [string]$_.id
+        (@($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0) -or
+        ($rawMap.ContainsKey($sid) -and $null -ne $rawMap[$sid] -and ($degradedOutcomes -contains [string]$rawMap[$sid].outcome))
+    })
+    if ($degraded.Count -gt 0) {
+        Write-Warning ("{0} section(s) degraded - a read did not fully succeed (access denied / not connected / partial): {1}. Affected findings read 'Verify manually'; re-run with -Verbose for the underlying cmdlet failures." -f $degraded.Count, ((@($degraded).title) -join ', '))
+    }
+
+    # ---- LICENSE-CONTEXT NOTE (assume E5, annotate tier - decision D9) ----
+    $licNote = if ($licMap -and $licMap.contextNote) { [string]$licMap.contextNote }
+               else { 'This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant subscriptions; findings marked Requires note the tier the feature needs.' }
+    $licBlock = [pscustomobject]@{ note = $licNote }
+
+    # ---- COVERAGE MATRIX (Wave 4 Part D): pure projection from collected data.
+    # $rawMap was built once above (collector -> section map) and is reused here. ----
     $coverage = Get-PpaCoverageModel -RawMap $rawMap
 
     # ---- ASSEMBLE -> RENDER (HTML primary) + EXPORT (JSON) ----

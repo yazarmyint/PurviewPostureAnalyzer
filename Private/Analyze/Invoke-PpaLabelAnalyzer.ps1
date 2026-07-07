@@ -44,7 +44,13 @@ function Invoke-PpaLabelAnalyzer {
         @{ label = 'Microsoft Purview portal - Information Protection'; url = 'https://purview.microsoft.com'; tag = 'portal' }
         @{ label = 'Overview of sensitivity labels'; url = 'https://learn.microsoft.com/en-us/purview/sensitivity-labels'; tag = 'docs' }
     )
-    if ($labels.Count -gt 0) {
+    if ([string]$Raw.labels.status -ne 'Ok') {
+        # F-001: a failed Get-Label read must not report "0 labels / no taxonomy" as fact.
+        $findings.Add((New-PpaFinding -Id 'LABELS-01' -DomId 'f-lab-1' -Title 'Sensitivity labels not readable this session' -Status 'Verify manually' `
+            -Whyline 'Sensitivity labels could not be enumerated this session, so the taxonomy was not evaluated - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Sensitivity labels', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.labels.error)))) -LearnMore $lm01))
+    }
+    elseif ($labels.Count -gt 0) {
         $byGuid = @{}
         foreach ($l in $labels) { if ($l.guid) { $byGuid[$l.guid] = $l.name } }
         $rows01 = foreach ($l in ($labels | Sort-Object priority)) {
@@ -65,7 +71,13 @@ function Invoke-PpaLabelAnalyzer {
     # --- LABELS-02: published to users ---
     $enabledPols = @($pols | Where-Object { $_.enabled })
     $lm02 = @(@{ label = 'Create and publish sensitivity labels'; url = 'https://learn.microsoft.com/en-us/purview/create-sensitivity-labels'; tag = 'docs' })
-    if ($pols.Count -gt 0) {
+    if ([string]$Raw.policies.status -ne 'Ok') {
+        # F-001: a failed Get-LabelPolicy read must not report "not published" as fact.
+        $findings.Add((New-PpaFinding -Id 'LABELS-02' -DomId 'f-lab-2' -Title 'Label policies not readable this session' -Status 'Verify manually' `
+            -Whyline 'Label publishing could not be enumerated this session - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Label policies', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.policies.error)))) -LearnMore $lm02))
+    }
+    elseif ($pols.Count -gt 0) {
         $status02 = if ($enabledPols.Count -gt 0) { 'OK' } else { 'Improvement' }
         $rows02 = foreach ($p in $pols) {
             New-PpaRow -Cells @($p.name, (@($p.labels) -join ', '), $p.scope) -Status ($(if ($p.enabled) { 'OK' } else { 'Improvement' }))
@@ -89,7 +101,13 @@ function Invoke-PpaLabelAnalyzer {
     )
     $enforcing = @($autos | Where-Object { $_.mode -match '(?i)enforce' })
     $simulating = @($autos | Where-Object { $_.mode -match '(?i)test|simul' })
-    if ($autos.Count -eq 0) {
+    if ([string]$Raw.autoLabels.status -ne 'Ok') {
+        # F-001: a failed Get-AutoSensitivityLabelPolicy read must not report "none" as fact.
+        $findings.Add((New-PpaFinding -Id 'LABELS-03' -DomId 'f-lab-3' -Title 'Auto-labeling not readable this session' -Status 'Verify manually' -Requires (Get-PpaRequirement $LicenseMap 'LABELS-03') `
+            -Whyline 'Auto-labeling policies could not be enumerated this session - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Auto-labeling policies', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.autoLabels.error)))) -LearnMore $lm03))
+    }
+    elseif ($autos.Count -eq 0) {
         $findings.Add((New-PpaFinding -Id 'LABELS-03' -DomId 'f-lab-3' -Title 'No auto-labeling configured' -Status 'Recommendation' -Requires (Get-PpaRequirement $LicenseMap 'LABELS-03') `
             -Whyline 'Automatic labeling reduces reliance on users to classify correctly; none is configured.' `
             -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Auto-labeling policies', '0') -Status 'Recommendation'))) -LearnMore $lm03))
@@ -149,7 +167,13 @@ function Invoke-PpaLabelAnalyzer {
     $c = $Raw.containers
     $groupCov = if ($c -and $c.groups) { "$($c.groups.labeled) of $($c.groups.total) labeled" } else { $null }
     $siteCov  = if ($c -and $c.sites)  { "$($c.sites.labeled) of $($c.sites.total) labeled" }  else { $null }
-    if ($containerLabels.Count -eq 0) {
+    if ([string]$Raw.labels.status -ne 'Ok') {
+        # F-001: container labels are read from Get-Label; a failed read is not "none".
+        $findings.Add((New-PpaFinding -Id 'LABELS-04' -DomId 'f-lab-4' -Title 'Container labels not readable this session' -Status 'Verify manually' `
+            -Whyline 'Container-scoped labels are read from the sensitivity-label set, which could not be enumerated this session - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Container type', 'Coverage', 'Status') -Rows @((New-PpaRow -Cells @('Container-scoped labels', 'Not readable this session') -Status 'Verify manually'))) -LearnMore $lm04))
+    }
+    elseif ($containerLabels.Count -eq 0) {
         $rows04 = @(
             New-PpaRow -Cells @('Microsoft 365 Groups / Teams', ($(if ($groupCov) { $groupCov } else { 'Inventory not collected' }))) -Status ($(if ($groupCov) { 'Recommendation' } else { 'Verify manually' }))
             New-PpaRow -Cells @('SharePoint sites', ($(if ($siteCov) { $siteCov } else { 'Inventory not collected' }))) -Status ($(if ($siteCov) { 'Recommendation' } else { 'Verify manually' }))
@@ -196,9 +220,14 @@ function Invoke-PpaLabelAnalyzer {
     }
 
     # --- section glance ---
-    $autoState = if ($simulating.Count -gt 0) { 'auto-label in sim' } elseif ($enforcing.Count -gt 0) { 'auto-label on' } else { 'no auto-label' }
     $mid = Get-PpaMidDot
-    $glance = New-PpaGlance -Name 'Sensitivity Labels' -Metric "$($labels.Count) labels" -Sub "$($pols.Count) policies $mid $autoState"
+    if ([string]$Raw.labels.status -ne 'Ok') {
+        $glance = New-PpaGlance -Name 'Sensitivity Labels' -Metric 'not readable' -Sub 'confirm in portal'
+    }
+    else {
+        $autoState = if ($simulating.Count -gt 0) { 'auto-label in sim' } elseif ($enforcing.Count -gt 0) { 'auto-label on' } else { 'no auto-label' }
+        $glance = New-PpaGlance -Name 'Sensitivity Labels' -Metric "$($labels.Count) labels" -Sub "$($pols.Count) policies $mid $autoState"
+    }
 
     return New-PpaSection -Id 'Sensitivity_Labels' -Title 'Sensitivity Labels' -Group 'Microsoft Information Protection' `
         -GroupIcon 'fas fa-shield-alt' -Glance $glance -Findings $findings.ToArray()

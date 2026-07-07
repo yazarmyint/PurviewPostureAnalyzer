@@ -287,9 +287,9 @@ Describe 'Audit strip grounds on the AuditConfig singleton (Part A addendum)' {
 }
 
 Describe 'Principal-scoped strip (spec 5.2)' {
-    It 'label publishing, IRM and CC lines carry counts and section links' {
+    It 'label publishing, IRM, CC and eDiscovery lines carry counts/notes and section links' {
         $p = @($script:DenseModel.principal)
-        $p.Count | Should -Be 3
+        $p.Count | Should -Be 4
         $pub = @($p | Where-Object { $_.name -eq 'Label publishing' })[0]
         $pub.count | Should -Be 2
         $pub.sectionId | Should -Be 'Sensitivity_Labels'
@@ -298,6 +298,17 @@ Describe 'Principal-scoped strip (spec 5.2)' {
         $irm.note | Should -Match 'not readable'
         $cc = @($p | Where-Object { $_.name -eq 'Communication Compliance' })[0]
         $cc.count | Should -Be 0
+        # eDiscovery cross-check (F-001): a non-grid capability on the strip. Dense reads
+        # 2 cases; the note carries "N cases" (not the strip's "N policies" noun).
+        $ed = @($p | Where-Object { $_.name -eq 'eDiscovery' })[0]
+        $ed.sectionId | Should -Be 'eDiscovery'
+        $ed.checkId | Should -Be 'ED-01'
+        $ed.note | Should -Match 'case'
+    }
+    It 'eDiscovery strip reads "not readable this run" when the collector did not run' {
+        $sparse = Get-PpaCoverageModel -RawMap @{ Data_Loss_Prevention = Read-PpaFixtureJson 'Samples\sample-raw\dlp.json' }
+        $ed = @($sparse.principal | Where-Object { $_.name -eq 'eDiscovery' })[0]
+        $ed.note | Should -Match 'not readable'
     }
 }
 

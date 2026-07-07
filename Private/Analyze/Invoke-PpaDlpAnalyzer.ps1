@@ -28,6 +28,21 @@ function Invoke-PpaDlpAnalyzer {
     $rules = @($Raw.rules.items)
     $findings = New-Object System.Collections.Generic.List[object]
 
+    # F-001: every DLP check derives from Get-DlpCompliancePolicy. If that read did not
+    # complete, DLP posture is UNKNOWN - do not let the count-based checks below report
+    # "0 policies / Teams not in scope / Endpoint not configured" as fact. Degrade the
+    # whole section to one Verify-manually finding (unknown is never asserted as empty).
+    if ([string]$Raw.policies.status -ne 'Ok') {
+        $glance = New-PpaGlance -Name 'Data Loss Prevention' -Metric 'not readable' -Sub 'confirm in portal'
+        return New-PpaSection -Id 'Data_Loss_Prevention' -Title 'Data Loss Prevention' -Group 'Microsoft Information Protection' `
+            -GroupIcon 'fas fa-shield-alt' -Glance $glance -Findings @(
+                (New-PpaFinding -Id 'DLP-01' -DomId 'f-dlp-1' -Title 'DLP configuration not readable this session' -Status 'Verify manually' `
+                    -Whyline 'DLP policies could not be enumerated this session, so DLP posture was not evaluated - confirm coverage in the Purview portal.' `
+                    -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @(
+                        New-PpaRow -Cells @('DLP policies', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.policies.error)
+                    )) -LearnMore @(@{ label = 'Learn about data loss prevention'; url = 'https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp'; tag = 'docs' })))
+    }
+
     # Per-policy rollups from rules.
     $polInfo = @{}
     foreach ($p in $pols) {

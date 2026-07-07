@@ -185,3 +185,63 @@ Describe 'End-to-end render of sparse sections' {
         ($html.ToCharArray() | Where-Object { [int][char]$_ -gt 126 }).Count | Should -Be 0
     }
 }
+
+Describe 'Read-denied collector -> Verify manually, never a fabricated gap (F-001)' {
+    # The count-based analyzers (Labels/DLP/Retention/eDiscovery) must distinguish a
+    # read that FAILED (status != Ok) from a genuinely empty tenant. A failed read must
+    # never render as "0 / Improvement / Recommendation" - that presents unchecked as a
+    # gap. Mirrors the existing IRM/CC/Audit unread-degradation cases above.
+    It 'eDiscovery: AccessDenied cases read -> ED-01 Verify manually, not "0 cases Informational"' {
+        $raw = [pscustomobject]@{ outcome = 'AccessDenied'; cases = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; items = @() } }
+        $sec = Invoke-PpaEdiscoveryAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        $f = $sec.findings | Where-Object { $_.id -eq 'ED-01' }
+        $f.status | Should -Be 'Verify manually'
+        $f.title | Should -Match 'not readable'
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'eDiscovery: genuine Ok + 0 cases still reads Informational (the guard does not over-fire)' {
+        $raw = [pscustomobject]@{ outcome = 'Empty'; cases = [pscustomobject]@{ status = 'Ok'; error = $null; items = @() } }
+        $sec = Invoke-PpaEdiscoveryAnalyzer -Raw $raw -LicenseMap $script:Map
+        ($sec.findings | Where-Object { $_.id -eq 'ED-01' }).status | Should -Be 'Informational'
+    }
+    It 'Labels: CommandNotFound reads -> LABELS-01..04 Verify manually, not Improvement/Recommendation' {
+        $raw = [pscustomobject]@{
+            labels     = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            policies   = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            autoLabels = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; rulesStatus = 'CommandNotFound'; rulesError = 'x'; items = @() }
+            containers = [pscustomobject]@{ status = 'NotCollected'; groups = $null; sites = $null }
+            irmConfig  = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; azureRmsEnabled = $null }
+        }
+        $sec = Invoke-PpaLabelAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        foreach ($id in @('LABELS-01', 'LABELS-02', 'LABELS-03', 'LABELS-04')) {
+            ($sec.findings | Where-Object { $_.id -eq $id }).status | Should -Be 'Verify manually'
+        }
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'DLP: AccessDenied policy read -> a single DLP-01 Verify manually, no fabricated DLP-02/03 gaps' {
+        $raw = [pscustomobject]@{
+            policies = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; items = @() }
+            rules    = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; items = @() }
+        }
+        $sec = Invoke-PpaDlpAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'DLP-01' }).status | Should -Be 'Verify manually'
+        @($sec.findings | Where-Object { $_.status -ne 'Verify manually' }).Count | Should -Be 0
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'Retention: CommandNotFound reads -> RET-01..03 Verify manually, not Improvement' {
+        $raw = [pscustomobject]@{
+            policies       = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            labels         = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            adaptiveScopes = [pscustomobject]@{ status = 'CommandNotFound'; count = 0 }
+        }
+        $sec = Invoke-PpaRetentionAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        foreach ($id in @('RET-01', 'RET-02', 'RET-03')) {
+            ($sec.findings | Where-Object { $_.id -eq $id }).status | Should -Be 'Verify manually'
+        }
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+}

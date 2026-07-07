@@ -341,6 +341,16 @@ function Get-PpaCoverageModel {
     if ($null -ne $ccRaw -and $readable -contains (Get-OutcomeFor 'Communication_Compliance')) {
         $ccCount = [int]$ccRaw.policies.count
     } else { $ccNote = 'not readable this run' }
+    # eDiscovery cross-check (F-001): a non-grid capability like IRM/CC, so it rides the
+    # same strip. Case count when readable, "not readable this run" otherwise - so the
+    # matrix reflects an unreadable eDiscovery read instead of leaving it absent. Rendered
+    # via the note (count stays null) to read "N cases", not the strip's "N policies".
+    $edRaw = Get-RawFor 'eDiscovery'
+    $edNote = 'not readable this run'
+    if ($null -ne $edRaw -and $readable -contains (Get-OutcomeFor 'eDiscovery')) {
+        $edN = @($edRaw.cases.items).Count
+        $edNote = "$edN " + $(if ($edN -eq 1) { 'case' } else { 'cases' })
+    }
 
     return [pscustomobject][ordered]@{
         rows    = @($rowDefs | ForEach-Object { [pscustomobject]@{ key = [string]$_.key; label = [string]$_.label } })
@@ -357,6 +367,7 @@ function Get-PpaCoverageModel {
             [pscustomobject]@{ name = 'Label publishing';         count = $pubCount; note = $pubNote; sectionId = 'Sensitivity_Labels';       checkId = 'LABELS-02' }
             [pscustomobject]@{ name = 'Insider Risk';             count = $irmCount; note = $irmNote; sectionId = 'Insider_Risk';             checkId = 'IRM-01' }
             [pscustomobject]@{ name = 'Communication Compliance'; count = $ccCount;  note = $ccNote;  sectionId = 'Communication_Compliance'; checkId = 'CC-01' }
+            [pscustomobject]@{ name = 'eDiscovery';               count = $null;     note = $edNote;  sectionId = 'eDiscovery';               checkId = 'ED-01' }
         )
     }
 }

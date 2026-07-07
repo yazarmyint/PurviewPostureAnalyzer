@@ -113,7 +113,9 @@ function Write-PpaCoverageMatrix {
     [void]$sb.Append('      <p class="covm-strip"><strong>Tenant-level:</strong> Unified audit: ').Append((ConvertTo-PpaHtmlText $audText))
     [void]$sb.Append(' &middot; <a href="#finding-').Append((ConvertTo-PpaHtmlAttr ([string]$Coverage.auditStrip.checkId))).AppendLine('">details</a></p>')
 
-    # ---- principal-scoped strip (ruled 5.2): counts + section links ----
+    # ---- "Other solutions" strip (the model's `principal` field; ruled 5.2): counts +
+    # section links. Heading is "Other solutions" not "Principal-scoped" because the set
+    # includes case/matter-scoped eDiscovery, which is not principal-scoped. ----
     $pparts = New-Object System.Collections.Generic.List[string]
     foreach ($p in @($Coverage.principal)) {
         $txt = '<a href="#' + (ConvertTo-PpaHtmlAttr ([string]$p.sectionId)) + '">' + (ConvertTo-PpaHtmlText ([string]$p.name)) + '</a>: '
@@ -123,7 +125,7 @@ function Write-PpaCoverageMatrix {
         else { $txt += (ConvertTo-PpaHtmlText ([string]$p.note)) }
         $pparts.Add($txt)
     }
-    [void]$sb.Append('      <p class="covm-strip"><strong>Principal-scoped (no workload cells):</strong> ').Append(($pparts -join ' &middot; ')).AppendLine('</p>')
+    [void]$sb.Append('      <p class="covm-strip"><strong>Other solutions (no workload cells):</strong> ').Append(($pparts -join ' &middot; ')).AppendLine('</p>')
 
     # ---- framing notes (ruled 5.1) ----
     [void]$sb.AppendLine('      <p class="covm-foot">Assessed via Security &amp; Compliance PowerShell only. Container labeling for SharePoint and Teams is out of scope for this matrix.</p>')

@@ -104,6 +104,49 @@ $alMeta = [pscustomobject]@{
 $alNorm = ConvertTo-PpaNormalized -Meta $alMeta -Licensing ([pscustomobject]@{ note = [string]$std.licensing.note }) -Sections $alSections
 Write-PpaSampleReport -Name 'sample-autolabel-cases.html' -Html (Export-PpaHtmlReport -Normalized $alNorm -IsSample)
 
+# ---- 3c. Degraded-run fixture (F-001): some collectors could not be read this run ----
+# The whole point of F-001, made visible in one report: the not-readable sections
+# (Labels/DLP/eDiscovery here) read "not readable this session" (Verify manually), NOT a
+# fabricated "0 / Improvement / Recommendation", while a genuinely-empty-but-READABLE
+# section (Retention) still reads "Improvement/Informational". The contrast is the point.
+$degRawMap = [ordered]@{
+    Sensitivity_Labels   = Read-PpaFixture 'Samples\sample-raw\degraded\labels-notreadable.json'
+    Data_Loss_Prevention = Read-PpaFixture 'Samples\sample-raw\degraded\dlp-notreadable.json'
+    Retention            = Read-PpaFixture 'Samples\sample-raw\degraded\retention-empty.json'
+    eDiscovery           = Read-PpaFixture 'Samples\sample-raw\degraded\ediscovery-notreadable.json'
+}
+$degSections = @(
+    Invoke-PpaLabelAnalyzer     -Raw $degRawMap.Sensitivity_Labels   -AsOf ([datetime]'2026-07-01') -LicenseMap $licMap
+    Invoke-PpaDlpAnalyzer       -Raw $degRawMap.Data_Loss_Prevention -AsOf ([datetime]'2026-07-01') -LicenseMap $licMap
+    Invoke-PpaRetentionAnalyzer -Raw $degRawMap.Retention            -LicenseMap $licMap
+    Invoke-PpaEdiscoveryAnalyzer -Raw $degRawMap.eDiscovery          -LicenseMap $licMap
+)
+$degMeta = [pscustomobject]@{
+    reportTitle  = 'Configuration Analyzer for Microsoft Purview'
+    version      = '2.0'
+    versionDate  = 'June 2026'
+    dateDisplay  = '01-Jul-2026 10:15 UTC'
+    organization = 'Tailspin Toys (degraded-run fixture)'
+    tenant       = 'tailspintoys.onmicrosoft.com'
+    operator     = 'jordan.lee@tailspintoys.com (partial roles)'
+    mode         = 'Read-only - configuration metadata only'
+}
+$degCoverage = Get-PpaCoverageModel -RawMap $degRawMap
+$degNorm = ConvertTo-PpaNormalized -Meta $degMeta -Licensing ([pscustomobject]@{ note = [string]$std.licensing.note }) -Sections $degSections -Coverage $degCoverage
+
+# The degraded-run warning is emitted by the orchestrator on a live run (this build
+# assembles from fixtures, so it is reproduced here from the collector outcomes - the same
+# outcome set Invoke-PurviewPostureAnalyzer warns on - so the behavior is visible for the sample).
+$degradedOutcomes = @('AccessDenied', 'CmdletUnavailable', 'Failed', 'Partial')
+$degDegraded = @($degSections | Where-Object {
+    $sid = [string]$_.id
+    $degRawMap.Contains($sid) -and $null -ne $degRawMap[$sid] -and ($degradedOutcomes -contains [string]$degRawMap[$sid].outcome)
+})
+if ($degDegraded.Count -gt 0) {
+    Write-Warning ("[degraded sample] {0} section(s) degraded - a read did not fully succeed: {1}. Affected findings read 'Verify manually'." -f $degDegraded.Count, ((@($degDegraded).title) -join ', '))
+}
+Write-PpaSampleReport -Name 'sample-degraded.html' -Html (Export-PpaHtmlReport -Normalized $degNorm -IsSample)
+
 # ---- 4. Redacted variant (dense fixture, -Redact -RedactNames: strictest masking) ----
 Write-PpaSampleReport -Name 'sample-dense-redacted.html' -Html (Export-PpaHtmlReport -Normalized $denseNorm -IsSample -Redact -RedactNames)
 

@@ -1,0 +1,5 @@
+{
+  "outcome": "AccessDenied",
+  "_comment": "Degraded-run fixture (F-001): Get-ComplianceCase was denied - eDiscovery reads need an eDiscovery role group beyond Global Reader. ED-01 must read 'not readable this session' (Verify manually), never '0 cases (Informational)', which would present unchecked as clear.",
+  "cases": { "status": "AccessDenied", "error": "Running 'Get-ComplianceCase' requires membership in an eDiscovery role group.", "items": [] }
+}

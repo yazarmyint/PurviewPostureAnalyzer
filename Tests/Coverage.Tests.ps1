@@ -356,11 +356,16 @@ Describe 'Matrix render (spec 5.1/5.5/5.6/5.8)' {
         $html | Should -Match 'covm-prov'
         $html | Should -Match 'property shape documented but not yet verified on a live tenant'
     }
-    It 'renders the tenant audit strip and the principal strip with section anchors' {
+    It 'renders the tenant audit strip and the "Other solutions" strip with section anchors' {
         $script:Html | Should -Match 'Unified audit'
         $script:Html | Should -Match '#finding-AUD-01'
         $script:Html | Should -Match 'href="#Sensitivity_Labels"'
         $script:Html | Should -Match 'Insider Risk'
+        # 2b-i: the strip heading is relabeled - eDiscovery is case/matter-scoped, not
+        # principal-scoped, so "Other solutions" covers the full set it contains.
+        $script:Html | Should -Match 'Other solutions \(no workload cells\)'
+        $script:Html | Should -Not -Match 'Principal-scoped'
+        $script:Html | Should -Match 'href="#eDiscovery"'
     }
     It 'carries the scope footer and the container-labeling out-of-scope note' {
         $script:Html | Should -Match 'Security &amp; Compliance PowerShell only'

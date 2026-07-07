@@ -1,0 +1,7 @@
+{
+  "outcome": "Empty",
+  "_comment": "The CONTRAST section (F-001): every retention read COMPLETED (status Ok) and genuinely returned nothing. This is a real, assertable empty tenant, so RET-01/RET-02 read 'Improvement' and RET-03 reads 'Informational' - NOT 'Verify manually'. Placed in the degraded sample beside the not-readable sections so one report shows both behaviors side by side.",
+  "policies": { "status": "Ok", "error": null, "items": [] },
+  "labels": { "status": "Ok", "error": null, "items": [] },
+  "adaptiveScopes": { "status": "Ok", "count": 0 }
+}

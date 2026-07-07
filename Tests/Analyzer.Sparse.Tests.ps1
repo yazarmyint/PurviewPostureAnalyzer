@@ -245,3 +245,38 @@ Describe 'Read-denied collector -> Verify manually, never a fabricated gap (F-00
         $sec.glance.metric | Should -Be 'not readable'
     }
 }
+
+Describe 'Degraded-run FIXTURES render the F-001 contrast (Samples/sample-raw/degraded)' {
+    # Pins the fixtures behind the sample-degraded.html build entry: not-readable sections
+    # read "Verify manually", while a readable-but-empty section still reads its genuine
+    # empty verdict - the contrast that makes F-001 visible in one report.
+    BeforeAll {
+        function DegradedRaw($n) { [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot "Samples\sample-raw\degraded\$n.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    }
+    It 'Labels (reads not readable) -> LABELS-01..04 Verify manually' {
+        $sec = Invoke-PpaLabelAnalyzer -Raw (DegradedRaw 'labels-notreadable') -AsOf ([datetime]'2026-07-01') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        foreach ($id in @('LABELS-01', 'LABELS-02', 'LABELS-03', 'LABELS-04')) {
+            ($sec.findings | Where-Object { $_.id -eq $id }).status | Should -Be 'Verify manually'
+        }
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'DLP (read denied) -> a single DLP-01 Verify manually' {
+        $sec = Invoke-PpaDlpAnalyzer -Raw (DegradedRaw 'dlp-notreadable') -AsOf ([datetime]'2026-07-01') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'DLP-01' }).status | Should -Be 'Verify manually'
+        @($sec.findings | Where-Object { $_.status -ne 'Verify manually' }).Count | Should -Be 0
+    }
+    It 'eDiscovery (read denied) -> ED-01 Verify manually' {
+        $sec = Invoke-PpaEdiscoveryAnalyzer -Raw (DegradedRaw 'ediscovery-notreadable') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'ED-01' }).status | Should -Be 'Verify manually'
+    }
+    It 'Retention (readable + genuinely empty) -> the CONTRAST: Improvement/Informational, never Verify manually' {
+        $sec = Invoke-PpaRetentionAnalyzer -Raw (DegradedRaw 'retention-empty') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'RET-01' }).status | Should -Be 'Improvement'
+        ($sec.findings | Where-Object { $_.id -eq 'RET-03' }).status | Should -Be 'Informational'
+        @($sec.findings | Where-Object { $_.status -eq 'Verify manually' }).Count | Should -Be 0
+    }
+}

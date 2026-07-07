@@ -148,4 +148,24 @@ Describe 'Orchestrator - collector errors are surfaced, not hidden' {
             Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+    It 'surfaces the REAL exception for a previously key/title-mismatched section (Retention) - F-002' {
+        # Retention's collect id is "Retention" but its section title is "Retention & Records";
+        # before F-002 the error was registered under the id and looked up by title -> miss ->
+        # generic placeholder. This pins that the real reason now survives for such sections.
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('ppa-err2-' + [guid]::NewGuid().ToString('N'))
+        try {
+            $sec = InModuleScope PurviewPostureAnalyzer -Parameters @{ TmpDir = $tmp } {
+                param($TmpDir)
+                Mock Get-PpaRetention { throw 'BOOM-retention-collector-threw' }
+                $r = Invoke-PurviewPostureAnalyzer -OutputDirectory $TmpDir -WarningAction SilentlyContinue
+                $r.Normalized.sections | Where-Object { $_.id -eq 'Retention' }
+            }
+            $sec.findings[0].id | Should -Be 'Retention-ERR'
+            $sec.findings[0].status | Should -Be 'Verify manually'
+            ($sec.findings[0].table.rows | Where-Object { $_.remark }).remark | Should -Match 'BOOM-retention-collector-threw'
+        }
+        finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }

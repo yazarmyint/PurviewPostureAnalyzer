@@ -95,24 +95,30 @@ function Invoke-PurviewPostureAnalyzer {
 
     # ---- COLLECT (read-only; a failure is captured, logged, and yields $null) ----
     $collectorErrors = @{}
+    # Keyed by SECTION ID (the stable identifier) - the analyze stage below keys its
+    # lookup off the same section id, so the real collector exception survives for ALL
+    # eight sections. (Keying by display name silently missed the four sections whose
+    # collect-name and title differ: Retention, Insider_Risk, Communication_Compliance,
+    # DSPM_for_AI - the generic placeholder was shown instead of the real reason. F-002.)
     $collect = {
-        param([string]$Name, [scriptblock]$Block)
+        param([string]$Id, [scriptblock]$Block)
         try { & $Block }
         catch {
-            $collectorErrors[$Name] = $_.Exception.Message
-            Write-Warning ("Collector '{0}' failed: {1}" -f $Name, $_.Exception.Message)
-            Write-Verbose ("Collector '{0}' exception [{1}]:`n{2}`n{3}" -f $Name, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
+            $collectorErrors[$Id] = $_.Exception.Message
+            $display = ($Id -replace '_', ' ')
+            Write-Warning ("Collector '{0}' failed: {1}" -f $display, $_.Exception.Message)
+            Write-Verbose ("Collector '{0}' exception [{1}]:`n{2}`n{3}" -f $display, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
             $null
         }
     }
-    $rawLabels = & $collect 'Sensitivity Labels'   { Get-PpaSensitivityLabels }
-    $rawDlp    = & $collect 'Data Loss Prevention' { Get-PpaDlp }
-    $rawRet    = & $collect 'Retention'            { Get-PpaRetention }
-    $rawIrm    = & $collect 'Insider Risk'         { Get-PpaInsiderRisk }
-    $rawAud    = & $collect 'Audit'                { Get-PpaAudit }
-    $rawEd     = & $collect 'eDiscovery'           { Get-PpaEdiscovery }
-    $rawCc     = & $collect 'Comms Compliance'     { Get-PpaCommsCompliance }
-    $rawDspm   = & $collect 'DSPM for AI'          { Get-PpaDspmAi }
+    $rawLabels = & $collect 'Sensitivity_Labels'       { Get-PpaSensitivityLabels }
+    $rawDlp    = & $collect 'Data_Loss_Prevention'     { Get-PpaDlp }
+    $rawRet    = & $collect 'Retention'                { Get-PpaRetention }
+    $rawIrm    = & $collect 'Insider_Risk'             { Get-PpaInsiderRisk }
+    $rawAud    = & $collect 'Audit'                    { Get-PpaAudit }
+    $rawEd     = & $collect 'eDiscovery'               { Get-PpaEdiscovery }
+    $rawCc     = & $collect 'Communication_Compliance' { Get-PpaCommsCompliance }
+    $rawDspm   = & $collect 'DSPM_for_AI'              { Get-PpaDspmAi }
 
     # Static map: license annotations (never detection - decision D9). The SIT tier
     # map went with the DLP-04 retirement (Wave 5 cleanup Part 4).
@@ -128,7 +134,8 @@ function Invoke-PurviewPostureAnalyzer {
     $analyze = {
         param([string]$Id, [string]$Title, [string]$Group, [string]$Icon, [string]$Tag, $Raw, [scriptblock]$Block)
         if ($null -eq $Raw) {
-            $why = if ($collectorErrors.ContainsKey($Title)) { "Collector error: " + $collectorErrors[$Title] } else { 'Collector returned no data (not connected, missing module, or access denied). Re-run with -Verbose for the underlying cmdlet errors.' }
+            # Look up by section id - the SAME key $collect registers under (F-002).
+            $why = if ($collectorErrors.ContainsKey($Id)) { "Collector error: " + $collectorErrors[$Id] } else { 'Collector returned no data (not connected, missing module, or access denied). Re-run with -Verbose for the underlying cmdlet errors.' }
             return (New-PpaErrorSection -Id $Id -Title $Title -Group $Group -GroupIcon $Icon -GroupTag $Tag -Message $why)
         }
         try { & $Block }

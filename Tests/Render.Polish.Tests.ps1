@@ -380,8 +380,11 @@ Describe 'P7 - remediation snippets' {
         $raw | Should -Not -Match '\bSet-[A-Z]'
         $raw | Should -Not -Match 'Connect-IPPSSession|Connect-ExchangeOnline'
     }
-    It 'every remediation region carries the draft disclaimer and a Learn link' {
+    It 'every remediation region carries the evergreen caution and a Learn link (F-011: no "draft" framing)' {
         ([regex]::Matches($script:DenseHtml, 'remed-note')).Count | Should -BeGreaterOrEqual 16
+        # F-011: the "draft" tag/label is gone; the caution reads as an evergreen note.
+        $script:DenseHtml | Should -Not -Match 'remed-draft-tag'
+        $script:DenseHtml | Should -Match 'confirm against the current Microsoft Learn'
         $card = [regex]::Match($script:DenseHtml, '(?s)id="finding-CC-01".*?</details>').Value
         $card | Should -Match 'remed-learn'
         $card | Should -Match 'https://learn\.microsoft\.com/en-us/purview/communication-compliance'

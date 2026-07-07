@@ -257,7 +257,7 @@ function Write-PpaRemediation {
     if ($null -eq $Entry) { return '' }
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.AppendLine('          <details class="remed">')
-    [void]$sb.AppendLine('            <summary><i class="fas fa-tools"></i> How to remediate <span class="remed-draft-tag">draft</span></summary>')
+    [void]$sb.AppendLine('            <summary><i class="fas fa-tools"></i> How to remediate</summary>')
     [void]$sb.AppendLine('            <div class="remed-body">')
     # portalPath carries the 2-3 sentence portal-first guidance (or the minimal
     # fallback line for not-grounded checks) - prose, so no label prefix.
@@ -268,7 +268,7 @@ function Write-PpaRemediation {
         [void]$sb.Append('              <a class="remed-learn" href="').Append((ConvertTo-PpaHtmlAttr ([string]$Entry.learnUrl))).Append('" target="_blank">')
         [void]$sb.AppendLine('<i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>')
     }
-    [void]$sb.AppendLine('              <p class="remed-note">Draft guidance shown for planning - verify against current Microsoft Learn before acting. This tool never executes remediation.</p>')
+    [void]$sb.AppendLine('              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>')
     [void]$sb.AppendLine('            </div>')
     [void]$sb.AppendLine('          </details>')
     return $sb.ToString()
@@ -595,7 +595,6 @@ function Get-PpaSharedReportCss {
   details.remed{ margin-top:.65rem; border-top:1px dashed var(--hairline); padding-top:.5rem; }
   details.remed summary{ cursor:pointer; font-size:var(--fs-base); font-weight:600; color:var(--accent-strong); list-style-position:inside; font-family:var(--font-sans); }
   details.remed summary i{ margin-right:5px; color:var(--accent); }
-  .remed-draft-tag{ font-size:var(--fs-xs); color:var(--faint); text-transform:uppercase; letter-spacing:.05em; border:1px solid var(--border); border-radius:var(--radius-sm); padding:1px 6px; margin-left:7px; vertical-align:middle; }
   .remed-body{ padding:.5rem .1rem .1rem; }
   .remed-portal{ font-size:var(--fs-base); margin-bottom:.5rem; color:var(--body); }
   .remed-learn{ font-size:var(--fs-base); text-decoration:none; display:inline-block; padding:2px 0; color:var(--link); }
@@ -702,8 +701,10 @@ function Get-PpaNavbarHtml {
 
 function Get-PpaPolishScript {
     # Wave 3 interactive behaviors: vanilla JS, inline, no dependencies. Emitted once
-    # before the footer. Everything here is progressive enhancement - the report stays
-    # fully readable with scripting disabled.
+    # before the footer. Progressive enhancement - the Solutions Summary and every finding's
+    # title and status read without scripting; expanding a finding's drill-down detail (and
+    # the collapsible summary bodies) on screen needs scripting, or print the report to see
+    # it all - the print stylesheet forces every collapsed section open.
 @'
 <script>
 (function () {

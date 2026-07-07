@@ -78,9 +78,11 @@ for the full list and why each is deferred.
 ## What the report looks like
 
 The HTML report is **self-contained**: inline CSS and data-URI SVG icons, with no external
-stylesheets, scripts, fonts, or CDN calls, so it renders fully offline. It opens with a
-**posture summary** (severity counts plus a linked top-findings list) and an **Environment at
-a glance** strip, and includes:
+stylesheets, scripts, fonts, or CDN calls, so it renders fully offline. The Solutions Summary
+and every finding's title and status read without scripting; to expand a finding's full
+drill-down detail (and the collapsible summary bodies) on screen, enable scripting - or print
+the report, which forces every section open. It opens with a **posture summary** (severity
+counts plus a linked top-findings list) and an **Environment at a glance** strip, and includes:
 
 - a sticky **filter bar** (severity chips + text search) and **per-finding anchor links**;
 - a **coverage matrix** showing which workloads the run could and could not read;
@@ -88,8 +90,9 @@ a glance** strip, and includes:
   preserved) - use the browser Print button for a client-ready PDF;
 - collapsible **"How to remediate"** guidance on Improvement / Recommendation findings -
   portal-first prose and a Learn link only (**no PowerShell snippets**; a one-line cmdlet
-  misrepresents what remediation involves). Guidance is displayed text, never executed, and
-  every draft is tracked for human review in `docs/REMEDIATION_REVIEW.md`.
+  misrepresents what remediation involves). Guidance is displayed text, never executed;
+  Microsoft guidance evolves, so confirm against the current Microsoft Learn article before
+  acting. The sourcing rationale is recorded in `docs/REMEDIATION_REVIEW.md`.
 
 To preview all of this **without a tenant**, render the fixture-driven samples:
 

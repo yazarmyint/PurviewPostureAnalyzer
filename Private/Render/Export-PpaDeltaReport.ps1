@@ -48,7 +48,7 @@ function Export-PpaDeltaReport {
     else { Clear-PpaRedaction }
 
     $sb = New-Object System.Text.StringBuilder
-    [void]$sb.Append((Get-PpaHtmlHead -Title 'Purview Posture Delta - Configuration Analyzer for Microsoft Purview' -ExtraCss (Get-PpaDeltaCss)))
+    [void]$sb.Append((Get-PpaHtmlHead -Title 'PurviewPostureAnalyzer (PPA) - Delta report' -ExtraCss (Get-PpaDeltaCss)))
     [void]$sb.Append((Get-PpaNavbarHtml))
     [void]$sb.AppendLine('<div class="container-fluid">')
 

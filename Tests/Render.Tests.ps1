@@ -34,6 +34,18 @@ Describe 'HTML render - structure' {
         # rendered; a report built with coverage adds one more (see the sample builder).
         ([regex]::Matches($script:Html, 'data-toggle="collapse"')).Count | Should -Be 21
     }
+    It 'pins the PPA report chrome (F-010): title, navbar, title card, footer + CAMP lineage subtitle - locks the rebrand' {
+        # Part 6 rebranded the chrome but nothing pinned it; without this a future edit
+        # could silently revert the name with the suite still green.
+        $script:Html | Should -Match '<title>PurviewPostureAnalyzer \(PPA\)</title>'
+        $script:Html | Should -Match '<strong>PurviewPostureAnalyzer \(PPA\)</strong>'                       # navbar
+        $script:Html | Should -Match 'card-title">PurviewPostureAnalyzer \(PPA\)</h2>'                       # title card
+        $script:Html | Should -Match '<strong>PurviewPostureAnalyzer \(PPA\) &middot; read-only\.</strong>'  # footer lead
+        $script:Html | Should -Match 'Based on OfficeDev/CAMP \(Configuration Analyzer for Microsoft Purview\)'  # lineage subtitle
+        # the old CAMP-led navbar/footer branding is gone
+        $script:Html | Should -Not -Match 'Configuration Analyzer for Microsoft Purview \(CAMP\)'
+        $script:Html | Should -Not -Match '<strong>CAMP v2'
+    }
 }
 
 Describe 'HTML render - computed counts' {

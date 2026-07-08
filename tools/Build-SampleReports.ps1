@@ -65,7 +65,7 @@ $sparseSections = @(
     Invoke-PpaRetentionAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\sparse\retention-sparse.json')
 )
 $sparseMeta = [pscustomobject]@{
-    reportTitle  = 'Configuration Analyzer for Microsoft Purview'
+    reportTitle  = 'PurviewPostureAnalyzer (PPA)'
     version      = '2.0'
     versionDate  = 'June 2026'
     dateDisplay  = '01-Jul-2026 10:15 UTC'
@@ -92,7 +92,7 @@ $alSections = @(
     Invoke-PpaLabelAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\labels-autolabel-cases.json') -AsOf ([datetime]'2026-07-01') -LicenseMap $licMap
 )
 $alMeta = [pscustomobject]@{
-    reportTitle  = 'Configuration Analyzer for Microsoft Purview'
+    reportTitle  = 'PurviewPostureAnalyzer (PPA)'
     version      = '2.0'
     versionDate  = 'June 2026'
     dateDisplay  = '01-Jul-2026 10:15 UTC'
@@ -122,7 +122,7 @@ $degSections = @(
     Invoke-PpaEdiscoveryAnalyzer -Raw $degRawMap.eDiscovery          -LicenseMap $licMap
 )
 $degMeta = [pscustomobject]@{
-    reportTitle  = 'Configuration Analyzer for Microsoft Purview'
+    reportTitle  = 'PurviewPostureAnalyzer (PPA)'
     version      = '2.0'
     versionDate  = 'June 2026'
     dateDisplay  = '01-Jul-2026 10:15 UTC'

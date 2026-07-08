@@ -369,7 +369,7 @@ function Get-PpaSharedReportCss {
     #      Get-PpaSolutionIconCss (decorative CSS ::before, keyed on the section IDs).
     $base = @'
   /* =====================================================================
-     CAMP report stylesheet - enterprise compliance-brief style (Mockup A v2).
+     PurviewPostureAnalyzer (PPA) report stylesheet - enterprise compliance-brief style (Mockup A v2).
      Editorial: serif display + humanist sans body, warm paper, one brass accent,
      wider responsive shell with capped prose measure. Same markup + hooks as before.
      Layer 1 (compat: grid + FA glyph map + collapse) is preserved so the report

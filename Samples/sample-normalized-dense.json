@@ -1,6 +1,6 @@
 {
   "meta": {
-    "reportTitle": "Configuration Analyzer for Microsoft Purview",
+    "reportTitle": "PurviewPostureAnalyzer (PPA)",
     "version": "2.0",
     "versionDate": "June 2026",
     "dateDisplay": "01-Jul-2026 09:30 UTC",

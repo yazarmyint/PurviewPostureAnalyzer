@@ -39,7 +39,7 @@ BeforeAll {
         Invoke-PpaRetentionAnalyzer -Raw (Read-PpaFixture 'Samples\sample-raw\sparse\retention-sparse.json')
     )
     $sparseMeta = [pscustomobject]@{
-        reportTitle = 'Configuration Analyzer for Microsoft Purview'; version = '2.0'; versionDate = 'June 2026'
+        reportTitle = 'PurviewPostureAnalyzer (PPA)'; version = '2.0'; versionDate = 'June 2026'
         dateDisplay = '01-Jul-2026 10:15 UTC'; organization = 'Fabrikam Robotics (sparse fixture)'
         tenant = 'fabrikamrobotics.onmicrosoft.com'; operator = 'taylor.ng@fabrikamrobotics.com (Compliance Reader)'
         mode = 'Read-only - configuration metadata only'
@@ -112,7 +112,7 @@ Describe 'P1 - posture summary' {
         $tiles[4] | Should -Be ([int]$body['Verify manually'])
     }
     It 'renders the run metadata line with version, timestamp and tenant hint' {
-        $script:DenseHtml | Should -Match 'es-meta[^<]*Configuration Analyzer for Microsoft Purview v2\.0'
+        $script:DenseHtml | Should -Match 'es-meta[^<]*PurviewPostureAnalyzer \(PPA\) v2\.0'
         $script:DenseHtml | Should -Match '01-Jul-2026 09:30 UTC'
         $script:DenseHtml | Should -Match 'tenant: contosopharma\.onmicrosoft\.com'
     }

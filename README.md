@@ -111,14 +111,18 @@ Every run also writes a versioned JSON **snapshot** of what the tool observed (s
 them as engagement-confidential (the console says so on every capture). The redacted HTML
 report remains the artifact that travels.
 
-Every run also writes a **run manifest** (`posture-run-manifest.json`) next to the report: a
-metadata-only record of every cmdlet the read-only wrapper dispatched - cmdlet name, result
-status, object count, and a UTC timestamp, plus a run header (start/end, PPA version,
-PowerShell edition + version). It records **no arguments, filter strings, or returned data**,
-so it carries no tenant content or identifiers - there is nothing to redact. It is written to
-the same folder as the report and, like everything else, never leaves the machine; it is the
-tool's self-audit trail, useful for a SOC correlating the `Get-*` / `Connect-*` calls it sees.
-It is emitted on every run, including degraded ones.
+Every run also writes a **run manifest** (`posture-run-manifest.json`) next to the report - the
+tool's self-audit trail. For **each read dispatched through the read-only wrapper** it records
+the cmdlet name, result status, object count and a UTC timestamp, under a header (tool, schema
+version, PPA version, PowerShell edition + version, run start/end). It is **metadata only** -
+never arguments, filter strings, policy content or tenant identifiers - so there is nothing to
+redact. **Scope:** it lists the `Get-*` reads the wrapper ran; it does **not** record the
+`Connect-IPPSSession` / `Connect-ExchangeOnline` sign-ins, which don't pass through the wrapper -
+so a SOC correlating against sign-in logs should read it as a record of *reads*, not of
+connection or sign-in events. It is written to the same folder as the report - under `Outputs/`
+(git-ignored) on a default run, or wherever you point `-OutputDirectory` (yours to protect, same
+as snapshots) - and never leaves the machine. Emitted on every run (best-effort: written after
+collection and before the report render, so a hard crash before that point yields none).
 
 The **delta report** compares two snapshots from the same tenant - typically the kickoff
 snapshot against the engagement-close one - completely offline, with no session, on

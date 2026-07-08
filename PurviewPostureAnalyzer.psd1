@@ -2,7 +2,7 @@
     RootModule        = 'PurviewPostureAnalyzer.psm1'
     ModuleVersion     = '2.0.0'
     GUID              = '08016980-865c-4ab2-8df2-4c60e235189f'
-    Author            = 'CAMP v2 contributors'
+    Author            = 'Yazar Myint'
     CompanyName       = 'Community'
     Copyright         = 'Licensed under the MIT License. Not an official Microsoft product.'
     Description       = 'Read-only Microsoft Purview posture analyzer (modernized CAMP). Reads configuration metadata across Sensitivity Labels, DLP, Retention, Insider Risk, Audit, eDiscovery, Communication Compliance and DSPM for AI, and produces an HTML report (primary) plus a JSON export. Collectors call Get-* only; no tenant configuration is created, modified or deleted, and no content is collected.'

@@ -684,7 +684,7 @@ function Get-PpaHtmlHead {
 
 function Get-PpaReportHead {
     # The main report head - composed from the shared asset (C-fix 4).
-    return Get-PpaHtmlHead -Title 'Configuration Analyzer for Microsoft Purview'
+    return Get-PpaHtmlHead -Title 'PurviewPostureAnalyzer (PPA)'
 }
 
 function Get-PpaNavbarHtml {
@@ -692,7 +692,7 @@ function Get-PpaNavbarHtml {
 <nav class="navbar navbar-custom">
   <div class="container-fluid">
     <div class="col-sm" style="text-align:left"><div class="row"><div><i class="fas fa-binoculars"></i></div>
-      <div class="ml-3"><strong>Configuration Analyzer for Microsoft Purview (CAMP)</strong></div></div></div>
+      <div class="ml-3"><strong>PurviewPostureAnalyzer (PPA)</strong></div></div></div>
     <div class="col-sm" style="text-align:right"><button type="button" class="btn btn-primary" onclick="window.print();">Print</button></div>
   </div>
 </nav>
@@ -895,7 +895,7 @@ function Get-PpaFooterHtml {
     # gone; all interactivity is the vanilla JS in Get-PpaPolishScript (incl. collapse).
 @'
 <footer class="app-footer"><div class="container-fluid">
-  <strong>CAMP v2 &middot; read-only.</strong> Reads configuration metadata only &mdash; no document, email or prompt content, no matched values.
+  <strong>PurviewPostureAnalyzer (PPA) &middot; read-only.</strong> Based on OfficeDev/CAMP (Configuration Analyzer for Microsoft Purview). Reads configuration metadata only &mdash; no document, email or prompt content, no matched values.
   Does not create, modify or delete tenant configuration. Statuses are inputs to user judgment, not compliance determinations,
   and are not mapped to any regulatory framework.
 </div></footer>

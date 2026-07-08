@@ -39,7 +39,7 @@ function Get-PpaRunContext {
     $org = if ($Organization) { $Organization } else { $tenant }
 
     return [pscustomobject]@{
-        reportTitle = 'Configuration Analyzer for Microsoft Purview'
+        reportTitle = 'PurviewPostureAnalyzer (PPA)'
         version     = '2.0'
         versionDate = 'July 2026'
         dateDisplay = ($now.ToString('dd-MMM-yyyy HH:mm') + ' UTC')

@@ -77,6 +77,13 @@ function Invoke-PurviewPostureAnalyzer {
         throw ("Unknown section key(s): {0}. Valid keys: {1}" -f (($badKeys | Select-Object -Unique) -join ', '), ($knownSectionIds -join ', '))
     }
 
+    # ---- RUN MANIFEST (F-008): start recording every cmdlet the read-only chokepoint
+    # dispatches this run - metadata only (name, status, count, timestamp), never arguments
+    # or content. Started before the run-context + session-diagnostics probes so they are
+    # captured too; written alongside the report below. Emitted by default (self-auditability
+    # is the point) and never leaves the machine. ----
+    Initialize-PpaRunManifest
+
     $meta = Get-PpaRunContext -Organization $Organization -AsOf $AsOf
 
     # ---- SESSION DIAGNOSTICS (Verbose) ----
@@ -209,6 +216,13 @@ function Invoke-PurviewPostureAnalyzer {
     # every missing parent). The path is absolute, so New-Item and the .NET writes agree on it.
     New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null
 
+    # Run manifest (F-008): metadata-only record of the cmdlets this run executed, written
+    # alongside the report. Emitted here - after the reads are done and the dir exists, before
+    # the render write - so a render failure still leaves the manifest (best-effort; only a
+    # crash in the pure assemble stage above this point skips it), and it always lands on
+    # degraded runs, which complete normally. Metadata only, so there is nothing to redact.
+    $manifestPath = Export-PpaRunManifest -Directory $reportsDir -PpaVersion ([string]$meta.version)
+
     $htmlPath = Join-Path $reportsDir 'posture-report.html'
     $jsonPath = Join-Path $reportsDir 'posture-report.json'
     [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames), (New-Object System.Text.UTF8Encoding($false)))
@@ -239,5 +253,5 @@ function Invoke-PurviewPostureAnalyzer {
 
     Write-Host "Report : $htmlPath"
     Write-Host "JSON   : $jsonPath"
-    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; SnapshotPath = $snapshotPath; Normalized = $normalized }
+    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; SnapshotPath = $snapshotPath; ManifestPath = $manifestPath; Normalized = $normalized }
 }

@@ -111,6 +111,15 @@ Every run also writes a versioned JSON **snapshot** of what the tool observed (s
 them as engagement-confidential (the console says so on every capture). The redacted HTML
 report remains the artifact that travels.
 
+Every run also writes a **run manifest** (`posture-run-manifest.json`) next to the report: a
+metadata-only record of every cmdlet the read-only wrapper dispatched - cmdlet name, result
+status, object count, and a UTC timestamp, plus a run header (start/end, PPA version,
+PowerShell edition + version). It records **no arguments, filter strings, or returned data**,
+so it carries no tenant content or identifiers - there is nothing to redact. It is written to
+the same folder as the report and, like everything else, never leaves the machine; it is the
+tool's self-audit trail, useful for a SOC correlating the `Get-*` / `Connect-*` calls it sees.
+It is emitted on every run, including degraded ones.
+
 The **delta report** compares two snapshots from the same tenant - typically the kickoff
 snapshot against the engagement-close one - completely offline, with no session, on
 **PowerShell 7.5+ only**:

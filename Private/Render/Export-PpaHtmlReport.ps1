@@ -218,29 +218,6 @@ function Export-PpaHtmlReport {
         [void]$sb.AppendLine('')
     }
 
-    # ---- observations ----
-    $obs = @($Normalized.observations)
-    if ($obs.Count -gt 0) {
-        [void]$sb.AppendLine('  <div class="card mt-3">')
-        [void]$sb.AppendLine('    <div class="card-header"><strong>Observations</strong></div>')
-        [void]$sb.AppendLine('    <div class="card-body">')
-        [void]$sb.AppendLine('      <p style="margin-bottom:.5rem;">Advisory only &mdash; for the consultant to weigh against engagement context, licensing, and stakeholder input. Not decisions, not a remediation plan.</p>')
-        foreach ($o in $obs) {
-            [void]$sb.Append('      <div class="bd-callout bd-callout-info"><h5>').Append((ConvertTo-PpaHtmlText $o.title)).AppendLine('</h5>')
-            foreach ($p in @($o.points)) {
-                if (-not [string]::IsNullOrEmpty($p.lead)) {
-                    [void]$sb.Append('        <p><strong>').Append((ConvertTo-PpaHtmlText $p.lead)).Append('</strong> ').Append((ConvertTo-PpaHtmlText $p.text)).AppendLine('</p>')
-                } else {
-                    [void]$sb.Append('        <p>').Append((ConvertTo-PpaHtmlText $p.text)).AppendLine('</p>')
-                }
-            }
-            [void]$sb.AppendLine('      </div>')
-        }
-        [void]$sb.AppendLine('    </div>')
-        [void]$sb.AppendLine('  </div>')
-        [void]$sb.AppendLine('')
-    }
-
     # ---- run-profile note (P5): a thin report must never look like a silent failure ----
     $excludedList = @($ExcludedSections | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     if ($excludedList.Count -gt 0) {

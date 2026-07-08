@@ -1,6 +1,6 @@
 # ConvertTo-PpaNormalized.ps1 - the assemble stage of the pipeline (PLAN.md section 2).
-# Takes the collected/analyzed pieces (meta, licensing, per-section findings,
-# observations) and produces the single normalized object that both the HTML renderer
+# Takes the collected/analyzed pieces (meta, licensing, and per-section findings)
+# and produces the single normalized object that both the HTML renderer
 # and the JSON export consume. Counts and the at-a-glance headline are computed here,
 # never hand-authored. ASCII-only source. Depends on PpaStatus.ps1.
 
@@ -31,7 +31,6 @@ function ConvertTo-PpaNormalized {
         [Parameter(Mandatory = $true)] $Meta,
         [Parameter(Mandatory = $true)] $Licensing,
         [Parameter(Mandatory = $true)] $Sections,
-        $Observations = @(),
         # Wave 4 Part D: the CoverageModel (pure projection); null renders no matrix.
         $Coverage = $null
     )
@@ -117,6 +116,5 @@ function ConvertTo-PpaNormalized {
         coverage     = $Coverage
         summary      = [pscustomobject][ordered]@{ totals = [pscustomobject]$totals; groups = $groupsOut.ToArray() }
         sections     = $secOut.ToArray()
-        observations = @($Observations)
     }
 }

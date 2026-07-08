@@ -442,28 +442,5 @@
         }
       ]
     }
-  ],
-  "observations": [
-    {
-      "title": "DLP looks broader than it enforces",
-      "points": [
-        { "text": "6 policies read as substantial coverage, but 2 never left test mode and Teams is entirely unscoped." },
-        { "lead": "→ Worth confirming", "text": "which locations the client believes are protected vs. what's actually enforcing." }
-      ]
-    },
-    {
-      "title": "Insider-risk exposure exists, but it's a scoping conversation first",
-      "points": [
-        { "text": "No IRM coverage for departing-employee data theft. IRM is an E5-tier workload and needs HR/Legal alignment before any policy is scoped." },
-        { "lead": "→ Raise as", "text": "a scoping + licensing item, not a quick config win." }
-      ]
-    },
-    {
-      "title": "Copilot is live ahead of its guardrails",
-      "points": [
-        { "text": "Copilot is deployed while DSPM-for-AI is audit-only and labels aren't enforced on AI-reachable content." },
-        { "lead": "→ Validate", "text": "oversharing exposure early in the engagement." }
-      ]
-    }
   ]
 }

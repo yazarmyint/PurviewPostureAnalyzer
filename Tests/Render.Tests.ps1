@@ -12,7 +12,7 @@ BeforeAll {
     . (Join-Path $script:RepoRoot 'Private\Render\Export-PpaHtmlReport.ps1')
 
     $raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-    $norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections -Observations $raw.observations
+    $norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections
     $script:Html = Export-PpaHtmlReport -Normalized $norm -IsSample
 }
 

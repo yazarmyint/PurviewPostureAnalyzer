@@ -23,12 +23,12 @@ BeforeAll {
 
     # Standard fixture (Northwind Health, 21 findings).
     $std = Read-PpaFixture 'Samples\sample-normalized.json'
-    $script:StdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections -Observations $std.observations
+    $script:StdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections
     $script:StdHtml = Export-PpaHtmlReport -Normalized $script:StdNorm -IsSample
 
     # Dense fixture (Contoso Pharmaceuticals, 26 findings, every severity).
     $dense = Read-PpaFixture 'Samples\sample-normalized-dense.json'
-    $script:DenseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations
+    $script:DenseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections
     $script:DenseHtml = Export-PpaHtmlReport -Normalized $script:DenseNorm -IsSample
 
     # Sparse fixture (raw sparse JSON through the real analyzers - graceful absence).
@@ -55,7 +55,7 @@ BeforeAll {
 
     # Profile-filtered dense variant (P5): DSPM_for_AI and Audit excluded at render time.
     $script:ProfSelection = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_for_AI', 'Audit')
-    $script:ProfNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $script:ProfSelection.Sections -Observations $dense.observations
+    $script:ProfNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $script:ProfSelection.Sections
     $script:ProfHtml = Export-PpaHtmlReport -Normalized $script:ProfNorm -IsSample -ExcludedSections $script:ProfSelection.ExcludedTitles
 
     $script:AllVariants = @(

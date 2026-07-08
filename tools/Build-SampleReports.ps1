@@ -36,7 +36,7 @@ function Write-PpaSampleReport {
 
 # ---- 1. Standard fixture (the Wave 1/2 sample: Northwind Health, 21 findings) ----
 $std = Read-PpaFixture 'Samples\sample-normalized.json'
-$stdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections -Observations $std.observations
+$stdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections
 Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample)
 
 # ---- 2. Dense fixture (Contoso Pharmaceuticals, 26 findings, every severity) ----
@@ -54,7 +54,7 @@ $fixtureRawMap = @{
 }
 $denseCoverage = Get-PpaCoverageModel -RawMap $fixtureRawMap
 $dense = Read-PpaFixture 'Samples\sample-normalized-dense.json'
-$denseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations -Coverage $denseCoverage
+$denseNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Coverage $denseCoverage
 Write-PpaSampleReport -Name 'sample-dense.html' -Html (Export-PpaHtmlReport -Normalized $denseNorm -IsSample)
 
 # ---- 3. Sparse fixture (raw sparse JSON through the real analyzers - graceful absence) ----
@@ -152,7 +152,7 @@ Write-PpaSampleReport -Name 'sample-dense-redacted.html' -Html (Export-PpaHtmlRe
 
 # ---- 5. Profile-filtered variant (dense fixture minus DSPM for AI + Audit) ----
 $sel = Select-PpaSections -Sections @($dense.sections) -ExcludeSection @('DSPM_for_AI', 'Audit')
-$profNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $sel.Sections -Observations $dense.observations -Coverage $denseCoverage
+$profNorm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $sel.Sections -Coverage $denseCoverage
 Write-PpaSampleReport -Name 'sample-dense-profile.html' -Html (Export-PpaHtmlReport -Normalized $profNorm -IsSample -ExcludedSections $sel.ExcludedTitles)
 
 # ---- 6. Dense snapshot sample (Wave 4 Part B: raw fixtures -> analyzers -> snapshot) ----

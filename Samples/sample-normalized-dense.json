@@ -535,21 +535,5 @@
         }
       ]
     }
-  ],
-  "observations": [
-    {
-      "title": "Detection outruns enforcement across the board",
-      "points": [
-        { "text": "Auto-labeling, four DLP policies, and the Copilot DLP policy are all in simulation or test mode - the tenant observes risky handling of PHI and trial data but blocks none of it." },
-        { "lead": "-> Worth confirming", "text": "which of these simulations have produced enough evidence to justify switching to enforce." }
-      ]
-    },
-    {
-      "title": "Audit is off while discovery obligations are active",
-      "points": [
-        { "text": "Unified audit logging is disabled in a tenant with active litigation and regulatory cases - investigations triggered today would have no activity record." },
-        { "lead": "-> Raise as", "text": "the first remediation conversation; it gates eDiscovery, IRM and Copilot oversight alike." }
-      ]
-    }
   ]
 }

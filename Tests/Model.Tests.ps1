@@ -64,7 +64,7 @@ Describe 'Get-PpaGlanceHeadline precedence' {
 Describe 'ConvertTo-PpaNormalized' {
     BeforeAll {
         $raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-        $script:Norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections -Observations $raw.observations
+        $script:Norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections
     }
     It 'computes the All-Solutions totals (2/8/3/7/0, assume-E5 model; DLP-04 retired Wave 5 Part 4)' {
         $script:Norm.summary.totals.OK              | Should -Be 2

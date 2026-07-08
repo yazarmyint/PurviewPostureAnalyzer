@@ -377,7 +377,7 @@ Describe 'Matrix render (spec 5.1/5.5/5.6/5.8)' {
         # Build the redaction state the way the main report does, from the dense
         # normalized fixture, then re-render the matrix.
         $dense = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized-dense.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-        $norm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations -Coverage $script:DenseModel
+        $norm = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Coverage $script:DenseModel
         Initialize-PpaRedaction -Normalized $norm -RedactNames
         try {
             $redacted = Write-PpaCoverageMatrix -Coverage $script:DenseModel
@@ -431,7 +431,7 @@ Describe 'Canonical solution order (Wave 5 cleanup Part 5: body / summary / matr
             'Insider_Risk', 'Communication_Compliance', 'Audit', 'eDiscovery'
         )
         $dense = Read-PpaFixtureJson 'Samples\sample-normalized-dense.json'
-        $script:NormDense = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Observations $dense.observations -Coverage $script:DenseModel
+        $script:NormDense = ConvertTo-PpaNormalized -Meta $dense.meta -Licensing $dense.licensing -Sections $dense.sections -Coverage $script:DenseModel
         # The fixture ships sections in the historical analyze order, so the sort
         # inside ConvertTo-PpaNormalized is what these tests observe.
     }

@@ -207,7 +207,7 @@ function Invoke-PurviewPostureAnalyzer {
     $coverage = Get-PpaCoverageModel -RawMap $rawMap
 
     # ---- ASSEMBLE -> RENDER (HTML primary) + EXPORT (JSON) ----
-    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Observations @() -Coverage $coverage
+    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Coverage $coverage
 
     $stamp = $AsOf.ToUniversalTime().ToString('yyyyMMdd-HHmmss')
     $reportsDir = Join-Path (Join-Path $OutputDirectory "PurviewPosture-$stamp") 'reports'

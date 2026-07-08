@@ -130,15 +130,20 @@ severity input):
 
 **Status of surface:** [VERIFIED] Both `Get-RetentionCompliancePolicy` and
 `Get-AppRetentionCompliancePolicy` execute successfully with current roles
-(both returned 0 objects in the sandbox — property shape not yet observed
-live).
+(both returned 0 objects in the sandbox at Wave 2 — property shape not
+observed live until Wave 5). **Update (2026-07, Wave 5 cleanup Part 1):**
+[VERIFIED] the `Applications` carrier property was observed live on a
+populated tenant; the Copilot token is **`Users:M365Copilot`** (plural
+`Users:`, not the doc-grounded `User:` singular). The `M365Copilot`
+containment match below already covers the observed shape.
 
 **Detection** [DOC-GROUNDED, Microsoft Learn retention-cmdlets and
 create-retention-policies]:
 - Primary: `Get-AppRetentionCompliancePolicy` — the modern AI locations
   ("Microsoft Copilot experiences", "Enterprise AI apps", "Other AI apps")
-  live in the App retention family. Expected carrier property: `Applications`,
-  with values in the pattern `User:M365Copilot` (Copilot experiences). Match
+  live in the App retention family. Carrier property: `Applications`, with
+  values in the pattern `Users:M365Copilot` (Copilot experiences; observed
+  live 2026-07 — the doc-grounded expectation was `User:` singular). Match
   Copilot coverage via `Applications` values matching `M365Copilot`
   (case-insensitive, null-safe). If `Applications` is absent or shaped
   differently, degrade: render the policy inventory (names, locations-ish
@@ -260,7 +265,7 @@ create-retention-policies]:
 | DLP `Locations` JSON, `Workload=Applications`, `Location=Copilot.M365` | VERIFIED |
 | One-click DLP default ships `TestWithoutNotifications` | VERIFIED |
 | `ThirdPartyAppDlpLocation` as third-party AI carrier | UNVERIFIED — report factually only |
-| App retention `Applications` = `User:M365Copilot` | DOC-GROUNDED — verify on first populated tenant |
+| App retention `Applications` Copilot token | VERIFIED (2026-07, Wave 5 cleanup Part 1) — observed `Users:M365Copilot` (plural `Users:`, not the doc-grounded `User:`) |
 | CC rule `ContentSources.Workloads` contains `Copilot` | VERIFIED |
 | CC `UnifiedGenAIWorkloads` / `ThirdPartyWorkloads` fields exist | VERIFIED (null values) |
 | IRM `InsiderRiskScenario` is the template identifier | VERIFIED |

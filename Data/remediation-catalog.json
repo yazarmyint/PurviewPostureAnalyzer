@@ -1,0 +1,151 @@
+{
+  "source": "Wave 3.1 remediation guidance. DRAFT until human-reviewed - grounding determination table and drafts in docs/REMEDIATION_REVIEW.md. No PowerShell anywhere in this file (B1). portalPath carries 2-3 sentence portal-first guidance naming the key decision for GROUNDED checks (grounding: skill), or a minimal fallback line for NOT-GROUNDED checks (grounding: none). Display-only text - this tool never executes remediation.",
+  "lastReviewed": "2026-07-03",
+  "checks": {
+    "LABELS-01": {
+      "portalPath": "In the Purview portal under Information protection > Sensitivity labels, build a small taxonomy - four or fewer top-level labels with business-language names (for example Public / General / Confidential / Highly Confidential). Get data-owner sign-off on the tiers before publishing; an IT-invented taxonomy with many levels stalls adoption and users default to General.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels",
+      "grounding": "skill"
+    },
+    "LABELS-02": {
+      "portalPath": "Under Information protection > Label publishing policies, publish the labels to the users who create content, deciding the audience scope and the default label for each group. Verify pilot users see the label menu with the intended default in Word and Outlook before widening the rollout.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-sensitivity-labels",
+      "grounding": "skill"
+    },
+    "LABELS-03": {
+      "portalPath": "Under Information protection > Auto-labeling, review the policy's simulation results to confirm the matched items and sensitive info types are what you intend, then turn the policy on. Enabling before reviewing simulation can mislabel content at scale.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically",
+      "grounding": "skill"
+    },
+    "LABELS-04": {
+      "portalPath": "Container labels are created under Information protection > Sensitivity labels by scoping a label to Groups & sites. The real decision is what each label enforces on a workspace - guest access, external sharing, and unmanaged-device limits - so agree those settings with site owners before publishing.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites",
+      "grounding": "skill"
+    },
+    "LABELS-05": {
+      "portalPath": "Azure Rights Management is the encryption engine behind sensitivity labels and encrypted mail, and a disabled state is usually a deliberate opt-out rather than drift. Confirm with the messaging owner that nothing legacy (on-premises AD RMS) depends on it staying off, then re-enable and verify an encrypting label round-trips in Outlook before declaring protection restored.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/encryption",
+      "grounding": "skill"
+    },
+    "DLP-01": {
+      "portalPath": "Under Data loss prevention > Policies, review each test-mode policy's matches in Activity Explorer and define the exceptions and override justifications the business needs before switching the policy to enforce. Blocking without an exception path produces business escalations within hours.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp",
+      "grounding": "skill"
+    },
+    "DLP-02": {
+      "portalPath": "Under Data loss prevention > Policies, edit each policy's locations to add Teams chat and channel messages, deciding which policies genuinely need Teams coverage. Teams DLP applies only to messages posted after the change - it is not retroactive - so set expectations and start with warn-level actions.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams",
+      "grounding": "skill"
+    },
+    "DLP-03": {
+      "portalPath": "Endpoint DLP only works on onboarded devices, so onboard them first (Intune is the preferred path, or Defender for Endpoint) and confirm per-user licensing covers Endpoint DLP. Then add the Devices location to the relevant policies and run audit-only before warn or block - blocking on day one turns users against the agent.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about",
+      "grounding": "skill"
+    },
+    "RET-01": {
+      "portalPath": "Under Data lifecycle management, anchor the retention inventory to a file plan: map each retention rule to a policy (broad, location-level) or a label (item-level precision), each citing a regulation or a named business owner. Rules that exist in the portal but not in the plan are the ones that fail audit.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention",
+      "grounding": "skill"
+    },
+    "RET-02": {
+      "portalPath": "Under Data lifecycle management > Adaptive scopes, create query-based scopes on user, group, or site attributes and preview the membership they return before retargeting retention policies to them. Adaptive scopes keep coverage current as the organization changes; static scopes quietly drift.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-adaptive",
+      "grounding": "skill"
+    },
+    "RET-03": {
+      "portalPath": "Under Data lifecycle management > Label policies, add auto-apply rules for the retention labels, choosing the conditions deliberately - sensitive info types, KQL, or trainable classifiers - and run them in simulation first. Mis-targeted auto-apply is hard to roll back at scale, so review simulated coverage before broad rollout.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically",
+      "grounding": "skill"
+    },
+    "IRM-01": {
+      "portalPath": "Before creating any policy under Insider risk management, configure the privacy controls - pseudonymized usernames, separated admin/analyst/investigator roles, and legal or works-council review where required. Then start with a single template in analytics mode for about two weeks to baseline alert volume; enabling every template on day one buries the team in untriaged alerts.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management",
+      "grounding": "skill"
+    },
+    "IRM-02": {
+      "portalPath": "Treat this as a scoping conversation, not a configuration task: the departing-users template needs HR/Legal alignment and an HR data connector before it has a trigger to fire on. Settle licensing, privacy controls, and the HR feed first, then scope the policy.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies",
+      "grounding": "skill"
+    },
+    "IRM-03": {
+      "portalPath": "The Risky AI usage template is created under Insider risk management > Policies, but it scores on DSPM for AI signals - enable that visibility first or the policy has nothing to evaluate. Pair it with the same privacy controls and analytics-mode baseline as any other IRM template.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies",
+      "grounding": "skill"
+    },
+    "IRM-04": {
+      "portalPath": "Under Insider risk management > Policies, create a policy from the 'Data theft by departing users' template; it only has a trigger once the HR connector (or the Microsoft Entra account-deletion signal) is wired, so connect that feed first. Start in analytics mode with the same privacy controls as the rest of IRM and baseline alert volume before anyone acts on scores.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policy-templates",
+      "grounding": "skill"
+    },
+    "IRM-05": {
+      "portalPath": "Under Insider risk management > Policies, create a policy from the 'Data leaks' template, choosing the triggering event deliberately - a DLP policy match is the usual choice, so point it at a high-signal DLP policy rather than a noisy one. Scope a pilot population and run in analytics mode first; a tenant-wide leak policy on day one buries reviewers in benign alerts.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policy-templates",
+      "grounding": "skill"
+    },
+    "AUD-01": {
+      "portalPath": "In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-log-enable-disable",
+      "grounding": "skill"
+    },
+    "AUD-02": {
+      "portalPath": "In Audit > New search, run a query for activity you know happened recently and confirm events return - enabled is not the same as ingesting on time. Audit search has latency, so allow for it before concluding events are missing.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-search",
+      "grounding": "skill"
+    },
+    "AUD-03": {
+      "portalPath": "Where the tenant tier includes Audit (Premium), decide retention deliberately: match the retention period to how far back an investigation may need to reach, and add audit retention policies for the crucial events (for example mailbox access) rather than relying on defaults.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-premium",
+      "grounding": "skill"
+    },
+    "AUD-04": {
+      "portalPath": "Mailbox auditing is on by default, so treat re-enabling an organization-level off switch as recovering a broken evidence trail rather than tuning. Confirm with the Exchange owner why it was disabled - legacy noise concerns are the usual reason - then verify mailbox actions appear in Audit search after the change.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/audit-mailboxes",
+      "grounding": "skill"
+    },
+    "ED-01": {
+      "portalPath": "Under eDiscovery > Cases, keep case hygiene defensible: assign per-case, role-scoped access rather than broad eDiscovery Manager grants, apply holds before searching, and close cases (releasing holds) only when legal confirms the matter is concluded.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery",
+      "grounding": "skill"
+    },
+    "ED-02": {
+      "portalPath": "Premium capabilities - review sets, analytics, and Copilot interaction collection - depend on E5 / E5 Compliance / add-on licensing per user. Confirm which features your licensing actually enables before building a workflow that assumes them.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ediscovery",
+      "grounding": "skill"
+    },
+    "CC-01": {
+      "portalPath": "Before creating a policy under Communication compliance, put the privacy guardrails in place: pseudonymized usernames for reviewers, tightly scoped reviewer access, and legal/HR sign-off on what is monitored. Then start narrow - one template scoped to the population that genuinely needs supervision - and expand once triage keeps up.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance",
+      "grounding": "skill"
+    },
+    "AI-01": {
+      "portalPath": "Activate DSPM for AI from the Purview portal and confirm tenant-wide auditing is on - without it there are no interactions to see. Run the built-in data assessments to scope AI risk before turning on any enforcement.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview",
+      "grounding": "skill"
+    },
+    "AI-02": {
+      "portalPath": "Under Data loss prevention > Policies, review what the Copilot-scoped policy matched during simulation - whether the sensitive info types and prompt matches are what you intend to act on - then switch it to enforce. Classification maturity gates its value: tune the conditions rather than enforcing a noisy default.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dspm-for-ai",
+      "grounding": "skill"
+    },
+    "AI-03": {
+      "portalPath": "The decision is which sensitivity labels Copilot must not ground on: create or edit a policy on the Microsoft 365 Copilot location with a rule referencing those labels, which requires the labels to be deployed and applied first. Verify with a test prompt that Copilot no longer returns the labeled content.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about",
+      "grounding": "skill"
+    },
+    "AI-04": {
+      "portalPath": "Configure in the Microsoft Purview portal under DSPM for AI; see the linked guidance for collection-policy scoping specific to your environment (pay-as-you-go / Agent 365 billing applies).",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/retention-policies-copilot",
+      "grounding": "none"
+    },
+    "AI-05": {
+      "portalPath": "Under Data lifecycle management > Retention policies, create or extend a policy to include the Microsoft 365 Copilot interactions location, deciding the retain/delete period with the records owner rather than defaulting. Check precedence against existing policies - retention wins over deletion and the longest retention wins - so the outcome is deliberate.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/create-retention-policies",
+      "grounding": "skill"
+    },
+    "AI-06": {
+      "portalPath": "Under Communication compliance > Policies, start from the 'Detect Microsoft 365 Copilot interactions' template and decide which population's AI interactions genuinely need supervision. Apply the same privacy prerequisites as any Communication Compliance policy - pseudonymized reviewers, scoped access, and legal sign-off - before enabling.",
+      "learnUrl": "https://learn.microsoft.com/en-us/purview/communication-compliance",
+      "grounding": "skill"
+    }
+  }
+}

@@ -1,0 +1,850 @@
+{
+  "schemaVersion": {
+    "major": 1,
+    "minor": 0
+  },
+  "toolVersion": "2.0",
+  "snapshotId": "cccc3333-0000-0000-0000-00000000000c",
+  "capturedAt": "2026-04-01T09:00:00Z",
+  "tenantId": "contoso-dense-fixture",
+  "profile": null,
+  "sectionsRun": [
+    "Sensitivity_Labels",
+    "Data_Loss_Prevention",
+    "Retention",
+    "Insider_Risk",
+    "Audit",
+    "eDiscovery",
+    "Communication_Compliance",
+    "DSPM_for_AI"
+  ],
+  "redactionState": "none",
+  "denylistVersion": "1.0",
+  "environment": {
+    "psEdition": "Fixture",
+    "psVersion": "delta-fixture",
+    "modules": {}
+  },
+  "collectorOutcomes": {
+    "Audit": "Populated",
+    "Communication_Compliance": "Empty",
+    "Data_Loss_Prevention": "Populated",
+    "DSPM_for_AI": "Populated",
+    "eDiscovery": "Populated",
+    "Insider_Risk": "Empty",
+    "Retention": "Populated",
+    "Sensitivity_Labels": "Populated"
+  },
+  "objects": {
+    "AdaptiveScopeSummary": [
+      {
+        "_key": "AdaptiveScopeSummary",
+        "_keySource": "Name",
+        "name": "AdaptiveScopeSummary",
+        "status": "Ok",
+        "count": 0
+      }
+    ],
+    "AppRetentionPolicy": [],
+    "AuditConfig": [
+      {
+        "_key": "AuditConfig",
+        "_keySource": "Name",
+        "name": "AuditConfig",
+        "status": "Ok",
+        "error": null,
+        "unifiedAuditEnabled": true,
+        "orgStatus": "Ok",
+        "mailboxAuditingDisabled": false
+      }
+    ],
+    "AutoLabelPolicy": [
+      {
+        "_key": "guid-auto-label-phi-pii",
+        "_keySource": "Guid",
+        "name": "Auto-label PHI & PII",
+        "guid": "guid-auto-label-phi-pii",
+        "mode": "TestWithoutNotifications",
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "All",
+          "oneDrive": "All"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false
+        },
+        "sits": [
+          "U.S. HIPAA",
+          "U.S. SSN",
+          "Credit Card"
+        ],
+        "simulationStartDate": "2026-04-08",
+        "simulationItemCount": 2140
+      }
+    ],
+    "CcCopilotPolicy": [],
+    "CommsComplianceSummary": [
+      {
+        "_key": "CommsComplianceSummary",
+        "_keySource": "Name",
+        "name": "CommsComplianceSummary",
+        "status": "Ok",
+        "error": null,
+        "count": 0
+      }
+    ],
+    "CopilotDlpPolicy": [
+      {
+        "_key": "guid-detect-sensitive-info-in-ai-prompts",
+        "_keySource": "Guid",
+        "name": "Detect sensitive info in AI prompts",
+        "guid": "guid-detect-sensitive-info-in-ai-prompts",
+        "mode": "AuditAndNotify",
+        "sits": [
+          "U.S. SSN",
+          "Credit Card",
+          "U.S. HIPAA"
+        ],
+        "hasLabelCondition": false,
+        "labelRefs": [],
+        "copilotLocations": [
+          "Copilot.M365"
+        ],
+        "oneClick": false,
+        "parseFallback": false,
+        "created": "2026-05-11"
+      }
+    ],
+    "DlpPolicy": [
+      {
+        "_key": "guid-hipaa-phi-protection",
+        "_keySource": "Guid",
+        "name": "HIPAA – PHI Protection",
+        "guid": "guid-hipaa-phi-protection",
+        "mode": "Enable",
+        "locations": {
+          "exchange": true,
+          "sharePoint": true,
+          "oneDrive": true,
+          "teams": false,
+          "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "All",
+          "oneDrive": "Scoped",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": true,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
+        "testModeSince": ""
+      },
+      {
+        "_key": "guid-pci-payment-cards",
+        "_keySource": "Guid",
+        "name": "PCI – Payment Cards",
+        "guid": "guid-pci-payment-cards",
+        "mode": "Enable",
+        "locations": {
+          "exchange": true,
+          "sharePoint": true,
+          "oneDrive": true,
+          "teams": false,
+          "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "Scoped",
+          "oneDrive": "Scoped",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
+        "testModeSince": ""
+      },
+      {
+        "_key": "guid-ssn-guard",
+        "_keySource": "Guid",
+        "name": "SSN Guard",
+        "guid": "guid-ssn-guard",
+        "mode": "Enable",
+        "locations": {
+          "exchange": true,
+          "sharePoint": true,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "Scoped",
+          "sharePoint": "All",
+          "oneDrive": "None",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
+        "testModeSince": ""
+      },
+      {
+        "_key": "guid-financial-data",
+        "_keySource": "Guid",
+        "name": "Financial Data",
+        "guid": "guid-financial-data",
+        "mode": "Enable",
+        "locations": {
+          "exchange": false,
+          "sharePoint": true,
+          "oneDrive": true,
+          "teams": false,
+          "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "Scoped",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
+        "testModeSince": ""
+      },
+      {
+        "_key": "guid-broad-pii-new",
+        "_keySource": "Guid",
+        "name": "Broad PII (new)",
+        "guid": "guid-broad-pii-new",
+        "mode": "TestWithoutNotifications",
+        "locations": {
+          "exchange": true,
+          "sharePoint": true,
+          "oneDrive": true,
+          "teams": false,
+          "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "All",
+          "oneDrive": "All",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "All"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
+        "testModeSince": "2026-05-12"
+      },
+      {
+        "_key": "guid-legacy-dlp",
+        "_keySource": "Guid",
+        "name": "Legacy DLP",
+        "guid": "guid-legacy-dlp",
+        "mode": "TestWithoutNotifications",
+        "locations": {
+          "exchange": false,
+          "sharePoint": true,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false
+        },
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "teams": "None",
+          "endpoint": "None",
+          "powerBI": "None"
+        },
+        "locationExceptions": {
+          "exchange": false,
+          "sharePoint": false,
+          "oneDrive": false,
+          "teams": false,
+          "endpoint": false,
+          "powerBI": false
+        },
+        "testModeSince": ""
+      }
+    ],
+    "DlpRule": [
+      {
+        "_key": "guid-r-hipaa",
+        "_keySource": "Guid",
+        "policyName": "HIPAA – PHI Protection",
+        "name": "r-hipaa",
+        "guid": "guid-r-hipaa",
+        "disabled": false,
+        "sits": [
+          "U.S. HIPAA",
+          "U.S. SSN",
+          "International Classification of Diseases (ICD-10-CM)",
+          "International Classification of Diseases (ICD-9-CM)"
+        ]
+      },
+      {
+        "_key": "guid-r-pci",
+        "_keySource": "Guid",
+        "policyName": "PCI – Payment Cards",
+        "name": "r-pci",
+        "guid": "guid-r-pci",
+        "disabled": false,
+        "sits": [
+          "Credit Card Number"
+        ]
+      },
+      {
+        "_key": "guid-r-ssn",
+        "_keySource": "Guid",
+        "policyName": "SSN Guard",
+        "name": "r-ssn",
+        "guid": "guid-r-ssn",
+        "disabled": true,
+        "sits": [
+          "U.S. SSN"
+        ]
+      },
+      {
+        "_key": "guid-r-fin",
+        "_keySource": "Guid",
+        "policyName": "Financial Data",
+        "name": "r-fin",
+        "guid": "guid-r-fin",
+        "disabled": false,
+        "sits": [
+          "ABA Routing",
+          "U.S. Bank Account"
+        ]
+      },
+      {
+        "_key": "guid-r-pii",
+        "_keySource": "Guid",
+        "policyName": "Broad PII (new)",
+        "name": "r-pii",
+        "guid": "guid-r-pii",
+        "disabled": false,
+        "sits": [
+          "Full Name",
+          "Email",
+          "Phone"
+        ]
+      },
+      {
+        "_key": "guid-r-legacy-1",
+        "_keySource": "Guid",
+        "policyName": "Legacy DLP",
+        "name": "r-legacy-1",
+        "guid": "guid-r-legacy-1",
+        "disabled": false,
+        "sits": [
+          "U.S. SSN"
+        ]
+      },
+      {
+        "_key": "guid-r-legacy-2",
+        "_keySource": "Guid",
+        "policyName": "Legacy DLP",
+        "name": "r-legacy-2",
+        "guid": "guid-r-legacy-2",
+        "disabled": true,
+        "sits": []
+      },
+      {
+        "_key": "guid-r-legacy-3",
+        "_keySource": "Guid",
+        "policyName": "Legacy DLP",
+        "name": "r-legacy-3",
+        "guid": "guid-r-legacy-3",
+        "disabled": true,
+        "sits": []
+      }
+    ],
+    "DspmAiSummary": [
+      {
+        "_key": "DspmAiSummary",
+        "_keySource": "Name",
+        "name": "DspmAiSummary",
+        "thirdPartyAiDlpPolicies": []
+      }
+    ],
+    "DspmPolicy": [],
+    "EdiscoveryCase": [
+      {
+        "_key": "guid-litigation-2025-contoso",
+        "_keySource": "Guid",
+        "name": "Litigation-2025-Contoso",
+        "guid": "guid-litigation-2025-contoso",
+        "caseStatus": "Active"
+      },
+      {
+        "_key": "guid-hr-investigation-q1-2026",
+        "_keySource": "Guid",
+        "name": "HR-Investigation-Q1-2026",
+        "guid": "guid-hr-investigation-q1-2026",
+        "caseStatus": "Closed"
+      }
+    ],
+    "InsiderRiskPolicy": [],
+    "LabelContainerSummary": [
+      {
+        "_key": "LabelContainerSummary",
+        "_keySource": "Name",
+        "name": "LabelContainerSummary",
+        "status": "Collected",
+        "groups": {
+          "total": 143,
+          "labeled": 0
+        },
+        "sites": {
+          "total": 168,
+          "labeled": 0
+        }
+      }
+    ],
+    "LabelPolicy": [
+      {
+        "_key": "guid-northwind-global-label-policy",
+        "_keySource": "Guid",
+        "name": "Northwind Global Label Policy",
+        "guid": "guid-northwind-global-label-policy",
+        "labels": [
+          "Public",
+          "General",
+          "Confidential",
+          "Highly Confidential",
+          "Legal",
+          "Finance"
+        ],
+        "enabled": true,
+        "scope": "All users"
+      },
+      {
+        "_key": "guid-executive-protection-policy",
+        "_keySource": "Guid",
+        "name": "Executive Protection Policy",
+        "guid": "guid-executive-protection-policy",
+        "labels": [
+          "Confidential",
+          "Highly Confidential"
+        ],
+        "enabled": true,
+        "scope": "Executives (grp)"
+      }
+    ],
+    "RetentionLabel": [
+      {
+        "_key": "guid-hr-retain-7y",
+        "_keySource": "Guid",
+        "name": "HR-Retain-7y",
+        "guid": "guid-hr-retain-7y",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-fin-retain-10y",
+        "_keySource": "Guid",
+        "name": "Fin-Retain-10y",
+        "guid": "guid-fin-retain-10y",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-gen-retain-3y",
+        "_keySource": "Guid",
+        "name": "Gen-Retain-3y",
+        "guid": "guid-gen-retain-3y",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-legal-hold-permanent",
+        "_keySource": "Guid",
+        "name": "Legal-Hold-Permanent",
+        "guid": "guid-legal-hold-permanent",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-contracts-7y",
+        "_keySource": "Guid",
+        "name": "Contracts-7y",
+        "guid": "guid-contracts-7y",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-email-3y",
+        "_keySource": "Guid",
+        "name": "Email-3y",
+        "guid": "guid-email-3y",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-project-5y",
+        "_keySource": "Guid",
+        "name": "Project-5y",
+        "guid": "guid-project-5y",
+        "autoApply": false
+      },
+      {
+        "_key": "guid-policy-docs-6y",
+        "_keySource": "Guid",
+        "name": "Policy-Docs-6y",
+        "guid": "guid-policy-docs-6y",
+        "autoApply": false
+      }
+    ],
+    "RetentionLegacySummary": [
+      {
+        "_key": "RetentionLegacySummary",
+        "_keySource": "Name",
+        "name": "RetentionLegacySummary",
+        "status": "Ok",
+        "error": null,
+        "totalCount": 0,
+        "teamsChatPolicies": []
+      }
+    ],
+    "RetentionPolicy": [
+      {
+        "_key": "guid-hr-records-7yr",
+        "_keySource": "Guid",
+        "name": "HR Records – 7yr",
+        "guid": "guid-hr-records-7yr",
+        "adaptive": false,
+        "locations": [
+          "SharePoint"
+        ],
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "groups": "None",
+          "teamsChannel": "None",
+          "teamsChat": "None"
+        },
+        "labels": [
+          "HR-Retain-7y"
+        ]
+      },
+      {
+        "_key": "guid-finance-records-10yr",
+        "_keySource": "Guid",
+        "name": "Finance Records – 10yr",
+        "guid": "guid-finance-records-10yr",
+        "adaptive": false,
+        "locations": [
+          "SharePoint",
+          "Exchange"
+        ],
+        "locationScope": {
+          "exchange": "All",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "groups": "None",
+          "teamsChannel": "None",
+          "teamsChat": "None"
+        },
+        "labels": [
+          "Fin-Retain-10y"
+        ]
+      },
+      {
+        "_key": "guid-general-3yr",
+        "_keySource": "Guid",
+        "name": "General – 3yr",
+        "guid": "guid-general-3yr",
+        "adaptive": true,
+        "locations": [
+          "SharePoint"
+        ],
+        "locationScope": {
+          "exchange": "None",
+          "sharePoint": "Scoped",
+          "oneDrive": "None",
+          "groups": "None",
+          "teamsChannel": "None",
+          "teamsChat": "None"
+        },
+        "labels": [
+          "Gen-Retain-3y"
+        ]
+      }
+    ],
+    "SensitivityLabel": [
+      {
+        "_key": "g-public",
+        "_keySource": "Guid",
+        "name": "Public",
+        "guid": "g-public",
+        "priority": 0,
+        "scopes": [
+          "File",
+          "Email"
+        ],
+        "parentId": ""
+      },
+      {
+        "_key": "g-general",
+        "_keySource": "Guid",
+        "name": "General",
+        "guid": "g-general",
+        "priority": 1,
+        "scopes": [
+          "File",
+          "Email"
+        ],
+        "parentId": ""
+      },
+      {
+        "_key": "g-conf",
+        "_keySource": "Guid",
+        "name": "Confidential",
+        "guid": "g-conf",
+        "priority": 2,
+        "scopes": [
+          "File",
+          "Email"
+        ],
+        "parentId": ""
+      },
+      {
+        "_key": "g-hc",
+        "_keySource": "Guid",
+        "name": "Highly Confidential",
+        "guid": "g-hc",
+        "priority": 3,
+        "scopes": [
+          "File",
+          "Email"
+        ],
+        "parentId": ""
+      },
+      {
+        "_key": "g-hc-legal",
+        "_keySource": "Guid",
+        "name": "Legal",
+        "guid": "g-hc-legal",
+        "priority": 4,
+        "scopes": [
+          "File"
+        ],
+        "parentId": "g-hc"
+      },
+      {
+        "_key": "g-hc-fin",
+        "_keySource": "Guid",
+        "name": "Finance",
+        "guid": "g-hc-fin",
+        "priority": 5,
+        "scopes": [
+          "File"
+        ],
+        "parentId": "g-hc"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "checkId": "LABELS-01",
+      "status": "Informational",
+      "severity": null,
+      "section": "Sensitivity_Labels",
+      "title": "Taxonomy is defined"
+    },
+    {
+      "checkId": "LABELS-02",
+      "status": "OK",
+      "severity": null,
+      "section": "Sensitivity_Labels",
+      "title": "Labels are published to users"
+    },
+    {
+      "checkId": "LABELS-03",
+      "status": "Improvement",
+      "severity": null,
+      "section": "Sensitivity_Labels",
+      "title": "Auto-labeling is not enforcing"
+    },
+    {
+      "checkId": "LABELS-04",
+      "status": "Recommendation",
+      "severity": null,
+      "section": "Sensitivity_Labels",
+      "title": "No container labels for Teams / Sites / Groups"
+    },
+    {
+      "checkId": "LABELS-05",
+      "status": "OK",
+      "severity": null,
+      "section": "Sensitivity_Labels",
+      "title": "Azure Rights Management is enabled for Exchange Online"
+    },
+    {
+      "checkId": "DLP-01",
+      "status": "Informational",
+      "severity": null,
+      "section": "Data_Loss_Prevention",
+      "title": "6 DLP policies exist (4 enforcing, 2 in test)"
+    },
+    {
+      "checkId": "DLP-02",
+      "status": "Improvement",
+      "severity": null,
+      "section": "Data_Loss_Prevention",
+      "title": "Teams is not in scope"
+    },
+    {
+      "checkId": "DLP-03",
+      "status": "Improvement",
+      "severity": null,
+      "section": "Data_Loss_Prevention",
+      "title": "Endpoint DLP is not configured"
+    },
+    {
+      "checkId": "RET-01",
+      "status": "Informational",
+      "severity": null,
+      "section": "Retention",
+      "title": "3 retention policies, 8 retention labels"
+    },
+    {
+      "checkId": "RET-02",
+      "status": "Improvement",
+      "severity": null,
+      "section": "Retention",
+      "title": "No adaptive scopes"
+    },
+    {
+      "checkId": "RET-03",
+      "status": "Improvement",
+      "severity": null,
+      "section": "Retention",
+      "title": "Retention labels are manual-apply only"
+    },
+    {
+      "checkId": "IRM-01",
+      "status": "Verify manually",
+      "severity": null,
+      "section": "Insider_Risk",
+      "title": "IRM policy inventory not readable this session"
+    },
+    {
+      "checkId": "AUD-01",
+      "status": "OK",
+      "severity": null,
+      "section": "Audit",
+      "title": "Unified audit logging is enabled"
+    },
+    {
+      "checkId": "AUD-03",
+      "status": "Informational",
+      "severity": null,
+      "section": "Audit",
+      "title": "Audit (Premium) long-term retention not assessed"
+    },
+    {
+      "checkId": "AUD-04",
+      "status": "OK",
+      "severity": null,
+      "section": "Audit",
+      "title": "Mailbox auditing is on by default"
+    },
+    {
+      "checkId": "ED-01",
+      "status": "Informational",
+      "severity": null,
+      "section": "eDiscovery",
+      "title": "eDiscovery in use - 2 cases"
+    },
+    {
+      "checkId": "ED-02",
+      "status": "Informational",
+      "severity": null,
+      "section": "eDiscovery",
+      "title": "eDiscovery (Premium) usage not assessed"
+    },
+    {
+      "checkId": "CC-01",
+      "status": "Improvement",
+      "severity": null,
+      "section": "Communication_Compliance",
+      "title": "No Communication Compliance policies configured"
+    },
+    {
+      "checkId": "AI-01",
+      "status": "Informational",
+      "severity": null,
+      "section": "DSPM_for_AI",
+      "title": "Copilot-scoped DLP artifacts present - AI surface in scope"
+    },
+    {
+      "checkId": "AI-02",
+      "status": "Improvement",
+      "severity": null,
+      "section": "DSPM_for_AI",
+      "title": "Copilot DLP coverage in simulation mode - not enforced"
+    },
+    {
+      "checkId": "AI-03",
+      "status": "Recommendation",
+      "severity": null,
+      "section": "DSPM_for_AI",
+      "title": "No label-based Copilot content exclusion"
+    },
+    {
+      "checkId": "AI-04",
+      "status": "Informational",
+      "severity": null,
+      "section": "DSPM_for_AI",
+      "title": "No DSPM collection policies detected"
+    },
+    {
+      "checkId": "AI-05",
+      "status": "Recommendation",
+      "severity": null,
+      "section": "DSPM_for_AI",
+      "title": "No retention lifecycle for Copilot interactions"
+    },
+    {
+      "checkId": "AI-06",
+      "status": "Recommendation",
+      "severity": null,
+      "section": "DSPM_for_AI",
+      "title": "AI prompts and responses not monitored by Communication Compliance"
+    }
+  ]
+}

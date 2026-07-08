@@ -24,13 +24,20 @@ function Get-PpaInsiderRisk {
             if ($scenario -eq 'TenantSetting') { continue }
             $workloads = ''
             if ($p.PSObject.Properties.Name -contains 'Workload') { $workloads = (@($p.Workload) -join ', ') }
+            # Mode gates scenario-coverage verdicts (IRM-04/05). Projected as-is;
+            # an absent property projects '' - the analyzer treats unknown mode as
+            # enabled rather than punishing a policy for unreadable metadata.
+            $mode = ''
+            if ($p.PSObject.Properties.Name -contains 'Mode' -and $null -ne $p.Mode) { $mode = [string]$p.Mode }
             $created = ''
             foreach ($prop in @('WhenCreatedUTC', 'WhenCreated', 'CreationTimeUtc')) {
                 if ($p.PSObject.Properties.Name -contains $prop -and $p.$prop) { $created = ([datetime]$p.$prop).ToString('yyyy-MM-dd'); break }
             }
             $items.Add([pscustomobject]@{
                 name      = [string]$p.Name
+                guid      = Get-PpaOptionalGuid $p
                 scenario  = $scenario
+                mode      = $mode
                 workloads = $workloads
                 created   = $created
             })
@@ -39,6 +46,7 @@ function Get-PpaInsiderRisk {
     $count = if ($raw.Status -eq 'Ok') { $items.Count } else { $null }
 
     return [pscustomobject]@{
+        outcome  = Resolve-PpaCollectorOutcome -ReadStatuses @($raw.Status) -ItemCount $items.Count
         policies = [pscustomobject]@{ status = $raw.Status; error = $raw.Error; count = $count; items = $items.ToArray() }
     }
 }

@@ -13,6 +13,7 @@ function Get-PpaCommsCompliance {
     $count = if ($raw.Status -eq 'Ok') { @($raw.Data).Count } else { $null }
 
     return [pscustomobject]@{
+        outcome  = Resolve-PpaCollectorOutcome -ReadStatuses @($raw.Status) -ItemCount (@($raw.Data).Count)
         policies = [pscustomobject]@{ status = $raw.Status; error = $raw.Error; count = $count }
     }
 }

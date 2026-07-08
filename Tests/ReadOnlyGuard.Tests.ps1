@@ -11,7 +11,8 @@ BeforeAll {
     $script:PpaGuardAllow = @(
         'New-Object', 'New-Item', 'New-Variable', 'New-Guid', 'New-TimeSpan',
         'Set-Content', 'Set-Variable', 'Set-StrictMode', 'Set-Location',
-        'Add-Content', 'Add-Member', 'Add-Type'
+        'Add-Content', 'Add-Member', 'Add-Type',
+        'Clear-PpaRedaction'   # in-memory render redaction state - exact name, never a prefix (B-fix 2)
     )
 
     # Verbs that indicate a state change on the tenant when applied to a Purview/EXO/Graph noun.
@@ -52,11 +53,17 @@ Describe 'Read-only guard - detection logic' {
     It 'allows Set-Content / Set-StrictMode' {
         (Get-PpaMutatingReference 'Set-StrictMode -Off; Set-Content -Path x -Value y').Count | Should -Be 0
     }
+    It 'allows exactly Clear-PpaRedaction but flags any other Clear-Ppa* (no prefix entries)' {
+        (Get-PpaMutatingReference 'Clear-PpaRedaction').Count | Should -Be 0
+        (Get-PpaMutatingReference 'Clear-PpaMailbox -Identity x').Count | Should -Be 1
+    }
 }
 
 Describe 'Read-only guard - tenant-facing surface' {
-    It 'has no mutating cmdlets in Private/Collect, Private/Analyze, or Public' {
-        $scanDirs = @('Private\Collect', 'Private\Analyze', 'Public') |
+    It 'has no mutating cmdlets anywhere in Private or Public (Wave 4: whole tree)' {
+        # Wave 4 extended the scan from Collect/Analyze/Public to ALL of Private so
+        # the snapshot writer/loader (Private\Model) and every future file is covered.
+        $scanDirs = @('Private', 'Public') |
             ForEach-Object { Join-Path $script:RepoRoot $_ } |
             Where-Object { Test-Path -LiteralPath $_ }
 

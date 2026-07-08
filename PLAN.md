@@ -6,7 +6,7 @@ tree changes until you approve this.
 **Guiding sentence (every decision serves this):** *what a June 2026 CAMP should care about,
 delivered as a report a consultant hands to their delivery team at engagement kickoff.*
 
-**The two fixed targets win over this plan:** `posture-report-mock-v5.html` (look + content)
+**The two fixed targets win over this plan:** the original design mock (look + content)
 and `CHECK_CATALOG.md` (the checks). If anything below diverges from them, they are right and
 this document is wrong.
 
@@ -260,11 +260,11 @@ Small helpers in `PpaHtml.ps1`: `Get-PpaStatusClass`, `Write-PpaBadge`, `Write-P
 PowerShell 5.1 (per the encoding note in project memory).
 
 **Fidelity check (Phase 2 of the build):** render `sample-normalized.json` and diff visually
-against `posture-report-mock-v5.html` region by region — the enumerated tables, the Solutions
+against the original design mock region by region — the enumerated tables, the Solutions
 Summary counts, the at-a-glance strip, the drill-down links — and fix until it matches.
 
 > **Decision D1 (settled) — CDN assets, match the mock exactly.** The report loads Bootstrap,
-> Font Awesome, jQuery and Popper from the same CDNs as `posture-report-mock-v5.html`, byte-for-byte.
+> Font Awesome, jQuery and Popper from the same CDNs as the original design mock, byte-for-byte.
 > Fidelity to the mock wins here. (Self-contained/offline rendering is noted as a possible Phase 2
 > option if a client environment ever needs it, but v1 does not build it.)
 

@@ -1,0 +1,6 @@
+{
+  "outcome": "AccessDenied",
+  "_comment": "Degraded-run fixture (F-001): the DLP policy read was denied (the role used for this run cannot enumerate DLP compliance policies). Every DLP check derives from Get-DlpCompliancePolicy, so the section degrades to a single 'not readable this session' (Verify manually) finding, never a fabricated 'No DLP policies'.",
+  "policies": { "status": "AccessDenied", "error": "Access to run 'Get-DlpCompliancePolicy' was denied for the current role.", "items": [] },
+  "rules": { "status": "AccessDenied", "error": "Access to run 'Get-DlpComplianceRule' was denied for the current role.", "items": [] }
+}

@@ -1,0 +1,26 @@
+{
+  "_comment": "SHOWCASE mutation table (C-fix 7): a clean, presentable delta fixture pair - no degraded collectors, no dropped sections, no denylist noise. A realistic quarter of change: two additions, one sim->enforce promotion, one rename, healthy unchanged counts everywhere else. The dense fixture's Insider Risk block ships CmdletUnavailable (deliberate role-gap shape for the torture pair), so BOTH sides override it to Empty here - the showcase pair is degradation-free by declared intent.",
+  "ops": [
+    { "side": "A", "op": "setMeta", "field": "snapshotId", "value": "cccc3333-0000-0000-0000-00000000000c", "why": "fixed identity for pins" },
+    { "side": "A", "op": "setMeta", "field": "capturedAt", "value": "2026-04-01T09:00:00Z", "why": "91-day engagement span with side B" },
+    { "side": "B", "op": "setMeta", "field": "snapshotId", "value": "dddd4444-0000-0000-0000-00000000000d", "why": "fixed identity for pins" },
+    { "side": "B", "op": "setMeta", "field": "capturedAt", "value": "2026-07-01T09:00:00Z", "why": "91-day engagement span with side A" },
+
+    { "side": "A", "op": "setOutcome", "section": "Insider_Risk", "value": "Empty", "why": "showcase pair is degradation-free: override the fixture's CmdletUnavailable (items are already empty)" },
+    { "side": "B", "op": "setOutcome", "section": "Insider_Risk", "value": "Empty", "why": "showcase pair is degradation-free: override the fixture's CmdletUnavailable (items are already empty)" },
+    { "side": "A", "op": "setOutcome", "section": "DSPM_for_AI", "value": "Populated", "why": "showcase pair is degradation-free: override the dense fixture's AccessDenied (Part D matrix Unknown/banner case)" },
+    { "side": "B", "op": "setOutcome", "section": "DSPM_for_AI", "value": "Populated", "why": "showcase pair is degradation-free: override the dense fixture's AccessDenied (Part D matrix Unknown/banner case)" },
+
+    { "side": "B", "op": "addObject", "type": "DlpPolicy",
+      "object": { "_key": "guid-teams-chat-protection", "_keySource": "Guid", "name": "Teams Chat Protection", "guid": "guid-teams-chat-protection", "mode": "Enable", "locations": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": true, "endpoint": false }, "testModeSince": "" },
+      "why": "Added #1: new enforcing Teams DLP policy" },
+
+    { "side": "B", "op": "addObject", "type": "AutoLabelPolicy",
+      "object": { "_key": "guid-auto-label-financial", "_keySource": "Guid", "name": "Auto-label Financial", "guid": "guid-auto-label-financial", "mode": "TestWithoutNotifications", "sits": ["Credit Card Number", "U.S. Bank Account"], "simulationStartDate": "2026-06-15T00:00:00Z", "simulationItemCount": 480 },
+      "why": "Added #2: new auto-labeling policy in simulation" },
+
+    { "side": "B", "op": "setProperty", "type": "DlpPolicy", "key": "guid-broad-pii-new", "property": "mode", "value": "Enable", "why": "sim -> enforce flip, promoted via significant-property registry" },
+
+    { "side": "B", "op": "setProperty", "type": "RetentionPolicy", "key": "guid-hr-records-7yr", "property": "name", "value": "HR Records EU - 7yr", "why": "rename-with-same-Guid -> Modified with rename annotation" }
+  ]
+}

@@ -17,8 +17,7 @@ The legacy code contains behavior this project deliberately removed:
 - **Prescriptive, geo/SIT, framework-leaning** recommendation model (`DLPImprovementActions/`).
 
 The modernized tool is read-only, collects no content by default, and produces framework-neutral
-findings. See the repo root [README.md](../README.md) and
-[MODERNIZATION_PLAN.md](../MODERNIZATION_PLAN.md).
+findings. See the repo root [README.md](../../README.md).
 
 The MIT license and Microsoft copyright from CAMP are preserved in the root
-[LICENSE](../LICENSE) and attributed in [NOTICE](../NOTICE).
+[LICENSE](../../LICENSE) and attributed in [NOTICE](../../NOTICE).

@@ -133,18 +133,24 @@ function Get-PpaDspmPolicyItems {
     # 'collection' keyword but is legacy DLP rule-collection import tooling - ignored.)
     param($Data)
     $items = New-Object System.Collections.Generic.List[object]
+    $artifactNames = Get-PpaSessionArtifactNames
     foreach ($o in @($Data)) {
         if ($null -eq $o) { continue }
         $name = ''
         if ($o.PSObject.Properties.Name -contains 'Name') { $name = [string]$o.Name }
         $props = New-Object System.Collections.Generic.List[object]
         foreach ($pr in $o.PSObject.Properties) {
+            # Generic projection: remoting session artifacts must not survive (A.3).
+            if ($artifactNames -contains $pr.Name) { continue }
+            # Guid is projected as the top-level guid identity field (A.5); keeping it
+            # in the bag would double-report identity in delta (ruled at Part C review).
+            if ($pr.Name -eq 'Guid') { continue }
             $v = ''
             if ($null -ne $pr.Value) { $v = ("" + ($pr.Value | Out-String)).Trim() }
             if ($v.Length -gt 120) { $v = $v.Substring(0, 117) + '...' }
             $props.Add([pscustomobject]@{ n = [string]$pr.Name; v = $v })
         }
-        $items.Add([pscustomobject]@{ name = $name; props = $props.ToArray() })
+        $items.Add([pscustomobject]@{ name = $name; guid = Get-PpaOptionalGuid $o; props = $props.ToArray() })
     }
     return $items.ToArray()
 }
@@ -152,10 +158,12 @@ function Get-PpaDspmPolicyItems {
 function Get-PpaAppRetentionItems {
     # Projection of Get-AppRetentionCompliancePolicy - the modern AI retention locations
     # ("Microsoft Copilot experiences", "Enterprise AI apps", "Other AI apps") live in the
-    # App retention family. [DOC-GROUNDED] the carrier property is 'Applications' with
-    # values like 'User:M365Copilot'; not yet observed live (0 objects in the sandbox), so
-    # each item records whether the property was present at all - absent/odd shapes degrade
-    # to a not-assertable transparency line in the analyzer, never a false absence.
+    # App retention family. [VERIFIED 2026-07, Wave 5 cleanup Part 1] the carrier property
+    # is 'Applications'; the observed Copilot token is 'Users:M365Copilot' (plural 'Users:',
+    # not the doc-grounded 'User:' singular - the M365Copilot containment match below covers
+    # both). Each item still records whether the property was present at all - absent/odd
+    # shapes degrade to a not-assertable transparency line in the analyzer, never a false
+    # absence.
     param($Data)
     $items = New-Object System.Collections.Generic.List[object]
     foreach ($p in @($Data)) {
@@ -167,6 +175,7 @@ function Get-PpaAppRetentionItems {
         if ($p.PSObject.Properties.Name -contains 'Enabled') { $enabled = [string]$p.Enabled }
         $items.Add([pscustomobject]@{
             name            = [string]$p.Name
+            guid            = Get-PpaOptionalGuid $p
             enabled         = $enabled
             hasApplications = $hasApplications
             applications    = $apps
@@ -228,6 +237,7 @@ function Get-PpaCcCopilotItems {
         if ($p.PSObject.Properties.Name -contains 'Enabled') { $enabled = [string]$p.Enabled }
         $items.Add([pscustomobject]@{
             name          = [string]$p.Name
+            guid          = Get-PpaOptionalGuid $p
             enabled       = $enabled
             workloads     = @($workloads | Select-Object -Unique)
             unifiedGenAI  = $unified
@@ -266,7 +276,7 @@ function Get-PpaDspmAi {
         $signals = Get-PpaCopilotDlpSignals $p
         if (-not $signals.isCopilot) { continue }
         $rules = @($rawRules.Data | Where-Object { $_.ParentPolicyName -eq $p.Name -or $_.Policy -eq $p.Guid })
-        $sits = @($rules | ForEach-Object { $_.ContentContainsSensitiveInformation } | ForEach-Object { $_.Name } | Where-Object { $_ } | Select-Object -Unique)
+        $sits = @($rules | ForEach-Object { $_.ContentContainsSensitiveInformation } | ForEach-Object { $_.Name } | Where-Object { $_ } | ForEach-Object { [string]$_ } | Select-Object -Unique)
         $labelNames = New-Object System.Collections.Generic.List[string]
         $hasLabelCondition = $false
         foreach ($r in $rules) {
@@ -279,7 +289,7 @@ function Get-PpaDspmAi {
             if ($p.PSObject.Properties.Name -contains $prop -and $p.$prop) { $created = ([datetime]$p.$prop).ToString('yyyy-MM-dd'); break }
         }
         $items.Add([pscustomobject]@{
-            name = [string]$p.Name; mode = [string]$p.Mode; sits = @($sits)
+            name = [string]$p.Name; guid = Get-PpaOptionalGuid $p; mode = [string]$p.Mode; sits = @($sits)
             hasLabelCondition = $hasLabelCondition
             labelRefs = @($labelNames | Select-Object -Unique)
             copilotLocations = @($signals.copilotLocations)
@@ -289,18 +299,28 @@ function Get-PpaDspmAi {
         })
     }
 
+    $dspmItems   = @($(if ($rawDspm.Status -eq 'Ok') { Get-PpaDspmPolicyItems $rawDspm.Data } else { @() }))
+    $appRetItems = @($(if ($rawAppRet.Status -eq 'Ok') { Get-PpaAppRetentionItems $rawAppRet.Data } else { @() }))
+    $ccItems     = @($(if ($rawCcPols.Status -eq 'Ok' -and $rawCcRules.Status -eq 'Ok') {
+        Get-PpaCcCopilotItems $rawCcPols.Data $rawCcRules.Data
+    } else { @() }))
+    $outcome = Resolve-PpaCollectorOutcome `
+        -ReadStatuses @($rawPols.Status, $rawRules.Status, $rawDspm.Status, $rawAppRet.Status, $rawRet.Status, $rawCcPols.Status, $rawCcRules.Status) `
+        -ItemCount ($items.Count + $dspmItems.Count + $appRetItems.Count + @($rawRet.Data).Count + $ccItems.Count)
+
     return [pscustomobject]@{
+        outcome         = $outcome
         copilotPolicies = [pscustomobject]@{
             status = $rawPols.Status; error = $rawPols.Error; items = $items.ToArray()
             thirdPartyAiDlpPolicies = @($thirdPartyAiDlp | Select-Object -Unique)
         }
         dspmPolicies = [pscustomobject]@{
             status = $rawDspm.Status; error = $rawDspm.Error
-            items = @($(if ($rawDspm.Status -eq 'Ok') { Get-PpaDspmPolicyItems $rawDspm.Data } else { @() }))
+            items = $dspmItems
         }
         appRetention = [pscustomobject]@{
             status = $rawAppRet.Status; error = $rawAppRet.Error
-            items = @($(if ($rawAppRet.Status -eq 'Ok') { Get-PpaAppRetentionItems $rawAppRet.Data } else { @() }))
+            items = $appRetItems
         }
         # Classic retention family: only the legacy pre-split combined "Teams chats and
         # Copilot interactions" signal (TeamsChatLocation populated) plus a total count -
@@ -315,9 +335,7 @@ function Get-PpaDspmAi {
         ccCopilot = [pscustomobject]@{
             policiesStatus = $rawCcPols.Status; policiesError = $rawCcPols.Error
             rulesStatus = $rawCcRules.Status; rulesError = $rawCcRules.Error
-            items = @($(if ($rawCcPols.Status -eq 'Ok' -and $rawCcRules.Status -eq 'Ok') {
-                Get-PpaCcCopilotItems $rawCcPols.Data $rawCcRules.Data
-            } else { @() }))
+            items = $ccItems
         }
     }
 }

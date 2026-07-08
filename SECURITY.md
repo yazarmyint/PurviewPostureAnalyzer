@@ -1,41 +1,35 @@
-<!-- BEGIN MICROSOFT SECURITY.MD V0.0.7 BLOCK -->
+# Security Policy
 
-## Security
+## Reporting a vulnerability
 
-Microsoft takes the security of our software products and services seriously, which includes all source code repositories managed through our GitHub organizations, which include [Microsoft](https://github.com/Microsoft), [Azure](https://github.com/Azure), [DotNet](https://github.com/dotnet), [AspNet](https://github.com/aspnet), [Xamarin](https://github.com/xamarin), and [our GitHub organizations](https://opensource.microsoft.com/).
+Report security vulnerabilities in Purview Posture Analyzer (PPA) through **GitHub
+private vulnerability reporting**, which is the sole reporting channel for this project:
 
-If you believe you have found a security vulnerability in any Microsoft-owned repository that meets [Microsoft's definition of a security vulnerability](https://aka.ms/opensource/security/definition), please report it to us as described below.
+1. Open the repository's **Security** tab, or go directly to
+   <https://github.com/yazarmyint/PurviewPostureAnalyzer/security/advisories/new>.
+2. Click **Report a vulnerability** and complete the advisory form.
 
-## Reporting Security Issues
+Your report stays private to the maintainer until a fix is coordinated and published.
+Please do **not** open a public GitHub issue for a security vulnerability.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+> Maintainer action: GitHub private vulnerability reporting must be enabled for this
+> repository (Settings -> Code security -> Private vulnerability reporting) before the
+> advisory link above will work.
 
-Instead, please report them to the Microsoft Security Response Center (MSRC) at [https://msrc.microsoft.com/create-report](https://aka.ms/opensource/security/create-report).
+## What is in scope
 
-If you prefer to submit without logging in, send email to [secure@microsoft.com](mailto:secure@microsoft.com).  If possible, encrypt your message with our PGP key; please download it from the [Microsoft Security Response Center PGP Key page](https://aka.ms/opensource/security/pgpkey).
+A security report means a vulnerability **in PPA itself** - for example in its PowerShell
+code, in how it establishes or handles the read-only sessions (`Connect-IPPSSession` /
+`Connect-ExchangeOnline`), or in the report and JSON it produces (for example, data that
+should have been redacted but is emitted).
 
-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Additional information can be found at [microsoft.com/msrc](https://aka.ms/opensource/security/msrc). 
+It does **not** mean a misconfiguration that the tool *discovers and reports* in your own
+Microsoft Purview tenant. Those are findings about your environment for you to review and
+remediate - not vulnerabilities in this tool. PPA is read-only and never changes tenant
+state (see `NOTICE` and the README).
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+## Project status
 
-  * Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
-  * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
-  * Any special configuration required to reproduce the issue
-  * Step-by-step instructions to reproduce the issue
-  * Proof-of-concept or exploit code (if possible)
-  * Impact of the issue, including how an attacker might exploit the issue
-
-This information will help us triage your report more quickly.
-
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/opensource/security/bounty) page for more details about our active programs.
-
-## Preferred Languages
-
-We prefer all communications to be in English.
-
-## Policy
-
-Microsoft follows the principle of [Coordinated Vulnerability Disclosure](https://aka.ms/opensource/security/cvd).
-
-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+PPA is an independent, community-maintained project (see `NOTICE`) - not a Microsoft
+product and not covered by Microsoft's security program (MSRC). Security fixes are made on
+the current version on the default branch.

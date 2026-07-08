@@ -1,28 +1,29 @@
 {
+  "outcome": "Populated",
   "policies": {
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "HIPAA – PHI Protection", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "PCI – Payment Cards", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "SSN Guard", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "Financial Data", "mode": "Enable", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "Broad PII (new)", "mode": "TestWithoutNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "2026-05-12" },
-      { "name": "Legacy DLP", "mode": "TestWithoutNotifications", "locations": { "exchange": false, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" }
+      { "name": "HIPAA – PHI Protection", "guid": "guid-hipaa-phi-protection", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "PCI – Payment Cards", "guid": "guid-pci-payment-cards", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "Scoped", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "SSN Guard", "guid": "guid-ssn-guard", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "locationScope": { "exchange": "Scoped", "sharePoint": "All", "oneDrive": "None", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Financial Data", "guid": "guid-financial-data", "mode": "Enable", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Broad PII (new)", "guid": "guid-broad-pii-new", "mode": "TestWithoutNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All", "teams": "None", "endpoint": "None", "powerBI": "All" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "2026-05-12" },
+      { "name": "Legacy DLP", "guid": "guid-legacy-dlp", "mode": "TestWithoutNotifications", "locations": { "exchange": false, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" }
     ]
   },
   "rules": {
     "status": "Ok",
     "error": null,
     "items": [
-      { "policyName": "HIPAA – PHI Protection", "name": "r-hipaa", "disabled": false, "sits": ["U.S. HIPAA", "U.S. SSN", "International Classification of Diseases (ICD-10-CM)", "International Classification of Diseases (ICD-9-CM)"] },
-      { "policyName": "PCI – Payment Cards", "name": "r-pci", "disabled": false, "sits": ["Credit Card Number"] },
-      { "policyName": "SSN Guard", "name": "r-ssn", "disabled": false, "sits": ["U.S. SSN"] },
-      { "policyName": "Financial Data", "name": "r-fin", "disabled": false, "sits": ["ABA Routing", "U.S. Bank Account"] },
-      { "policyName": "Broad PII (new)", "name": "r-pii", "disabled": false, "sits": ["Full Name", "Email", "Phone"] },
-      { "policyName": "Legacy DLP", "name": "r-legacy-1", "disabled": false, "sits": ["U.S. SSN"] },
-      { "policyName": "Legacy DLP", "name": "r-legacy-2", "disabled": true, "sits": [] },
-      { "policyName": "Legacy DLP", "name": "r-legacy-3", "disabled": true, "sits": [] }
+      { "policyName": "HIPAA – PHI Protection", "name": "r-hipaa", "guid": "guid-r-hipaa", "disabled": false, "sits": ["U.S. HIPAA", "U.S. SSN", "International Classification of Diseases (ICD-10-CM)", "International Classification of Diseases (ICD-9-CM)"] },
+      { "policyName": "PCI – Payment Cards", "name": "r-pci", "guid": "guid-r-pci", "disabled": false, "sits": ["Credit Card Number"] },
+      { "policyName": "SSN Guard", "name": "r-ssn", "guid": "guid-r-ssn", "disabled": true, "sits": ["U.S. SSN"] },
+      { "policyName": "Financial Data", "name": "r-fin", "guid": "guid-r-fin", "disabled": false, "sits": ["ABA Routing", "U.S. Bank Account"] },
+      { "policyName": "Broad PII (new)", "name": "r-pii", "guid": "guid-r-pii", "disabled": false, "sits": ["Full Name", "Email", "Phone"] },
+      { "policyName": "Legacy DLP", "name": "r-legacy-1", "guid": "guid-r-legacy-1", "disabled": false, "sits": ["U.S. SSN"] },
+      { "policyName": "Legacy DLP", "name": "r-legacy-2", "guid": "guid-r-legacy-2", "disabled": true, "sits": [] },
+      { "policyName": "Legacy DLP", "name": "r-legacy-3", "guid": "guid-r-legacy-3", "disabled": true, "sits": [] }
     ]
   }
 }

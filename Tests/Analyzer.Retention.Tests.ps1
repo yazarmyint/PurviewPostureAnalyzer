@@ -36,7 +36,9 @@ Describe 'RET-01 inventory' {
 Describe 'RET-02 adaptive scopes' {
     It 'is Improvement when there are zero adaptive scopes' { $script:F['RET-02'].status | Should -Be 'Improvement' }
     It 'shows static count Informational and adaptive count Improvement' {
-        ($script:F['RET-02'].table.rows | Where-Object { $_.cells[0] -eq 'Static scopes' }).cells[1] | Should -Be '3'
+        # Wave 4 Part D: 'General - 3yr' became adaptive in the dense fixture so the
+        # matrix exercises the AdaptiveScope reason code; static count is now 2.
+        ($script:F['RET-02'].table.rows | Where-Object { $_.cells[0] -eq 'Static scopes' }).cells[1] | Should -Be '2'
         ($script:F['RET-02'].table.rows | Where-Object { $_.cells[0] -eq 'Adaptive scopes' }).status | Should -Be 'Improvement'
     }
 }

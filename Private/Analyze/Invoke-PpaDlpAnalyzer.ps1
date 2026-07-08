@@ -1,8 +1,10 @@
 # Invoke-PpaDlpAnalyzer.ps1 - analyzer for section 02 (Data Loss Prevention).
-# Produces DLP-01..04 per CHECK_CATALOG.md. DLP-01/02/03 assert from readable signals
-# (policy mode, locations, endpoint scope). DLP-03 device-onboarded count and DLP-04
-# named-entity detector availability are not readable read-only (open items D3/D4), so
-# those rows report Verify manually rather than a fabricated value.
+# Produces DLP-01..03 per CHECK_CATALOG.md, asserting from readable signals (policy
+# mode, locations, endpoint scope). The DLP-03 device-onboarded count is not readable
+# read-only (open item D3), so that row reports Verify manually rather than a
+# fabricated value. DLP-04 (HIPAA template detector tiering) was RETIRED in Wave 5
+# cleanup Part 4 with nothing in its place - see the CHECK_CATALOG.md tombstone; the
+# ID is never reused.
 # ASCII-only source (Windows PowerShell 5.1). Depends on New-PpaFinding/New-PpaSection.
 
 Set-StrictMode -Off
@@ -12,31 +14,34 @@ function Test-PpaDlpEnforcing {
     return ($Mode -match '(?i)^enable$|enforce')
 }
 
-function Get-PpaSitTierMap {
-    # Load the dated E5-gated SIT tier map (Data/dlp-sit-tiers.json). See LIMITATIONS.md.
-    param([string]$Path)
-    if (-not $Path) {
-        $Path = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Data\dlp-sit-tiers.json'
-    }
-    if (-not (Test-Path -LiteralPath $Path)) { return $null }
-    return ([System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json)
-}
-
 function Invoke-PpaDlpAnalyzer {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)] $Raw,
         [datetime]$AsOf = (Get-Date),
         # Parsed Data/license-requirements.json (static annotation map, not detection).
-        $LicenseMap,
-        # Parsed Data/dlp-sit-tiers.json; loaded from disk if not supplied.
-        $SitTierMap
+        $LicenseMap
     )
 
     $mid   = Get-PpaMidDot
     $pols  = @($Raw.policies.items)
     $rules = @($Raw.rules.items)
     $findings = New-Object System.Collections.Generic.List[object]
+
+    # F-001: every DLP check derives from Get-DlpCompliancePolicy. If that read did not
+    # complete, DLP posture is UNKNOWN - do not let the count-based checks below report
+    # "0 policies / Teams not in scope / Endpoint not configured" as fact. Degrade the
+    # whole section to one Verify-manually finding (unknown is never asserted as empty).
+    if ([string]$Raw.policies.status -ne 'Ok') {
+        $glance = New-PpaGlance -Name 'Data Loss Prevention' -Metric 'not readable' -Sub 'confirm in portal'
+        return New-PpaSection -Id 'Data_Loss_Prevention' -Title 'Data Loss Prevention' -Group 'Microsoft Information Protection' `
+            -GroupIcon 'fas fa-shield-alt' -Glance $glance -Findings @(
+                (New-PpaFinding -Id 'DLP-01' -DomId 'f-dlp-1' -Title 'DLP configuration not readable this session' -Status 'Verify manually' `
+                    -Whyline 'DLP policies could not be enumerated this session, so DLP posture was not evaluated - confirm coverage in the Purview portal.' `
+                    -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @(
+                        New-PpaRow -Cells @('DLP policies', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.policies.error)
+                    )) -LearnMore @(@{ label = 'Learn about data loss prevention'; url = 'https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp'; tag = 'docs' })))
+    }
 
     # Per-policy rollups from rules.
     $polInfo = @{}
@@ -120,45 +125,10 @@ function Invoke-PpaDlpAnalyzer {
         -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows $rows03) `
         -LearnMore @(@{ label = 'Learn about Endpoint DLP'; url = 'https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about'; tag = 'docs' })))
 
-    # --- DLP-04: HIPAA template named-entity detectors (dated SIT map, Verify-flavored) ---
-    # Without license detection this check cannot assert detectors are inactive on THIS tenant.
-    # The dated map (Data/dlp-sit-tiers.json) identifies which referenced SITs are E5-gated
-    # named-entity detectors; every such row says "requires E5 - verify tenant tier". Unmapped
-    # SITs are 'tier not confirmed' - never a silent OK. See LIMITATIONS.md.
-    if (-not $SitTierMap) { $SitTierMap = Get-PpaSitTierMap }
-    $sitLookup = @{}
-    if ($SitTierMap -and $SitTierMap.sits) { foreach ($s in @($SitTierMap.sits)) { $sitLookup[[string]$s.name] = $s } }
-    $mapReviewed = if ($SitTierMap) { [string]$SitTierMap.lastReviewed } else { 'unknown' }
-
-    $lm04 = @(@{ label = 'DLP policy reference'; url = 'https://learn.microsoft.com/en-us/purview/dlp-policy-reference'; tag = 'docs' })
-    $hipaaRegex = '(?i)HIPAA|health|ICD|medical|disease|patient'
-    $hipaaPolicyNames = @($rules | Where-Object { @($_.sits) -match $hipaaRegex } | ForEach-Object { $_.policyName } | Select-Object -Unique)
-    $hipaaSits = @($rules | Where-Object { $hipaaPolicyNames -contains $_.policyName } | ForEach-Object { $_.sits } | Where-Object { $_ } | Select-Object -Unique)
-
-    if ($hipaaSits.Count -eq 0) {
-        $findings.Add((New-PpaFinding -Id 'DLP-04' -DomId 'f-dlp-4' -Title 'No HIPAA-template policies detected' -Status 'Informational' `
-            -Whyline 'No DLP policy references a HIPAA / medical detector, so template-tiering does not apply.' `
-            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('HIPAA-template policies', '0') -Status 'Informational'))) -LearnMore $lm04))
-    }
-    else {
-        $rows04 = New-Object System.Collections.Generic.List[object]
-        foreach ($sit in $hipaaSits) {
-            if ($sitLookup.ContainsKey($sit)) {
-                $req = [string]$sitLookup[$sit].requiredLicense
-                $rows04.Add((New-PpaRow -Cells @($sit, "Named-entity SIT $mid requires $req $mid verify tenant tier") -Status 'Verify manually'))
-            }
-            else {
-                $rows04.Add((New-PpaRow -Cells @($sit, 'Tier not confirmed read-only') -Status 'Verify manually'))
-            }
-        }
-        # Attach the map-provenance remark to the final row.
-        $last = $rows04[$rows04.Count - 1]
-        $last | Add-Member -NotePropertyName remark -NotePropertyValue "this tool does not read licensing - confirm which detectors are active at the tenant tier; E5-gated SIT map last reviewed $mapReviewed." -Force
-
-        $findings.Add((New-PpaFinding -Id 'DLP-04' -DomId 'f-dlp-4' -Title 'HIPAA template references named-entity SITs that require E5 - verify tenant tier' -Status 'Verify manually' -Requires (Get-PpaRequirement $LicenseMap 'DLP-04') `
-            -Whyline 'The client may believe they have full HIPAA coverage while named-entity detectors are inactive below E5 - confirm at the tenant tier.' `
-            -Table (New-PpaTable -Columns @('Detector (SIT)', 'Availability', 'Status') -Rows $rows04.ToArray()) -LearnMore $lm04))
-    }
+    # (DLP-04, the HIPAA template detector-tiering check, was emitted here until it
+    # was RETIRED in Wave 5 cleanup Part 4 - removed with nothing in its place. The
+    # industry-neutral signals it might have carried already live in DLP-01 remarks
+    # (enforcement mode), DLP-02 (workload coverage) and DLP-03 (endpoint posture).)
 
     # --- glance ---
     $enfCount = @($pols | Where-Object { $polInfo[$_.name].enforcing }).Count

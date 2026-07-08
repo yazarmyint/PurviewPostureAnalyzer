@@ -11,8 +11,10 @@ BeforeAll {
         . (Join-Path $script:RepoRoot "Private\Analyze\$a.ps1")
     }
     # Collector-level tests (TenantSetting exclusion, Copilot DLP detection) need the
-    # wrapper + collectors in scope.
+    # wrapper + collectors in scope. PpaNormalize.ps1 carries the collect-side
+    # contract helpers (ISO dates, outcome enum) every collector now depends on.
     . (Join-Path $script:RepoRoot 'Private\Collect\Invoke-PpaReadCmdlet.ps1')
+    . (Join-Path $script:RepoRoot 'Private\Collect\PpaNormalize.ps1')
     . (Join-Path $script:RepoRoot 'Private\Collect\Get-PpaInsiderRisk.ps1')
     . (Join-Path $script:RepoRoot 'Private\Collect\Get-PpaDspmAi.ps1')
     function RawOf($n) { [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot "Samples\sample-raw\$n.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
@@ -44,7 +46,7 @@ Describe 'Audit (evidence-only)' {
         $s['AUD-01'] | Should -Be 'OK'
         $s['AUD-03'] | Should -Be 'Informational'
         $s.ContainsKey('AUD-02') | Should -BeFalse
-        @($script:Audit.findings).Count | Should -Be 2
+        @($script:Audit.findings).Count | Should -Be 3
     }
     It 'AUD-03 makes no tenant-tier claim and carries a Requires annotation' {
         $f = FindingOf $script:Audit 'AUD-03'
@@ -55,6 +57,27 @@ Describe 'Audit (evidence-only)' {
         $script:Audit.glance.status | Should -Be 'OK'
         $script:Audit.glance.metric | Should -Be 'On'
         $script:Audit.glance.sub | Should -Not -Match 'Standard|Premium'
+    }
+    It 'AUD-04 OK from evidence with the org-default row pinned' {
+        $f = FindingOf $script:Audit 'AUD-04'
+        $f.status | Should -Be 'OK'
+        $f.table.rows[0].cells[0] | Should -Be 'Mailbox auditing (organization default)'
+        $f.table.rows[0].cells[1] | Should -Be 'On (AuditDisabled = false)'
+    }
+    It 'AUD-04 Improvement when the organization override disables mailbox auditing; glance drops to Improvement' {
+        $raw = [pscustomobject]@{ status = 'Ok'; error = $null; unifiedAuditEnabled = $true; orgStatus = 'Ok'; mailboxAuditingDisabled = $true }
+        $sec = Invoke-PpaAuditAnalyzer -Raw $raw -LicenseMap $script:Map
+        $f = FindingOf $sec 'AUD-04'
+        $f.status | Should -Be 'Improvement'
+        $f.table.rows[0].cells[1] | Should -Be 'Disabled (AuditDisabled = true)'
+        $f.table.rows[1].cells[0] | Should -Be 'Per-mailbox bypass'
+        $sec.glance.status | Should -Be 'Improvement'
+    }
+    It 'AUD-04 Verify manually when the org read degrades - never a false Disabled; glance pill unaffected' {
+        $raw = [pscustomobject]@{ status = 'Ok'; error = $null; unifiedAuditEnabled = $true; orgStatus = 'AccessDenied'; mailboxAuditingDisabled = $null }
+        $sec = Invoke-PpaAuditAnalyzer -Raw $raw -LicenseMap $script:Map
+        (FindingOf $sec 'AUD-04').status | Should -Be 'Verify manually'
+        $sec.glance.status | Should -Be 'OK'
     }
 }
 
@@ -145,6 +168,73 @@ Describe 'Insider Risk - IRM-03 risky-AI template (spec F5)' {
         Test-PpaIrmAiScenario 'DataLeak' | Should -BeFalse
         Test-PpaIrmAiScenario 'Maintenance' | Should -BeFalse
         Test-PpaIrmAiScenario '' | Should -BeFalse
+    }
+}
+
+Describe 'Insider Risk - IRM-04 departing-employee theft + IRM-05 data leaks (Wave 6 Part 3)' {
+    It 'both are skipped on an unknown inventory (absence never asserted from a failed read)' {
+        @($script:IRM.findings | Where-Object { $_.id -eq 'IRM-04' }).Count | Should -Be 0
+        @($script:IRM.findings | Where-Object { $_.id -eq 'IRM-05' }).Count | Should -Be 0
+    }
+    It 'zero policies -> both Recommendation with Requires annotations' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 0; items = @() } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        $f4 = FindingOf $sec 'IRM-04'
+        $f4.status | Should -Be 'Recommendation'
+        $f4.requires | Should -Match 'E5'
+        $f5 = FindingOf $sec 'IRM-05'
+        $f5.status | Should -Be 'Recommendation'
+        $f5.requires | Should -Match 'E5'
+    }
+    It 'theft-scenario policy with Mode Enable -> IRM-04 OK inventory row' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 1; items = @(
+            [pscustomobject]@{ name = 'Departing users - IP'; scenario = 'IntellectualPropertyTheft'; mode = 'Enable'; workloads = 'Exchange, SharePoint'; created = '2026-02-01' }
+        ) } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        $f = FindingOf $sec 'IRM-04'
+        $f.status | Should -Be 'OK'
+        $f.table.rows[0].cells[0] | Should -Be 'Departing users - IP'
+        $f.table.rows[0].cells[1] | Should -Be 'IntellectualPropertyTheft'
+        (FindingOf $sec 'IRM-05').status | Should -Be 'Recommendation'
+    }
+    It 'the three CAMP leak-family scenarios land in ONE IRM-05 finding, never three cards' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 3; items = @(
+            [pscustomobject]@{ name = 'General leaks'; scenario = 'LeakOfInformation'; mode = 'Enable'; workloads = 'Exchange'; created = '' }
+            [pscustomobject]@{ name = 'Disgruntled'; scenario = 'DisgruntledEmployeeDataLeak'; mode = 'Enable'; workloads = 'Exchange'; created = '' }
+            [pscustomobject]@{ name = 'High value'; scenario = 'HighValueEmployeeDataLeak'; mode = 'Enable'; workloads = 'Exchange'; created = '' }
+        ) } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        $found = @($sec.findings | Where-Object { $_.id -eq 'IRM-05' })
+        $found.Count | Should -Be 1
+        $found[0].status | Should -Be 'OK'
+        @($found[0].table.rows).Count | Should -Be 3
+        (FindingOf $sec 'IRM-04').status | Should -Be 'Recommendation'
+    }
+    It 'a scenario-matched policy explicitly not enabled does NOT count as coverage but is listed' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 1; items = @(
+            [pscustomobject]@{ name = 'Leaks (paused)'; scenario = 'LeakOfInformation'; mode = 'TestWithNotifications'; workloads = 'Exchange'; created = '' }
+        ) } }
+        $f = FindingOf (Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map) 'IRM-05'
+        $f.status | Should -Be 'Recommendation'
+        $f.table.rows[0].cells[0] | Should -Be 'Leaks (paused)'
+        $f.table.rows[0].remark | Should -Match 'not enabled'
+    }
+    It 'an unreadable mode never punishes: scenario match without a mode property counts as present' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'Ok'; error = $null; count = 1; items = @(
+            [pscustomobject]@{ name = 'Data theft'; scenario = 'DataTheft'; workloads = 'Exchange'; created = '' }
+        ) } }
+        (FindingOf (Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map) 'IRM-04').status | Should -Be 'OK'
+    }
+    It 'scenario matchers have word-boundary care and are mutually exclusive on the known families' {
+        Test-PpaIrmTheftScenario 'IntellectualPropertyTheft' | Should -BeTrue
+        Test-PpaIrmTheftScenario 'DataTheft' | Should -BeTrue
+        Test-PpaIrmTheftScenario 'LeakOfInformation' | Should -BeFalse
+        Test-PpaIrmTheftScenario '' | Should -BeFalse
+        Test-PpaIrmLeakScenario 'LeakOfInformation' | Should -BeTrue
+        Test-PpaIrmLeakScenario 'DisgruntledEmployeeDataLeak' | Should -BeTrue
+        Test-PpaIrmLeakScenario 'HighValueEmployeeDataLeak' | Should -BeTrue
+        Test-PpaIrmLeakScenario 'IntellectualPropertyTheft' | Should -BeFalse
+        Test-PpaIrmLeakScenario 'RiskyAIUsage' | Should -BeFalse
     }
 }
 

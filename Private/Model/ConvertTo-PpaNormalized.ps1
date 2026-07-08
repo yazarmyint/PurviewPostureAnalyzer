@@ -1,10 +1,29 @@
 # ConvertTo-PpaNormalized.ps1 - the assemble stage of the pipeline (PLAN.md section 2).
-# Takes the collected/analyzed pieces (meta, licensing, per-section findings,
-# observations) and produces the single normalized object that both the HTML renderer
+# Takes the collected/analyzed pieces (meta, licensing, and per-section findings)
+# and produces the single normalized object that both the HTML renderer
 # and the JSON export consume. Counts and the at-a-glance headline are computed here,
 # never hand-authored. ASCII-only source. Depends on PpaStatus.ps1.
 
 Set-StrictMode -Off
+
+function Get-PpaCanonicalSectionOrder {
+    # THE canonical solution order (Wave 5 cleanup Part 5, Option B signed off).
+    # Single source for the report body and - via the first-appearance grouping
+    # below - the Solutions Summary; the coverage matrix column axis is defined in
+    # Get-PpaCoverageModel and pinned to this sequence by the three-surface
+    # guardrail test in Tests/Coverage.Tests.ps1. Section IDs only - titles are
+    # never touched here.
+    return @(
+        'Sensitivity_Labels'
+        'Data_Loss_Prevention'
+        'DSPM_for_AI'
+        'Retention'
+        'Insider_Risk'
+        'Communication_Compliance'
+        'Audit'
+        'eDiscovery'
+    )
+}
 
 function ConvertTo-PpaNormalized {
     [CmdletBinding()]
@@ -12,11 +31,27 @@ function ConvertTo-PpaNormalized {
         [Parameter(Mandatory = $true)] $Meta,
         [Parameter(Mandatory = $true)] $Licensing,
         [Parameter(Mandatory = $true)] $Sections,
-        $Observations = @()
+        # Wave 4 Part D: the CoverageModel (pure projection); null renders no matrix.
+        $Coverage = $null
     )
 
     $order    = Get-PpaStatusOrder
     $sections = @($Sections)
+
+    # Wave 5 cleanup Part 5: canonical DISPLAY order, applied at assemble time only.
+    # The orchestrator hands the analyze-order sections to New-PpaSnapshotModel
+    # before this function runs, so snapshot content (findings order, sectionsRun)
+    # never reorders - a pure display change stays out of delta mode. Sections with
+    # ids outside the canonical list (error stubs, tests) keep arrival order after
+    # the canonical ones; subsets (run profiles) keep canonical relative order.
+    $canon   = @(Get-PpaCanonicalSectionOrder)
+    $known   = New-Object System.Collections.Generic.List[object]
+    $unknown = New-Object System.Collections.Generic.List[object]
+    foreach ($id in $canon) {
+        foreach ($sec in $sections) { if ([string]$sec.id -eq $id) { $known.Add($sec) } }
+    }
+    foreach ($sec in $sections) { if ($canon -notcontains [string]$sec.id) { $unknown.Add($sec) } }
+    $sections = @($known.ToArray() + $unknown.ToArray())
 
     # Per-section: resolve glance (explicit status wins; otherwise the precedence
     # headline) and attach computed counts.
@@ -78,8 +113,8 @@ function ConvertTo-PpaNormalized {
     return [pscustomobject][ordered]@{
         meta         = $Meta
         licensing    = $Licensing
+        coverage     = $Coverage
         summary      = [pscustomobject][ordered]@{ totals = [pscustomobject]$totals; groups = $groupsOut.ToArray() }
         sections     = $secOut.ToArray()
-        observations = @($Observations)
     }
 }

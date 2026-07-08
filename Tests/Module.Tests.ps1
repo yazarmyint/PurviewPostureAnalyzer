@@ -41,6 +41,29 @@ Describe 'Orchestrator - graceful degradation with no tenant' {
     It 'carries the static license-context note (annotation, not detection)' {
         $script:Result.Normalized.licensing.note | Should -Match 'does not read the tenant'
     }
+    It 'writes a snapshot by default, named PPA-Snapshot_*.json alongside the report' {
+        $script:Result.SnapshotPath | Should -Not -BeNullOrEmpty
+        Test-Path -LiteralPath $script:Result.SnapshotPath | Should -BeTrue
+        [System.IO.Path]::GetFileName($script:Result.SnapshotPath) | Should -BeLike 'PPA-Snapshot_*.json'
+        Split-Path -Parent $script:Result.SnapshotPath | Should -Be (Split-Path -Parent $script:Result.HtmlPath)
+    }
+    It 'the disconnected-run snapshot records CmdletUnavailable for every collector' {
+        $snap = [System.IO.File]::ReadAllText($script:Result.SnapshotPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $snap.schemaVersion.major | Should -Be 1
+        foreach ($p in $snap.collectorOutcomes.PSObject.Properties) { $p.Value | Should -Be 'CmdletUnavailable' }
+        $snap.tenantId | Should -BeNullOrEmpty
+    }
+    It '-NoSnapshot suppresses the snapshot and returns a null SnapshotPath' {
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('ppa-nosnap-' + [guid]::NewGuid().ToString('N'))
+        try {
+            $r = Invoke-PurviewPostureAnalyzer -OutputDirectory $tmp -NoSnapshot -WarningAction SilentlyContinue
+            $r.SnapshotPath | Should -BeNullOrEmpty
+            @(Get-ChildItem -Path (Split-Path -Parent $r.HtmlPath) -Filter 'PPA-Snapshot_*').Count | Should -Be 0
+        }
+        finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 Describe 'No license-confirmation language (assume-E5 model, decision D9)' {
@@ -120,6 +143,26 @@ Describe 'Orchestrator - collector errors are surfaced, not hidden' {
             $sec.findings[0].id | Should -Be 'Sensitivity_Labels-ERR'
             $sec.findings[0].status | Should -Be 'Verify manually'
             ($sec.findings[0].table.rows | Where-Object { $_.remark }).remark | Should -Match 'BOOM-ipps-not-connected'
+        }
+        finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    It 'surfaces the REAL exception for a previously key/title-mismatched section (Retention) - F-002' {
+        # Retention's collect id is "Retention" but its section title is "Retention & Records";
+        # before F-002 the error was registered under the id and looked up by title -> miss ->
+        # generic placeholder. This pins that the real reason now survives for such sections.
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('ppa-err2-' + [guid]::NewGuid().ToString('N'))
+        try {
+            $sec = InModuleScope PurviewPostureAnalyzer -Parameters @{ TmpDir = $tmp } {
+                param($TmpDir)
+                Mock Get-PpaRetention { throw 'BOOM-retention-collector-threw' }
+                $r = Invoke-PurviewPostureAnalyzer -OutputDirectory $TmpDir -WarningAction SilentlyContinue
+                $r.Normalized.sections | Where-Object { $_.id -eq 'Retention' }
+            }
+            $sec.findings[0].id | Should -Be 'Retention-ERR'
+            $sec.findings[0].status | Should -Be 'Verify manually'
+            ($sec.findings[0].table.rows | Where-Object { $_.remark }).remark | Should -Match 'BOOM-retention-collector-threw'
         }
         finally {
             Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue

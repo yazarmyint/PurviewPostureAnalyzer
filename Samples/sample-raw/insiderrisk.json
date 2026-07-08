@@ -1,4 +1,5 @@
 {
+  "outcome": "CmdletUnavailable",
   "policies": {
     "status": "CommandNotFound",
     "error": "Cmdlet 'Get-InsiderRiskPolicy' is not available in this session.",

@@ -1,0 +1,9 @@
+{
+  "outcome": "CmdletUnavailable",
+  "_comment": "Degraded-run fixture (F-001): the Security & Compliance label reads did not complete (not connected / module not imported / role denied). Every label read carries a non-Ok status, so the analyzer must render LABELS-01..05 as 'not readable this session' (Verify manually), never a fabricated '0 / no taxonomy'.",
+  "labels": { "status": "CommandNotFound", "error": "Cmdlet 'Get-Label' is not available in this session.", "items": [] },
+  "policies": { "status": "CommandNotFound", "error": "Cmdlet 'Get-LabelPolicy' is not available in this session.", "items": [] },
+  "autoLabels": { "status": "CommandNotFound", "error": "Cmdlet 'Get-AutoSensitivityLabelPolicy' is not available in this session.", "rulesStatus": "CommandNotFound", "rulesError": "Cmdlet 'Get-AutoSensitivityLabelRule' is not available in this session.", "items": [] },
+  "containers": { "status": "NotCollected", "groups": null, "sites": null },
+  "irmConfig": { "status": "CommandNotFound", "error": "Cmdlet 'Get-IRMConfiguration' is not available in this session.", "azureRmsEnabled": null }
+}

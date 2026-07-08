@@ -23,6 +23,7 @@ function Get-PpaDlp {
     $policyItems = foreach ($p in @($rawPols.Data)) {
         [pscustomobject]@{
             name         = [string]$p.Name
+            guid         = Get-PpaOptionalGuid $p
             mode         = [string]$p.Mode
             locations    = [pscustomobject]@{
                 exchange   = (Test-PpaLocationInScope $p.ExchangeLocation)
@@ -31,7 +32,26 @@ function Get-PpaDlp {
                 teams      = (Test-PpaLocationInScope $p.TeamsLocation)
                 endpoint   = (Test-PpaLocationInScope $p.EndpointDlpLocation)
             }
-            testModeSince = [string]$p.LastStatusChangeDate
+            # Part D coverage-matrix grounding (additive; the booleans above stay
+            # the analyzer contract). All/Scoped/None per workload + exception
+            # presence, incl. the documented PowerBIDlpLocation pair.
+            locationScope = [pscustomobject]@{
+                exchange   = (Get-PpaLocationScopeToken $p.ExchangeLocation)
+                sharePoint = (Get-PpaLocationScopeToken $p.SharePointLocation)
+                oneDrive   = (Get-PpaLocationScopeToken $p.OneDriveLocation)
+                teams      = (Get-PpaLocationScopeToken $p.TeamsLocation)
+                endpoint   = (Get-PpaLocationScopeToken $p.EndpointDlpLocation)
+                powerBI    = (Get-PpaLocationScopeToken $p.PowerBIDlpLocation)
+            }
+            locationExceptions = [pscustomobject]@{
+                exchange   = (Test-PpaLocationException $p.ExchangeLocationException)
+                sharePoint = (Test-PpaLocationException $p.SharePointLocationException)
+                oneDrive   = (Test-PpaLocationException $p.OneDriveLocationException)
+                teams      = (Test-PpaLocationException $p.TeamsLocationException)
+                endpoint   = (Test-PpaLocationException $p.EndpointDlpLocationException)
+                powerBI    = (Test-PpaLocationException $p.PowerBIDlpLocationException)
+            }
+            testModeSince = ConvertTo-PpaIso8601 $p.LastStatusChangeDate
         }
     }
 
@@ -44,12 +64,14 @@ function Get-PpaDlp {
         [pscustomobject]@{
             policyName = $parentPolicy
             name       = [string]$r.Name
+            guid       = Get-PpaOptionalGuid $r
             disabled   = [bool]($r.Disabled -eq $true)
             sits       = @($sitNames)
         }
     }
 
     return [pscustomobject]@{
+        outcome  = Resolve-PpaCollectorOutcome -ReadStatuses @($rawPols.Status, $rawRules.Status) -ItemCount (@($policyItems).Count + @($ruleItems).Count)
         policies = [pscustomobject]@{ status = $rawPols.Status;  error = $rawPols.Error;  items = @($policyItems) }
         rules    = [pscustomobject]@{ status = $rawRules.Status; error = $rawRules.Error; items = @($ruleItems) }
     }

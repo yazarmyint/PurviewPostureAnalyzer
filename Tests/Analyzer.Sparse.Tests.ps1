@@ -10,6 +10,8 @@ BeforeAll {
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     foreach ($m in 'PpaStatus', 'New-PpaFinding', 'New-PpaSection', 'ConvertTo-PpaNormalized') { . (Join-Path $script:RepoRoot "Private\Model\$m.ps1") }
     foreach ($a in (Get-ChildItem (Join-Path $script:RepoRoot 'Private\Analyze') -Filter '*.ps1')) { . $a.FullName }
+    . (Join-Path $script:RepoRoot 'Private\Core\Get-PpaRemediationCatalog.ps1')
+    . (Join-Path $script:RepoRoot 'Private\Render\PpaRedact.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\PpaHtml.ps1')
     . (Join-Path $script:RepoRoot 'Private\Render\Export-PpaHtmlReport.ps1')
 
@@ -72,8 +74,9 @@ Describe 'DLP analyzer - sparse tenant data (0 rules for 6 policies)' {
         $f01 = $script:DlpSec.findings | Where-Object { $_.id -eq 'DLP-01' }
         ($f01.table.rows | Where-Object { $_.cells[0] -like 'Lab Policy 5*' }).cells[2] | Should -Be 'Enforcing'
     }
-    It 'DLP-04 with no HIPAA SITs anywhere is Informational, not a throw or false verdict' {
-        ($script:DlpSec.findings | Where-Object { $_.id -eq 'DLP-04' }).status | Should -Be 'Informational'
+    It 'the retired DLP-04 never emits - not even the "No HIPAA-template policies detected" line (Wave 5 cleanup Part 4)' {
+        @($script:DlpSec.findings.id) | Should -Not -Contain 'DLP-04'
+        @($script:DlpSec.findings | Where-Object { $_.title -match '(?i)HIPAA' }).Count | Should -Be 0
     }
 }
 
@@ -126,6 +129,7 @@ Describe 'All eight analyzers - zero-object collector results' {
         $sec = Invoke-PpaAuditAnalyzer -Raw $raw -LicenseMap $script:Map
         Assert-ValidSection $sec
         ($sec.findings | Where-Object { $_.id -eq 'AUD-01' }).status | Should -Be 'Verify manually'
+        ($sec.findings | Where-Object { $_.id -eq 'AUD-04' }).status | Should -Be 'Verify manually'
         $sec.glance.metric | Should -Be 'Unknown'
     }
     It 'eDiscovery: zero cases -> Informational inventory, no throw' {
@@ -133,6 +137,11 @@ Describe 'All eight analyzers - zero-object collector results' {
         $sec = Invoke-PpaEdiscoveryAnalyzer -Raw $raw -LicenseMap $script:Map
         Assert-ValidSection $sec
         ($sec.findings | Where-Object { $_.id -eq 'ED-01' }).status | Should -Be 'Informational'
+    }
+    It 'IRM: null count leaves IRM-04/05 unemitted (scenario absence never asserted from a failed read)' {
+        $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; count = $null; items = @() } }
+        $sec = Invoke-PpaInsiderRiskAnalyzer -Raw $raw -LicenseMap $script:Map
+        @($sec.findings | Where-Object { $_.id -in @('IRM-04', 'IRM-05') }).Count | Should -Be 0
     }
     It 'IRM: null count (enumeration unavailable) -> Verify manually, never a claimed zero' {
         $raw = [pscustomobject]@{ policies = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; count = $null } }
@@ -174,5 +183,100 @@ Describe 'End-to-end render of sparse sections' {
         $html = Export-PpaHtmlReport -Normalized $norm
         $html | Should -Match '&#8212;'
         ($html.ToCharArray() | Where-Object { [int][char]$_ -gt 126 }).Count | Should -Be 0
+    }
+}
+
+Describe 'Read-denied collector -> Verify manually, never a fabricated gap (F-001)' {
+    # The count-based analyzers (Labels/DLP/Retention/eDiscovery) must distinguish a
+    # read that FAILED (status != Ok) from a genuinely empty tenant. A failed read must
+    # never render as "0 / Improvement / Recommendation" - that presents unchecked as a
+    # gap. Mirrors the existing IRM/CC/Audit unread-degradation cases above.
+    It 'eDiscovery: AccessDenied cases read -> ED-01 Verify manually, not "0 cases Informational"' {
+        $raw = [pscustomobject]@{ outcome = 'AccessDenied'; cases = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; items = @() } }
+        $sec = Invoke-PpaEdiscoveryAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        $f = $sec.findings | Where-Object { $_.id -eq 'ED-01' }
+        $f.status | Should -Be 'Verify manually'
+        $f.title | Should -Match 'not readable'
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'eDiscovery: genuine Ok + 0 cases still reads Informational (the guard does not over-fire)' {
+        $raw = [pscustomobject]@{ outcome = 'Empty'; cases = [pscustomobject]@{ status = 'Ok'; error = $null; items = @() } }
+        $sec = Invoke-PpaEdiscoveryAnalyzer -Raw $raw -LicenseMap $script:Map
+        ($sec.findings | Where-Object { $_.id -eq 'ED-01' }).status | Should -Be 'Informational'
+    }
+    It 'Labels: CommandNotFound reads -> LABELS-01..04 Verify manually, not Improvement/Recommendation' {
+        $raw = [pscustomobject]@{
+            labels     = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            policies   = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            autoLabels = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; rulesStatus = 'CommandNotFound'; rulesError = 'x'; items = @() }
+            containers = [pscustomobject]@{ status = 'NotCollected'; groups = $null; sites = $null }
+            irmConfig  = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; azureRmsEnabled = $null }
+        }
+        $sec = Invoke-PpaLabelAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        foreach ($id in @('LABELS-01', 'LABELS-02', 'LABELS-03', 'LABELS-04')) {
+            ($sec.findings | Where-Object { $_.id -eq $id }).status | Should -Be 'Verify manually'
+        }
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'DLP: AccessDenied policy read -> a single DLP-01 Verify manually, no fabricated DLP-02/03 gaps' {
+        $raw = [pscustomobject]@{
+            policies = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; items = @() }
+            rules    = [pscustomobject]@{ status = 'AccessDenied'; error = 'denied'; items = @() }
+        }
+        $sec = Invoke-PpaDlpAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'DLP-01' }).status | Should -Be 'Verify manually'
+        @($sec.findings | Where-Object { $_.status -ne 'Verify manually' }).Count | Should -Be 0
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'Retention: CommandNotFound reads -> RET-01..03 Verify manually, not Improvement' {
+        $raw = [pscustomobject]@{
+            policies       = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            labels         = [pscustomobject]@{ status = 'CommandNotFound'; error = 'x'; items = @() }
+            adaptiveScopes = [pscustomobject]@{ status = 'CommandNotFound'; count = 0 }
+        }
+        $sec = Invoke-PpaRetentionAnalyzer -Raw $raw -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        foreach ($id in @('RET-01', 'RET-02', 'RET-03')) {
+            ($sec.findings | Where-Object { $_.id -eq $id }).status | Should -Be 'Verify manually'
+        }
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+}
+
+Describe 'Degraded-run FIXTURES render the F-001 contrast (Samples/sample-raw/degraded)' {
+    # Pins the fixtures behind the sample-degraded.html build entry: not-readable sections
+    # read "Verify manually", while a readable-but-empty section still reads its genuine
+    # empty verdict - the contrast that makes F-001 visible in one report.
+    BeforeAll {
+        function DegradedRaw($n) { [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot "Samples\sample-raw\degraded\$n.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+    }
+    It 'Labels (reads not readable) -> LABELS-01..04 Verify manually' {
+        $sec = Invoke-PpaLabelAnalyzer -Raw (DegradedRaw 'labels-notreadable') -AsOf ([datetime]'2026-07-01') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        foreach ($id in @('LABELS-01', 'LABELS-02', 'LABELS-03', 'LABELS-04')) {
+            ($sec.findings | Where-Object { $_.id -eq $id }).status | Should -Be 'Verify manually'
+        }
+        $sec.glance.metric | Should -Be 'not readable'
+    }
+    It 'DLP (read denied) -> a single DLP-01 Verify manually' {
+        $sec = Invoke-PpaDlpAnalyzer -Raw (DegradedRaw 'dlp-notreadable') -AsOf ([datetime]'2026-07-01') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'DLP-01' }).status | Should -Be 'Verify manually'
+        @($sec.findings | Where-Object { $_.status -ne 'Verify manually' }).Count | Should -Be 0
+    }
+    It 'eDiscovery (read denied) -> ED-01 Verify manually' {
+        $sec = Invoke-PpaEdiscoveryAnalyzer -Raw (DegradedRaw 'ediscovery-notreadable') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'ED-01' }).status | Should -Be 'Verify manually'
+    }
+    It 'Retention (readable + genuinely empty) -> the CONTRAST: Improvement/Informational, never Verify manually' {
+        $sec = Invoke-PpaRetentionAnalyzer -Raw (DegradedRaw 'retention-empty') -LicenseMap $script:Map
+        Assert-ValidSection $sec
+        ($sec.findings | Where-Object { $_.id -eq 'RET-01' }).status | Should -Be 'Improvement'
+        ($sec.findings | Where-Object { $_.id -eq 'RET-03' }).status | Should -Be 'Informational'
+        @($sec.findings | Where-Object { $_.status -eq 'Verify manually' }).Count | Should -Be 0
     }
 }

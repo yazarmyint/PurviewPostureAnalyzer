@@ -11,8 +11,40 @@ function Invoke-PurviewPostureAnalyzer {
     param(
         [string]$OutputDirectory,
         [string]$Organization,
-        [datetime]$AsOf = (Get-Date)
+        [datetime]$AsOf = (Get-Date),
+        # Run profile (P5): -IncludeSection means "only these"; -ExcludeSection removes.
+        # Keys are the top-level section ids (e.g. Audit, DSPM_for_AI). -Profile points
+        # to a .psd1/.json file with IncludeSection/ExcludeSection keys expressing the
+        # same; explicit parameters override the file. (This parameter intentionally
+        # shadows the automatic $Profile variable inside this function only.)
+        [string[]]$IncludeSection,
+        [string[]]$ExcludeSection,
+        [string]$Profile,
+        # Redaction (P6): render-time masking of tenant domains/UPNs (-Redact) and,
+        # additionally, policy/label name pseudonymization (-RedactNames, implies
+        # -Redact). The JSON export and in-memory findings are never modified.
+        [switch]$Redact,
+        [switch]$RedactNames,
+        # Snapshot (Wave 4): a versioned UNREDACTED JSON snapshot is written alongside
+        # the HTML by default; -NoSnapshot suppresses it. -IncludeRawCapture also
+        # writes the raw collector outputs to a separate debug file outside the schema.
+        [switch]$NoSnapshot,
+        [switch]$IncludeRawCapture,
+        # Delta mode (Wave 4 Part C): fully offline comparison of two snapshots -
+        # file-in, HTML-out, no tenant session. PS 7+ only (engine gate inside).
+        [string]$DeltaFrom,
+        [string]$DeltaTo,
+        [string]$OutputPath,
+        [switch]$AllowTenantMismatch
     )
+
+    # ---- DELTA MODE: short-circuits the whole collection pipeline (spec 4.1) ----
+    if (-not [string]::IsNullOrWhiteSpace($DeltaFrom) -or -not [string]::IsNullOrWhiteSpace($DeltaTo)) {
+        if ([string]::IsNullOrWhiteSpace($DeltaFrom) -or [string]::IsNullOrWhiteSpace($DeltaTo)) {
+            throw 'Delta mode requires BOTH -DeltaFrom and -DeltaTo snapshot paths.'
+        }
+        return Invoke-PpaDelta -FromPath $DeltaFrom -ToPath $DeltaTo -OutputPath $OutputPath -Redact:$Redact -RedactNames:$RedactNames -AllowTenantMismatch:$AllowTenantMismatch
+    }
 
     # Resolve the output directory to an ABSOLUTE path against the caller's PowerShell location.
     # A relative path handed to .NET file APIs (WriteAllText) would otherwise resolve against the
@@ -23,6 +55,34 @@ function Invoke-PurviewPostureAnalyzer {
         $OutputDirectory = Join-Path -Path (Get-Location).Path -ChildPath $OutputDirectory
     }
     $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+
+    # ---- RUN PROFILE (P5): resolve and validate BEFORE any collection (fail fast) ----
+    $knownSectionIds = @('Sensitivity_Labels', 'Data_Loss_Prevention', 'Retention', 'Insider_Risk', 'Audit', 'eDiscovery', 'Communication_Compliance', 'DSPM_for_AI')
+    if (-not [string]::IsNullOrWhiteSpace($Profile)) {
+        $profilePath = $Profile
+        if (-not [System.IO.Path]::IsPathRooted($profilePath)) { $profilePath = Join-Path -Path (Get-Location).Path -ChildPath $profilePath }
+        if (-not (Test-Path -LiteralPath $profilePath)) { throw "Run profile file not found: '$profilePath'." }
+        $profileData = switch ([System.IO.Path]::GetExtension($profilePath).ToLower()) {
+            '.psd1' { Import-PowerShellDataFile -LiteralPath $profilePath }
+            '.json' { [System.IO.File]::ReadAllText($profilePath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json }
+            default { throw "Run profile '$profilePath' must be a .psd1 or .json file." }
+        }
+        # Explicit parameters override the profile file. (Filter before counting: an
+        # unbound [string[]] parameter wraps to @($null), whose Count is 1, not 0.)
+        if (@($IncludeSection | Where-Object { $_ }).Count -eq 0 -and $profileData.IncludeSection) { $IncludeSection = @($profileData.IncludeSection) }
+        if (@($ExcludeSection | Where-Object { $_ }).Count -eq 0 -and $profileData.ExcludeSection) { $ExcludeSection = @($profileData.ExcludeSection) }
+    }
+    $badKeys = @(@($IncludeSection) + @($ExcludeSection) | Where-Object { $_ -and ($knownSectionIds -notcontains $_) })
+    if ($badKeys.Count -gt 0) {
+        throw ("Unknown section key(s): {0}. Valid keys: {1}" -f (($badKeys | Select-Object -Unique) -join ', '), ($knownSectionIds -join ', '))
+    }
+
+    # ---- RUN MANIFEST (F-008): start recording every cmdlet the read-only chokepoint
+    # dispatches this run - metadata only (name, status, count, timestamp), never arguments
+    # or content. Started before the run-context + session-diagnostics probes so they are
+    # captured too; written alongside the report below. Emitted by default (self-auditability
+    # is the point) and never leaves the machine. ----
+    Initialize-PpaRunManifest
 
     $meta = Get-PpaRunContext -Organization $Organization -AsOf $AsOf
 
@@ -42,27 +102,33 @@ function Invoke-PurviewPostureAnalyzer {
 
     # ---- COLLECT (read-only; a failure is captured, logged, and yields $null) ----
     $collectorErrors = @{}
+    # Keyed by SECTION ID (the stable identifier) - the analyze stage below keys its
+    # lookup off the same section id, so the real collector exception survives for ALL
+    # eight sections. (Keying by display name silently missed the four sections whose
+    # collect-name and title differ: Retention, Insider_Risk, Communication_Compliance,
+    # DSPM_for_AI - the generic placeholder was shown instead of the real reason. F-002.)
     $collect = {
-        param([string]$Name, [scriptblock]$Block)
+        param([string]$Id, [scriptblock]$Block)
         try { & $Block }
         catch {
-            $collectorErrors[$Name] = $_.Exception.Message
-            Write-Warning ("Collector '{0}' failed: {1}" -f $Name, $_.Exception.Message)
-            Write-Verbose ("Collector '{0}' exception [{1}]:`n{2}`n{3}" -f $Name, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
+            $collectorErrors[$Id] = $_.Exception.Message
+            $display = ($Id -replace '_', ' ')
+            Write-Warning ("Collector '{0}' failed: {1}" -f $display, $_.Exception.Message)
+            Write-Verbose ("Collector '{0}' exception [{1}]:`n{2}`n{3}" -f $display, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
             $null
         }
     }
-    $rawLabels = & $collect 'Sensitivity Labels'   { Get-PpaSensitivityLabels }
-    $rawDlp    = & $collect 'Data Loss Prevention' { Get-PpaDlp }
-    $rawRet    = & $collect 'Retention'            { Get-PpaRetention }
-    $rawIrm    = & $collect 'Insider Risk'         { Get-PpaInsiderRisk }
-    $rawAud    = & $collect 'Audit'                { Get-PpaAudit }
-    $rawEd     = & $collect 'eDiscovery'           { Get-PpaEdiscovery }
-    $rawCc     = & $collect 'Comms Compliance'     { Get-PpaCommsCompliance }
-    $rawDspm   = & $collect 'DSPM for AI'          { Get-PpaDspmAi }
+    $rawLabels = & $collect 'Sensitivity_Labels'       { Get-PpaSensitivityLabels }
+    $rawDlp    = & $collect 'Data_Loss_Prevention'     { Get-PpaDlp }
+    $rawRet    = & $collect 'Retention'                { Get-PpaRetention }
+    $rawIrm    = & $collect 'Insider_Risk'             { Get-PpaInsiderRisk }
+    $rawAud    = & $collect 'Audit'                    { Get-PpaAudit }
+    $rawEd     = & $collect 'eDiscovery'               { Get-PpaEdiscovery }
+    $rawCc     = & $collect 'Communication_Compliance' { Get-PpaCommsCompliance }
+    $rawDspm   = & $collect 'DSPM_for_AI'              { Get-PpaDspmAi }
 
-    # Static maps: SIT tiering + license annotations (never detection - decision D9).
-    $sitMap = Get-PpaSitTierMap
+    # Static map: license annotations (never detection - decision D9). The SIT tier
+    # map went with the DLP-04 retirement (Wave 5 cleanup Part 4).
     $licMap = Get-PpaLicenseRequirements
     $hasSiteLabels = $false
     if ($rawLabels) {
@@ -75,7 +141,8 @@ function Invoke-PurviewPostureAnalyzer {
     $analyze = {
         param([string]$Id, [string]$Title, [string]$Group, [string]$Icon, [string]$Tag, $Raw, [scriptblock]$Block)
         if ($null -eq $Raw) {
-            $why = if ($collectorErrors.ContainsKey($Title)) { "Collector error: " + $collectorErrors[$Title] } else { 'Collector returned no data (not connected, missing module, or access denied). Re-run with -Verbose for the underlying cmdlet errors.' }
+            # Look up by section id - the SAME key $collect registers under (F-002).
+            $why = if ($collectorErrors.ContainsKey($Id)) { "Collector error: " + $collectorErrors[$Id] } else { 'Collector returned no data (not connected, missing module, or access denied). Re-run with -Verbose for the underlying cmdlet errors.' }
             return (New-PpaErrorSection -Id $Id -Title $Title -Group $Group -GroupIcon $Icon -GroupTag $Tag -Message $why)
         }
         try { & $Block }
@@ -88,7 +155,7 @@ function Invoke-PurviewPostureAnalyzer {
 
     $sections = @(
         & $analyze 'Sensitivity_Labels' 'Sensitivity Labels' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawLabels { Invoke-PpaLabelAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
-        & $analyze 'Data_Loss_Prevention' 'Data Loss Prevention' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawDlp { Invoke-PpaDlpAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap -SitTierMap $sitMap }
+        & $analyze 'Data_Loss_Prevention' 'Data Loss Prevention' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawDlp { Invoke-PpaDlpAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
         & $analyze 'Retention' 'Retention & Records' 'Data Lifecycle & Records' 'fas fa-archive' '' $rawRet { Invoke-PpaRetentionAnalyzer -Raw $Raw -LicenseMap $licMap }
         & $analyze 'Insider_Risk' 'Insider Risk Management' 'Insider Risk' 'fas fa-user-secret' '' $rawIrm { Invoke-PpaInsiderRiskAnalyzer -Raw $Raw -LicenseMap $licMap }
         & $analyze 'Audit' 'Audit' 'Discovery & Response' 'fas fa-search' '' $rawAud { Invoke-PpaAuditAnalyzer -Raw $Raw -LicenseMap $licMap }
@@ -97,10 +164,37 @@ function Invoke-PurviewPostureAnalyzer {
         & $analyze 'DSPM_for_AI' 'DSPM for AI - Copilot Data Security' 'AI Security' 'fas fa-robot' 'NEW' $rawDspm { Invoke-PpaDspmAiAnalyzer -Raw $Raw -LicenseMap $licMap -HasSiteLabels:$hasSiteLabels }
     )
 
+    # ---- RUN PROFILE FILTER (P5): applied after analysis, before assembly, so all
+    # collectors/analyzers ran identically and only the report/export thins out ----
+    $selection = Select-PpaSections -Sections $sections -IncludeSection $IncludeSection -ExcludeSection $ExcludeSection
+    $sections  = @($selection.Sections)
+
+    # ---- COLLECTOR -> SECTION MAP (keyed by section id): built once here and reused by
+    # the degraded summary below, the coverage matrix, and the snapshot. ----
+    $rawMap = @{
+        Sensitivity_Labels       = $rawLabels
+        Data_Loss_Prevention     = $rawDlp
+        Retention                = $rawRet
+        Insider_Risk             = $rawIrm
+        Audit                    = $rawAud
+        eDiscovery               = $rawEd
+        Communication_Compliance = $rawCc
+        DSPM_for_AI              = $rawDspm
+    }
+
     # ---- DEGRADED-SECTION SUMMARY (visible without -Verbose) ----
-    $degraded = @($sections | Where-Object { @($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0 })
+    # A section is degraded if it hard-errored to an *-ERR stub OR its collector read did
+    # not fully succeed (access denied / not connected / partial). Warning on the collector
+    # outcome - not just *-ERR - means a not-connected or partial-role run is flagged
+    # instead of silently rendering fabricated "0 / Improvement" gaps (F-001).
+    $degradedOutcomes = @('AccessDenied', 'CmdletUnavailable', 'Failed', 'Partial')
+    $degraded = @($sections | Where-Object {
+        $sid = [string]$_.id
+        (@($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0) -or
+        ($rawMap.ContainsKey($sid) -and $null -ne $rawMap[$sid] -and ($degradedOutcomes -contains [string]$rawMap[$sid].outcome))
+    })
     if ($degraded.Count -gt 0) {
-        Write-Warning ("{0} section(s) degraded to Verify manually: {1}. Expand each finding's Remarks for the error, or re-run with -Verbose for the underlying cmdlet failures." -f $degraded.Count, ((@($degraded).title) -join ', '))
+        Write-Warning ("{0} section(s) degraded - a read did not fully succeed (access denied / not connected / partial): {1}. Affected findings read 'Verify manually'; re-run with -Verbose for the underlying cmdlet failures." -f $degraded.Count, ((@($degraded).title) -join ', '))
     }
 
     # ---- LICENSE-CONTEXT NOTE (assume E5, annotate tier - decision D9) ----
@@ -108,8 +202,12 @@ function Invoke-PurviewPostureAnalyzer {
                else { 'This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant subscriptions; findings marked Requires note the tier the feature needs.' }
     $licBlock = [pscustomobject]@{ note = $licNote }
 
+    # ---- COVERAGE MATRIX (Wave 4 Part D): pure projection from collected data.
+    # $rawMap was built once above (collector -> section map) and is reused here. ----
+    $coverage = Get-PpaCoverageModel -RawMap $rawMap
+
     # ---- ASSEMBLE -> RENDER (HTML primary) + EXPORT (JSON) ----
-    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Observations @()
+    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Coverage $coverage
 
     $stamp = $AsOf.ToUniversalTime().ToString('yyyyMMdd-HHmmss')
     $reportsDir = Join-Path (Join-Path $OutputDirectory "PurviewPosture-$stamp") 'reports'
@@ -118,10 +216,34 @@ function Invoke-PurviewPostureAnalyzer {
     # every missing parent). The path is absolute, so New-Item and the .NET writes agree on it.
     New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null
 
+    # Run manifest (F-008): metadata-only record of the cmdlets this run executed, written
+    # alongside the report. Emitted here - after the reads are done and the dir exists, before
+    # the render write - so a render failure still leaves the manifest (best-effort; only a
+    # crash in the pure assemble stage above this point skips it), and it always lands on
+    # degraded runs, which complete normally. Metadata only, so there is nothing to redact.
+    $manifestPath = Export-PpaRunManifest -Directory $reportsDir -PpaVersion ([string]$meta.version)
+
     $htmlPath = Join-Path $reportsDir 'posture-report.html'
     $jsonPath = Join-Path $reportsDir 'posture-report.json'
-    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized), (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames), (New-Object System.Text.UTF8Encoding($false)))
     [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
+
+    # ---- SNAPSHOT (Wave 4 Part B): versioned JSON capture alongside the HTML ----
+    # Post-selection scope: only the selected sections' objects/findings are captured;
+    # excluded sections' collectors record 'Skipped', a crashed collector 'Failed'
+    # (attempted-and-errored; 'NotRun' is reserved for never-attempted).
+    $snapshotPath = $null
+    if (-not $NoSnapshot) {
+        # $rawMap was built once above for the coverage matrix; the snapshot reuses it.
+        $profileName = if ([string]::IsNullOrWhiteSpace($Profile)) { $null } else { [System.IO.Path]::GetFileNameWithoutExtension($Profile) }
+        $snapModel = New-PpaSnapshotModel `
+            -RawMap $rawMap -Sections $sections -Meta $meta `
+            -CapturedAt $AsOf -SnapshotId ([guid]::NewGuid().ToString()) `
+            -ProfileName $profileName `
+            -SectionIds @($sections | ForEach-Object { [string]$_.id })
+        $snapResult = Export-PpaSnapshot -Model $snapModel -Directory $reportsDir -RawMap $rawMap -IncludeRawCapture:$IncludeRawCapture
+        $snapshotPath = $snapResult.SnapshotPath
+    }
 
     # Only report success once both files are actually on disk. If a write failed, let the failure
     # surface instead of returning paths that do not exist.
@@ -131,5 +253,5 @@ function Invoke-PurviewPostureAnalyzer {
 
     Write-Host "Report : $htmlPath"
     Write-Host "JSON   : $jsonPath"
-    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; Normalized = $normalized }
+    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; SnapshotPath = $snapshotPath; ManifestPath = $manifestPath; Normalized = $normalized }
 }

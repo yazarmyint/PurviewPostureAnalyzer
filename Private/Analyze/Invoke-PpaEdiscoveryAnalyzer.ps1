@@ -13,12 +13,22 @@ function Invoke-PpaEdiscoveryAnalyzer {
     )
 
     $mid = Get-PpaMidDot
+    # $Raw.cases.status is the Get-ComplianceCase read status. 'Ok' means the read
+    # completed (0 cases is then a genuine empty); anything else means the cases could
+    # not be enumerated - eDiscovery needs its own role group beyond Global Reader - so
+    # we must NOT report "0 cases" as fact (unknown is never asserted as empty, F-001).
+    $casesReadable = ([string]$Raw.cases.status -eq 'Ok')
     $cases = @($Raw.cases.items)
     $findings = New-Object System.Collections.Generic.List[object]
 
     # --- ED-01: cases (inventory) ---
     $lm01 = @(@{ label = 'Learn about eDiscovery'; url = 'https://learn.microsoft.com/en-us/purview/ediscovery'; tag = 'docs' })
-    if ($cases.Count -eq 0) {
+    if (-not $casesReadable) {
+        $findings.Add((New-PpaFinding -Id 'ED-01' -DomId 'f-ed-1' -Title 'eDiscovery cases not readable this session' -Status 'Verify manually' `
+            -Whyline 'eDiscovery cases could not be enumerated this session - this read needs an eDiscovery role group (Global Reader alone does not cover it). Confirm coverage in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('eDiscovery cases', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.cases.error)))) -LearnMore $lm01))
+    }
+    elseif ($cases.Count -eq 0) {
         $findings.Add((New-PpaFinding -Id 'ED-01' -DomId 'f-ed-1' -Title 'No eDiscovery cases' -Status 'Informational' `
             -Whyline 'Case existence is reported for inventory only - no judgment on process maturity.' `
             -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('eDiscovery cases', '0') -Status 'Informational'))) -LearnMore $lm01))
@@ -39,7 +49,8 @@ function Invoke-PpaEdiscoveryAnalyzer {
         -LearnMore @(@{ label = 'eDiscovery capabilities by tier'; url = 'https://learn.microsoft.com/en-us/purview/ediscovery'; tag = 'docs' })))
 
     # --- glance ---
-    $glance = New-PpaGlance -Name 'eDiscovery' -Metric "$($cases.Count) cases" -Sub "Premium requires E5"
+    $glanceMetric = if ($casesReadable) { "$($cases.Count) cases" } else { 'not readable' }
+    $glance = New-PpaGlance -Name 'eDiscovery' -Metric $glanceMetric -Sub "Premium requires E5"
 
     return New-PpaSection -Id 'eDiscovery' -Title 'eDiscovery' -Group 'Discovery & Response' `
         -GroupIcon 'fas fa-search' -Glance $glance -Findings $findings.ToArray()

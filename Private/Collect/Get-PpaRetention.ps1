@@ -27,18 +27,31 @@ function Get-PpaRetention {
         $ruleLabels = @($rawRules.Data | Where-Object { $_.Policy -eq $p.Guid -or $_.ParentPolicyName -eq $p.Name } | ForEach-Object { [string]$_.Name })
         [pscustomobject]@{
             name      = [string]$p.Name
+            guid      = Get-PpaOptionalGuid $p
             adaptive  = (@($p.AdaptiveScopeLocation).Count -gt 0)
             locations = @($locs)
+            # Part D matrix grounding (documented-only shape, additive; the token
+            # array above stays the analyzer contract). Includes the documented
+            # Teams retention locations not surfaced in the legacy tokens.
+            locationScope = [pscustomobject]@{
+                exchange     = (Get-PpaLocationScopeToken $p.ExchangeLocation)
+                sharePoint   = (Get-PpaLocationScopeToken $p.SharePointLocation)
+                oneDrive     = (Get-PpaLocationScopeToken $p.OneDriveLocation)
+                groups       = (Get-PpaLocationScopeToken $p.ModernGroupLocation)
+                teamsChannel = (Get-PpaLocationScopeToken $p.TeamsChannelLocation)
+                teamsChat    = (Get-PpaLocationScopeToken $p.TeamsChatLocation)
+            }
             labels    = @($ruleLabels)
         }
     }
 
     $labelItems = foreach ($r in @($rawRules.Data)) {
         $auto = (-not [string]::IsNullOrEmpty([string]$r.ContentMatchQuery)) -or (@($r.ContentContainsSensitiveInformation).Count -gt 0)
-        [pscustomobject]@{ name = [string]$r.Name; autoApply = [bool]$auto }
+        [pscustomobject]@{ name = [string]$r.Name; guid = Get-PpaOptionalGuid $r; autoApply = [bool]$auto }
     }
 
     return [pscustomobject]@{
+        outcome        = Resolve-PpaCollectorOutcome -ReadStatuses @($rawPols.Status, $rawRules.Status, $rawScopes.Status) -ItemCount (@($policyItems).Count + @($labelItems).Count + @($rawScopes.Data).Count)
         policies       = [pscustomobject]@{ status = $rawPols.Status;  error = $rawPols.Error;  items = @($policyItems) }
         labels         = [pscustomobject]@{ status = $rawRules.Status; error = $rawRules.Error; items = @($labelItems) }
         adaptiveScopes = [pscustomobject]@{ status = $rawScopes.Status; count = @($rawScopes.Data).Count }

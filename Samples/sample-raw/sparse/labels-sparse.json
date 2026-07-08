@@ -1,4 +1,5 @@
 {
+  "outcome": "Populated",
   "_comment": "Sparse shape observed on a real tenant (2026-07-01): default OOB labels with empty parentId, no auto-labeling policies, label policy with no derivable scope. Regression fixture for empty/zero handling.",
   "labels": {
     "status": "Ok",
@@ -14,7 +15,7 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Default Label Policy", "labels": [], "enabled": true, "scope": "" }
+      { "name": "Default Label Policy", "guid": "guid-default-label-policy", "labels": [], "enabled": true, "scope": "" }
     ]
   },
   "autoLabels": { "status": "Ok", "error": null, "items": [] },

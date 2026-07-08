@@ -348,3 +348,7 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# CAMP v2 - local run output and fixture-rendered sample reports (never committed)
+Outputs/
+Samples/sample-reports/

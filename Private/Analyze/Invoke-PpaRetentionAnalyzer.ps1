@@ -19,8 +19,14 @@ function Invoke-PpaRetentionAnalyzer {
     $findings = New-Object System.Collections.Generic.List[object]
 
     # --- RET-01: inventory of policies & labels ---
+    # F-001: a failed policy read must not report "0 policies" as fact (unknown != empty).
     $lm01 = @(@{ label = 'Learn about retention policies & labels'; url = 'https://learn.microsoft.com/en-us/purview/retention'; tag = 'docs' })
-    if ($pols.Count -eq 0) {
+    if ([string]$Raw.policies.status -ne 'Ok') {
+        $findings.Add((New-PpaFinding -Id 'RET-01' -DomId 'f-ret-1' -Title 'Retention policies not readable this session' -Status 'Verify manually' `
+            -Whyline 'Retention policies could not be enumerated this session, so retention posture was not evaluated - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Retention policies', 'Not readable this session') -Status 'Verify manually' -Remark ([string]$Raw.policies.error)))) -LearnMore $lm01))
+    }
+    elseif ($pols.Count -eq 0) {
         $findings.Add((New-PpaFinding -Id 'RET-01' -DomId 'f-ret-1' -Title 'No retention policies configured' -Status 'Improvement' `
             -Whyline 'With no retention policies, data is neither retained for compliance nor disposed of on a schedule.' `
             -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Retention policies', '0') -Status 'Improvement'))) -LearnMore $lm01))
@@ -37,21 +43,36 @@ function Invoke-PpaRetentionAnalyzer {
     }
 
     # --- RET-02: adaptive scopes ---
-    $staticCount = @($pols | Where-Object { -not $_.adaptive }).Count
-    $rows02 = @(
-        New-PpaRow -Cells @('Static scopes', [string]$staticCount) -Status 'Informational'
-        New-PpaRow -Cells @('Adaptive scopes', [string]$adaptiveScopeCount) -Status ($(if ($adaptiveScopeCount -gt 0) { 'OK' } else { 'Improvement' }))
-    )
-    $findings.Add((New-PpaFinding -Id 'RET-02' -DomId 'f-ret-2' -Title ($(if ($adaptiveScopeCount -gt 0) { 'Adaptive scopes in use' } else { 'No adaptive scopes' })) -Status ($(if ($adaptiveScopeCount -gt 0) { 'OK' } else { 'Improvement' })) -Requires (Get-PpaRequirement $LicenseMap 'RET-02') `
-        -Whyline 'Static scopes drift as the org changes; adaptive scopes keep coverage current by attribute/query.' `
-        -Table (New-PpaTable -Columns @('Scope type', 'Count', 'Status') -Rows $rows02) `
-        -LearnMore @(@{ label = 'Adaptive vs. static scopes'; url = 'https://learn.microsoft.com/en-us/purview/retention-policies-adaptive'; tag = 'docs' })))
+    $lm02 = @(@{ label = 'Adaptive vs. static scopes'; url = 'https://learn.microsoft.com/en-us/purview/retention-policies-adaptive'; tag = 'docs' })
+    if ([string]$Raw.adaptiveScopes.status -ne 'Ok') {
+        # F-001: the adaptive-scope count is 0 only because the read did not complete.
+        $findings.Add((New-PpaFinding -Id 'RET-02' -DomId 'f-ret-2' -Title 'Adaptive scopes not readable this session' -Status 'Verify manually' -Requires (Get-PpaRequirement $LicenseMap 'RET-02') `
+            -Whyline 'Adaptive scopes could not be enumerated this session - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Configuration', 'Setting', 'Status') -Rows @((New-PpaRow -Cells @('Adaptive scopes', 'Not readable this session') -Status 'Verify manually'))) -LearnMore $lm02))
+    }
+    else {
+        $staticCount = @($pols | Where-Object { -not $_.adaptive }).Count
+        $rows02 = @(
+            New-PpaRow -Cells @('Static scopes', [string]$staticCount) -Status 'Informational'
+            New-PpaRow -Cells @('Adaptive scopes', [string]$adaptiveScopeCount) -Status ($(if ($adaptiveScopeCount -gt 0) { 'OK' } else { 'Improvement' }))
+        )
+        $findings.Add((New-PpaFinding -Id 'RET-02' -DomId 'f-ret-2' -Title ($(if ($adaptiveScopeCount -gt 0) { 'Adaptive scopes in use' } else { 'No adaptive scopes' })) -Status ($(if ($adaptiveScopeCount -gt 0) { 'OK' } else { 'Improvement' })) -Requires (Get-PpaRequirement $LicenseMap 'RET-02') `
+            -Whyline 'Static scopes drift as the org changes; adaptive scopes keep coverage current by attribute/query.' `
+            -Table (New-PpaTable -Columns @('Scope type', 'Count', 'Status') -Rows $rows02) `
+            -LearnMore $lm02))
+    }
 
     # --- RET-03: manual-apply retention labels ---
     $manualNames = @($labels | Where-Object { -not $_.autoApply } | ForEach-Object { $_.name })
     $manualCount = $manualNames.Count
     $lm03 = @(@{ label = 'Auto-apply retention labels'; url = 'https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically'; tag = 'docs' })
-    if ($labels.Count -eq 0) {
+    if ([string]$Raw.labels.status -ne 'Ok') {
+        # F-001: a failed retention-rule read must not report "0 labels" as fact.
+        $findings.Add((New-PpaFinding -Id 'RET-03' -DomId 'f-ret-3' -Title 'Retention labels not readable this session' -Status 'Verify manually' `
+            -Whyline 'Retention labels could not be enumerated this session - confirm in the Purview portal.' `
+            -Table (New-PpaTable -Columns @('Retention label', 'Auto-apply rule', 'Status') -Rows @((New-PpaRow -Cells @('Retention labels', 'Not readable this session') -Status 'Verify manually'))) -LearnMore $lm03))
+    }
+    elseif ($labels.Count -eq 0) {
         # Zero labels is NOT "all auto-apply" - there is simply nothing to judge here.
         $findings.Add((New-PpaFinding -Id 'RET-03' -DomId 'f-ret-3' -Title 'No retention labels defined' -Status 'Informational' `
             -Whyline 'There are no retention labels, so auto-apply does not come into play; retention relies on policies alone.' `
@@ -81,8 +102,13 @@ function Invoke-PpaRetentionAnalyzer {
     }
 
     # --- glance ---
-    $scopeState = if ($adaptiveScopeCount -gt 0) { 'adaptive + static' } else { 'static only' }
-    $glance = New-PpaGlance -Name 'Retention & Records' -Metric "$($pols.Count) policies" -Sub "$($labels.Count) labels $mid $scopeState"
+    if ([string]$Raw.policies.status -ne 'Ok') {
+        $glance = New-PpaGlance -Name 'Retention & Records' -Metric 'not readable' -Sub 'confirm in portal'
+    }
+    else {
+        $scopeState = if ($adaptiveScopeCount -gt 0) { 'adaptive + static' } else { 'static only' }
+        $glance = New-PpaGlance -Name 'Retention & Records' -Metric "$($pols.Count) policies" -Sub "$($labels.Count) labels $mid $scopeState"
+    }
 
     return New-PpaSection -Id 'Retention' -Title 'Retention & Records' -Group 'Data Lifecycle & Records' `
         -GroupIcon 'fas fa-archive' -Glance $glance -Findings $findings.ToArray()

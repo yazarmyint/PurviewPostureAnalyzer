@@ -1,4 +1,5 @@
 {
+  "outcome": "Populated",
   "labels": {
     "status": "Ok",
     "error": null,
@@ -15,20 +16,25 @@
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Northwind Global Label Policy", "labels": ["Public", "General", "Confidential", "Highly Confidential", "Legal", "Finance"], "enabled": true, "scope": "All users" },
-      { "name": "Executive Protection Policy", "labels": ["Confidential", "Highly Confidential"], "enabled": true, "scope": "Executives (grp)" }
+      { "name": "Northwind Global Label Policy", "guid": "guid-northwind-global-label-policy", "labels": ["Public", "General", "Confidential", "Highly Confidential", "Legal", "Finance"], "enabled": true, "scope": "All users" },
+      { "name": "Executive Protection Policy", "guid": "guid-executive-protection-policy", "labels": ["Confidential", "Highly Confidential"], "enabled": true, "scope": "Executives (grp)" }
     ]
   },
   "autoLabels": {
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Auto-label PHI & PII", "mode": "TestWithoutNotifications", "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
+      { "name": "Auto-label PHI & PII", "guid": "guid-auto-label-phi-pii", "mode": "TestWithoutNotifications", "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false }, "sits": ["U.S. HIPAA", "U.S. SSN", "Credit Card"], "simulationStartDate": "2026-04-08", "simulationItemCount": 2140 }
     ]
   },
   "containers": {
     "status": "Collected",
     "groups": { "total": 143, "labeled": 0 },
     "sites": { "total": 168, "labeled": 0 }
+  },
+  "irmConfig": {
+    "status": "Ok",
+    "error": null,
+    "azureRmsEnabled": true
   }
 }

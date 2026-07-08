@@ -238,8 +238,9 @@ function Invoke-PpaDspmAiAnalyzer {
                 }
             }
             elseif ($noAppsShape.Count -gt 0) {
-                # [DOC-GROUNDED carrier not observed live] policies exist but the Applications
-                # property is absent/shaped differently - coverage is genuinely un-assertable.
+                # [carrier VERIFIED live: 'Users:M365Copilot' (Wave 5 cleanup Part 1)] this
+                # branch stays for tenants where policies exist but the Applications property
+                # is absent/shaped differently - coverage there is genuinely un-assertable.
                 $status05 = 'Verify manually'
                 $title05  = 'Copilot retention coverage not assertable this session'
                 $why05    = 'App retention policies exist, but Copilot retention coverage is not assertable from cmdlet output on this tenant - confirm the policy locations in the Purview portal.'

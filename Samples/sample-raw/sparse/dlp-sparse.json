@@ -1,15 +1,16 @@
 {
+  "outcome": "Populated",
   "_comment": "Sparse shape observed on a real tenant (2026-07-01): Get-DlpCompliancePolicy returned 6 policies but Get-DlpComplianceRule returned 0 objects, so every policy has an empty SIT list. Regression fixture for empty/zero handling.",
   "policies": {
     "status": "Ok",
     "error": null,
     "items": [
-      { "name": "Default Office 365 DLP policy", "mode": "TestWithoutNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "Lab Policy 1", "mode": "Enable", "locations": { "exchange": true, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "Lab Policy 2", "mode": "Enable", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
-      { "name": "Lab Policy 3", "mode": "TestWithNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "2026-06-01" },
-      { "name": "Lab Policy 4", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": true, "endpoint": false }, "testModeSince": "" },
-      { "name": "Lab Policy 5 (no locations)", "mode": "Enable", "locations": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" }
+      { "name": "Default Office 365 DLP policy", "guid": "guid-default-office-365-dlp-policy", "mode": "TestWithoutNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
+      { "name": "Lab Policy 1", "guid": "guid-lab-policy-1", "mode": "Enable", "locations": { "exchange": true, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" },
+      { "name": "Lab Policy 2", "guid": "guid-lab-policy-2", "mode": "Enable", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "testModeSince": "" },
+      { "name": "Lab Policy 3", "guid": "guid-lab-policy-3", "mode": "TestWithNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "2026-06-01" },
+      { "name": "Lab Policy 4", "guid": "guid-lab-policy-4", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": true, "endpoint": false }, "testModeSince": "" },
+      { "name": "Lab Policy 5 (no locations)", "guid": "guid-lab-policy-5-no-locations", "mode": "Enable", "locations": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" }
     ]
   },
   "rules": { "status": "Ok", "error": null, "items": [] }

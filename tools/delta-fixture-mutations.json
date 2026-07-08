@@ -1,0 +1,37 @@
+{
+  "_comment": "EXPLICIT mutation table for tools/New-DeltaFixturePair.ps1 (Wave 4 spec 6.1). Both delta fixture snapshots derive from the dense fixture; every op below exists to exercise exactly one required delta behavior, noted in 'why'. Object references use snapshot _key values (slug guids - opaque identity contract).",
+  "ops": [
+    { "side": "A", "op": "setMeta", "field": "snapshotId", "value": "aaaa1111-0000-0000-0000-00000000000a", "why": "fixed identity for pins" },
+    { "side": "A", "op": "setMeta", "field": "capturedAt", "value": "2026-05-23T14:15:00Z", "why": "41-day span with side B" },
+    { "side": "A", "op": "setMeta", "field": "denylistVersion", "value": "0.9", "why": "differing recorded denylist versions -> informational note" },
+    { "side": "B", "op": "setMeta", "field": "snapshotId", "value": "bbbb2222-0000-0000-0000-00000000000b", "why": "fixed identity for pins" },
+    { "side": "B", "op": "setMeta", "field": "capturedAt", "value": "2026-07-03T14:15:00Z", "why": "41-day span with side A" },
+
+    { "side": "B", "op": "addObject", "type": "DlpPolicy",
+      "object": { "_key": "guid-shadow-it-guard", "_keySource": "Guid", "name": "Shadow IT Guard", "guid": "guid-shadow-it-guard", "mode": "Enable", "locations": { "exchange": true, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false }, "testModeSince": "" },
+      "why": "add a policy -> Added" },
+
+    { "side": "B", "op": "removeObject", "type": "RetentionLabel", "key": "guid-project-5y", "why": "remove a policy/label -> Removed" },
+
+    { "side": "B", "op": "setProperty", "type": "DlpPolicy", "key": "guid-ssn-guard", "property": "name", "value": "US SSN Guard", "why": "rename-with-same-Guid -> Modified with rename annotation (slug guid exercises the opaque contract)" },
+
+    { "side": "B", "op": "setProperty", "type": "RetentionPolicy", "key": "guid-finance-records-10yr", "property": "locations", "value": ["Exchange", "SharePoint"], "why": "order-only change in a declared array -> Unchanged" },
+
+    { "side": "B", "op": "setProperty", "type": "DlpRule", "key": "guid-r-fin", "property": "sits", "value": ["ABA Routing", "U.S. Bank Account", "SWIFT Code"], "why": "array membership change -> Modified" },
+
+    { "side": "B", "op": "setProperty", "type": "DlpPolicy", "key": "guid-broad-pii-new", "property": "mode", "value": "Enable", "why": "sim -> enforce flip, promoted via significant-property registry" },
+
+    { "side": "B", "op": "setOutcome", "section": "eDiscovery", "value": "AccessDenied", "why": "readable -> degraded direction (VisibilityChanged)" },
+    { "side": "B", "op": "clearType", "type": "EdiscoveryCase", "why": "degraded side observes no objects" },
+
+    { "side": "A", "op": "setOutcome", "section": "Communication_Compliance", "value": "AccessDenied", "why": "degraded -> readable direction (VisibilityChanged, now-observable note)" },
+    { "side": "A", "op": "clearType", "type": "CommsComplianceSummary", "why": "degraded side observes no objects" },
+
+    { "side": "B", "op": "dropSection", "section": "Audit", "why": "section absent from one sectionsRun -> NotCompared, never mass Added/Removed" },
+
+    { "side": "A", "op": "injectProperty", "type": "LabelPolicy", "key": "guid-executive-protection-policy", "property": "WhenChanged", "value": "2026-01-01T00:00:00Z", "why": "denylisted-only change -> Unchanged (A side value)" },
+    { "side": "B", "op": "injectProperty", "type": "LabelPolicy", "key": "guid-executive-protection-policy", "property": "WhenChanged", "value": "2026-07-01T00:00:00Z", "why": "denylisted-only change -> Unchanged (B side value)" },
+
+    { "side": "B", "op": "setFindingStatus", "checkId": "DLP-02", "value": "OK", "why": "finding status change -> FindingChanged" }
+  ]
+}

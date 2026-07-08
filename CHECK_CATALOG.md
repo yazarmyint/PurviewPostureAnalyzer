@@ -1,10 +1,12 @@
-# CAMP v2 — Check Catalog
+# PurviewPostureAnalyzer (PPA) — Check Catalog
 
-The domain spec for the modernized report. Every finding in `posture-report-mock-v5.html`
+*Based on OfficeDev/CAMP (Configuration Analyzer for Microsoft Purview)*
+
+The domain spec for the modernized report. Every finding the report renders
 is transcribed here as: **what it reads** (cmdlet + property), **how it's shown** (table columns),
 and **how the status is decided** (the OK / Improvement / Recommendation / Informational / Verify logic).
 
-This is the second fixed target (alongside the mock) that the Claude Code session builds toward.
+This is the fixed target that the Claude Code session builds toward.
 You own the domain columns marked below; the cmdlet layer is the one place to sanity-check.
 
 ---
@@ -16,7 +18,7 @@ ID          — stable identifier (used in code + JSON output)
 Reads       — the read-only cmdlet(s) and the property that matters
 Columns     — the drill-down table headers, mapped to the property behind each
 Status      — the rule that assigns the verdict
-License     — E5 gate, if any (drives "not available under current licensing")
+License     — the E5 tier the feature needs, if any (annotation only; never detected)
 Links       — Learn-more targets shown in the drill-down
 ```
 
@@ -26,18 +28,21 @@ Links       — Learn-more targets shown in the drill-down
 - **⚠ confirm** — newer surface; the cmdlet/property is my best current understanding and should be
   validated against the tenant during the Code build before it's relied on.
 
-### Status model (unchanged from the mock)
+### Status model (unchanged from the original design)
 
 `OK` · `Improvement` · `Recommendation` · `Informational` · `Verify manually`.
 `Verify manually` is reserved for the genuinely un-assertable from a session — not a fallback for
-whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licensed)**, never a gap.
+whole areas. The tool assumes an E5 baseline and never detects licensing (decision D9): an empty
+E5-gated workload reports as a normal Improvement/Recommendation, and the tier it needs rides along
+only as a `Requires: <tier>` annotation that never changes the verdict.
 
 ### Connection & safety (applies to every check)
 
 - **Security & Compliance PowerShell** (`Connect-IPPSSession`) — labels, DLP, retention, IRM,
   comms compliance, eDiscovery, DSPM-for-AI policies.
 - **Exchange Online** (`Connect-ExchangeOnline`) — audit config, organization config.
-- **Microsoft Graph** (`Connect-MgGraph`, read scopes) — licensing / Copilot service-plan presence.
+- **No Microsoft Graph** (decision D9): the tool reads no licensing or directory data, so there is
+  no Graph module, no scopes, and no admin-consent prompt.
 - **Read-only:** collectors call `Get-*` only. No `Set-/New-/Remove-/Enable-/Disable-`. This is
   the one rule the Code session must never break, and it's worth an automated guard in the repo.
 
@@ -45,12 +50,17 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
 
 ## 01 · Sensitivity Labels
 
-**Section reads:** `Get-Label` ✓, `Get-LabelPolicy` ✓, `Get-AutoSensitivityLabelPolicy` ✓
-**Collector plan:** pull all three once into `normalized/labels.json`; the four analyzers below read from that.
+**Section reads:** `Get-Label` ✓, `Get-LabelPolicy` ✓, `Get-AutoSensitivityLabelPolicy` ✓,
+`Get-AutoSensitivityLabelRule` ✓ *(Wave 5 cleanup Part 2 — grouped-condition `AdvancedRule` JSON; this
+read degrades the conditions display only, never the section outcome)*
+**Collector plan:** pull all four once into `normalized/labels.json`; the four analyzers below read from that.
 
 ### LABELS-01 — Taxonomy is defined
 - **Reads:** `Get-Label` → `Name`, `Priority`, `ContentType` (scope), `ParentId` (sub-labels)
 - **Columns:** Label → `Name` · Priority → `Priority` · Scope → `ContentType` · Status
+- **Scope cell:** internal `ContentType` tokens map to friendly names at the display boundary only
+  (Wave 5 cleanup Part 3: `Teamwork` → `Teams`, confirmed live; confirmed-only table, unconfirmed
+  tokens render raw). Collector output and snapshots keep the raw canonical values — delta safety.
 - **Status:** labels present → **Informational** (inventory). Zero labels → **Improvement** (no taxonomy).
 - **Links:** Purview portal — Information Protection; Overview of sensitivity labels.
 
@@ -61,8 +71,15 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
 - **Links:** Create and publish sensitivity labels.
 
 ### LABELS-03 — Auto-labeling is not enforcing
-- **Reads:** `Get-AutoSensitivityLabelPolicy` → `Name`, `Mode`, conditions
+- **Reads:** `Get-AutoSensitivityLabelPolicy` → `Name`, `Mode`, `SensitiveInformationTypeNames` (flat conditions);
+  `Get-AutoSensitivityLabelRule` → `AdvancedRule` JSON when the flat property is empty (grouped conditions —
+  Wave 5 cleanup Part 2, shape pinned from a real TEST capture).
 - **Columns:** Auto-labeling Policy → `Name` · Conditions (SITs) → rule conditions · Mode → `Mode` · Status
+- **Conditions cell:** flat list unchanged when the flat property is populated; grouped policies render the
+  flat deduplicated **sorted** name list (named SITs + trainable classifiers) plus the distinct count;
+  `AdvancedRule` present but unparseable → *"Conditions present - not parsed"* (**Verify manually** row);
+  genuinely none → *"None detected"*; rule read failed → *"Conditions not readable this run"*
+  (**Verify manually** row). The three empty-flat states are deliberately distinct.
 - **Status:** `Mode = Enforce` → **OK**. `Mode = TestWithNotifications`/`TestWithoutNotifications` (simulation) →
   **Improvement**. No auto-labeling policy at all → **Recommendation**.
 - **Links:** Purview portal — Information Protection; Compliance Manager; Overview of sensitivity labels;
@@ -74,12 +91,28 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
 - **Status:** container-scoped labels exist and are applied → **OK**. None → **Recommendation**.
 - **Links:** Use sensitivity labels to protect containers (groups & sites).
 
+### LABELS-05 — Azure Rights Management for Exchange Online *(Wave 6 reincorporation Part 2)*
+- **Reads:** `Get-IRMConfiguration` → `AzureRMSLicensingEnabled` ✓ (**Exchange Online session** —
+  the one read in this section that is not Security & Compliance; projected as
+  `irmConfig.azureRmsEnabled`, `$null` = not read; excluded from the collector outcome per
+  the containers precedent, so a missing EXO session degrades only this finding)
+- **Columns:** Configuration · Setting · Status
+- **Status:** enabled → **OK**. Disabled → **Improvement** (Azure RMS is the encryption engine
+  behind sensitivity labels and encrypted mail — with it off, protection actions silently do
+  nothing) with an Informational context row: default-on for tenants created after ~2018, so a
+  disabled state is usually a deliberate opt-out — confirm intent. Read degraded / property
+  absent → **Verify manually**, mirroring AUD-01's degradation. Expect OK on nearly every
+  modern tenant: the value of this check is catching the rare disabled state (quiet-payoff
+  profile, same as AUD-01).
+- **Links:** Encryption in Microsoft 365. *(Deliberately not the message-encryption setup page:
+  its URL slug trips the no-PowerShell guard's case-insensitive `Set-` cmdlet scan.)*
+
 ---
 
 ## 02 · Data Loss Prevention
 
 **Section reads:** `Get-DlpCompliancePolicy` ✓ (`.Mode`, `*Location`), `Get-DlpComplianceRule` ✓
-(SITs, actions), `Get-DlpSensitiveInformationType` ✓
+(SIT names, `Disabled`).
 **Note:** `.Mode` values are `Test` / `AuditAndNotify` / `Enforce` — the core enforce-vs-test signal.
 
 ### DLP-01 — DLP policies exist (enforcing vs. test)
@@ -103,13 +136,14 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
   count is not retrievable read-only, that row becomes **Verify manually** rather than a false 0.
 - **Links:** Learn about Endpoint DLP.
 
-### DLP-04 — HIPAA template detectors reduced under sub-E5
-- **Reads:** `Get-DlpComplianceRule` → referenced SITs; cross-ref `Get-DlpSensitiveInformationType`
-  + detected license to flag named-entity SITs that need E5 **⚠ confirm** the SKU-to-SIT mapping
-- **Columns:** Detector (SIT) · Availability at tenant SKU · Status
-- **Status:** named-entity / enhanced detectors unavailable at tenant tier → **Improvement** on those rows;
-  base detectors active → **OK**. Remark states the functional-detector count.
-- **Links:** DLP policy reference.
+### DLP-04 — RETIRED (Wave 5 cleanup Part 4) · was: HIPAA template detectors reduced under sub-E5
+- **Tombstone.** Removed 2026-07 with nothing in its place: the check presumed a healthcare
+  engagement, and the section already surfaces the industry-neutral hygiene signals (enforcement
+  mode via DLP-01 remarks, workload coverage via DLP-02, endpoint posture via DLP-03). The dated
+  SIT tier map (`Data/dlp-sit-tiers.json`) was removed with it. **The `DLP-04` ID stays reserved
+  and is never reused** — stable IDs outlive their checks so old snapshots keep meaning; a delta
+  against a pre-retirement snapshot legitimately reports this check as disappeared
+  (cross-tool-version artifact, not a config change).
 
 ---
 
@@ -140,18 +174,19 @@ whole areas. E5-tier areas on a sub-E5 tenant report **Informational (not licens
 
 ## 04 · Insider Risk Management  *(E5)*
 
-**Section reads:** `Get-InsiderRiskPolicy` ✓, `Get-InsiderRiskManagementSettings` ✓
-**License:** M365 E5 / E5 Compliance / IRM add-on. Detect via Graph service plan **⚠ confirm**, or treat
-cmdlet-unavailable / access-denied as "not licensed."
+**Section reads:** `Get-InsiderRiskPolicy` ✓
+**License:** M365 E5 / E5 Compliance / IRM add-on — annotation only; the tool never detects
+licensing (decision D9). Assume-E5: an empty inventory is a normal Improvement; an unreadable
+inventory is **Verify manually**.
 
 ### IRM-01 — No IRM policies detected
-- **Reads:** `Get-InsiderRiskPolicy` (count); license signal
+- **Reads:** `Get-InsiderRiskPolicy` (count; `$null` when the read did not complete)
 - **Columns:** Configuration · Setting · Status
-- **Status:** unlicensed → **Informational (not licensed)**, no coverage verdict. Licensed **and** 0 policies →
-  **Improvement**. Licensed with policies → per-policy inventory.
+- **Status:** 0 policies → **Improvement**. Policies present → per-policy inventory
+  (**Informational**). Unreadable inventory → **Verify manually** (unknown is never asserted as empty).
 - **Links:** Learn about Insider Risk Management.
 
-### IRM-02 — Consider licensing for departing-employee risk
+### IRM-02 — Consider IRM for departing-employee risk
 - **Reads:** n/a (advisory, fires only when IRM absent)
 - **Status:** **Recommendation** — licensing + HR/Legal alignment, not a config action.
 - **Links:** IRM policy templates.
@@ -169,12 +204,34 @@ cmdlet-unavailable / access-denied as "not licensed."
   a zero-policy tenant otherwise reports as having one.
 - **Links:** IRM policy templates.
 
+### IRM-04 — Departing-employee data theft template coverage *(Wave 6 reincorporation Part 3)*
+- **Reads:** `Get-InsiderRiskPolicy` → `InsiderRiskScenario` ✓ + `Mode` (**⚠ unverified live** —
+  projected as-is; an absent property never punishes: unknown mode counts as enabled).
+  Scenario matched by pattern (`theft` word-family: `IntellectualPropertyTheft` is the CAMP-2022
+  enum) with policy `Name` as corroboration only; **tighten to `-eq` once observed live**
+  (IRM-03 discipline).
+- **Columns:** IRM Policy · Scenario · Workloads · Created · Status
+- **Status:** enabled scenario-matched policy → **OK** inventory. Licensed-assumed tenant with a
+  readable inventory and no enabled match → **Recommendation** (matched-but-not-enabled policies
+  are listed with a remark, never counted). Unreadable inventory → **skipped** (IRM-01's
+  Verify-manually covers the section; absence is never asserted from a failed read).
+- **Links:** IRM policy templates.
+
+### IRM-05 — Data leaks template coverage *(Wave 6 reincorporation Part 3)*
+- **One finding for the whole leak family** — spans the three CAMP-2022 enums
+  (`LeakOfInformation`, `DisgruntledEmployeeDataLeak`, `HighValueEmployeeDataLeak`); present when
+  ANY of them has an enabled policy. Deliberately never split into three cards.
+- **Reads / Status / discipline:** identical to IRM-04 (pattern `leak` word-family, `Mode`
+  gating with unknown-mode-counts-as-enabled, skipped on unreadable read, tighten to `-eq` live).
+- **Columns:** IRM Policy · Scenario · Workloads · Created · Status
+- **Links:** IRM policy templates.
+
 ---
 
 ## 05 · Audit
 
 **Section reads:** `Get-AdminAuditLogConfig` ✓ (`UnifiedAuditLogIngestionEnabled`), `Get-OrganizationConfig` ✓
-(Exchange Online). Premium retention via license **⚠ confirm**.
+(Exchange Online). Audit (Premium) long-term retention is not readable read-only — tier annotation only.
 
 ### AUD-01 — Unified audit logging is enabled
 - **Reads:** `Get-AdminAuditLogConfig` → `UnifiedAuditLogIngestionEnabled`
@@ -185,18 +242,33 @@ cmdlet-unavailable / access-denied as "not licensed."
 ### AUD-02 — Ingestion / latency not confirmable this session
 - **Reads:** none reliable from a config read
 - **Status:** **Verify manually** — "enabled" ≠ "ingesting on time." (The one legitimate manual flag.)
+- **Not emitted (deliberate).** The live analyzer never emits AUD-02: the caveat moved to
+  LIMITATIONS.md ("Audit ingestion / latency — docs-only caveat") as client-facing polish,
+  and `Tests/Analyzer.Sections2.Tests.ps1` asserts the absence. The ID stays reserved —
+  do not re-flag this as a coverage gap in future diffs.
 - **Links:** Search the audit log.
 
-### AUD-03 — Audit Premium (long-term retention) not licensed
-- **Reads:** license signal
-- **Status:** not licensed → **Informational**.
+### AUD-03 — Audit (Premium) long-term retention not assessed
+- **Reads:** none — long-term retention configuration is not readable read-only; the tier annotation rides along
+- **Status:** **Informational** (not assessed this session).
 - **Links:** Audit (Premium).
+
+### AUD-04 — Mailbox auditing organization default *(Wave 6 reincorporation Part 1)*
+- **Reads:** `Get-OrganizationConfig` → `AuditDisabled` ✓ (cmdlet already collected for this
+  section; the property is now projected as `mailboxAuditingDisabled`, `$null` = not read)
+- **Columns:** Configuration · Setting · Status
+- **Status:** `AuditDisabled = false` → **OK** (mailbox auditing on by default). `true` →
+  **Improvement** (auditing suppressed tenant-wide — a confirmed override also drags the
+  section glance to Improvement). Org read degraded or property absent → **Verify manually**
+  — the absence of the read is never reported as "Disabled". Per-mailbox bypass
+  (`Set-MailboxAuditBypassAssociation`) is deliberately not assessed: organization default only.
+- **Links:** Manage mailbox auditing.
 
 ---
 
 ## 06 · eDiscovery
 
-**Section reads:** `Get-ComplianceCase` ✓ (`Name`, `Status`). Premium via license **⚠ confirm**.
+**Section reads:** `Get-ComplianceCase` ✓ (`Name`, `Status`). eDiscovery (Premium) usage is not assessed read-only — tier annotation only.
 
 ### ED-01 — eDiscovery in use (cases)
 - **Reads:** `Get-ComplianceCase` → `Name`, `Status`
@@ -204,21 +276,22 @@ cmdlet-unavailable / access-denied as "not licensed."
 - **Status:** inventory → **Informational** (no maturity judgment).
 - **Links:** Learn about eDiscovery.
 
-### ED-02 — eDiscovery Premium not licensed
-- **Reads:** license signal
-- **Status:** not licensed → **Informational**.
+### ED-02 — eDiscovery (Premium) usage not assessed
+- **Reads:** none — premium case usage is not assessed read-only; the tier annotation rides along
+- **Status:** **Informational** (not assessed this session).
 - **Links:** eDiscovery capabilities by tier.
 
 ---
 
 ## 07 · Communication Compliance  *(E5)*
 
-**Section reads:** `Get-SupervisoryReviewPolicyV2` ✓. License-gated as IRM above.
+**Section reads:** `Get-SupervisoryReviewPolicyV2` ✓. E5 tier is annotation only; assume-E5 like IRM above.
 
 ### CC-01 — No Communication Compliance policies detected
-- **Reads:** `Get-SupervisoryReviewPolicyV2` (count); license signal
+- **Reads:** `Get-SupervisoryReviewPolicyV2` (count; `$null` when the read did not complete)
 - **Columns:** Configuration · Setting · Status
-- **Status:** unlicensed → **Informational (not licensed)**. Licensed **and** 0 policies → **Improvement**.
+- **Status:** 0 policies → **Improvement**. Policies present → **Informational** inventory.
+  Unreadable → **Verify manually** (unknown is never asserted as empty).
 - **Links:** Learn about Communication Compliance.
 
 ---
@@ -277,7 +350,8 @@ No Graph. Cmdlet-level provenance (verified / doc-grounded / unverified) is reco
 
 ### AI-05 — Copilot / AI-app retention coverage *(Wave 2)*
 - **Reads:** `Get-AppRetentionCompliancePolicy` ✓ primary — carrier property `Applications` with
-  `User:M365Copilot` tokens (**doc-grounded**, not yet observed live); `Get-RetentionCompliancePolicy` ✓
+  `Users:M365Copilot` tokens (**verified live** 2026-07, Wave 5 cleanup Part 1 — plural `Users:`,
+  not the doc-grounded `User:` singular); `Get-RetentionCompliancePolicy` ✓
   for the legacy combined `TeamsChatLocation` signal + tenant-wide total.
 - **Columns:** Configuration / Policy · Setting · Status
 - **Status:** Copilot covered → **OK**. Retention exists but no Copilot coverage → **Improvement**.
@@ -303,12 +377,37 @@ No Graph. Cmdlet-level provenance (verified / doc-grounded / unverified) is reco
 
 ---
 
-## Open items to resolve during the Code build
+## Remediation metadata *(Wave 3.1)*
 
-1. **Device onboarding count** (DLP-03) — find a read-only source or downgrade to Verify.
-2. **License detection** — settle one mechanism (Graph `Get-MgSubscribedSku` vs. cmdlet-availability probing)
-   used consistently for every E5 gate (IRM, CC, Audit Premium, eDiscovery Premium, Copilot).
-3. **SKU-to-SIT mapping** (DLP-04) — confirm which HIPAA named-entity detectors are inactive sub-E5.
-4. **Copilot service-plan id** (AI-01) — confirm the exact plan string.
-5. **Learn-more URLs** — the Sensitivity Labels links are verified; validate the rest before shipping.
-6. **Read-only guard** — add a repo test asserting no mutating cmdlets appear in collector code.
+Each check may define an optional remediation block in `Data/remediation-catalog.json`,
+keyed by the check ID above: `portalPath` (string — 2–3 sentence portal-first guidance
+naming the key decision, or a minimal fallback line), `learnUrl` (string, may reuse the
+finding's Learn link), and `grounding` (`skill` / `learn` / `established` / `none` — the
+auditable record of why the guidance says what it says; not rendered). The renderer shows
+a collapsible **"How to remediate"** region inside the finding card **only when the
+finding's status is Improvement or Recommendation** and an entry exists. Guidance is
+displayed text, never executed — the tool stays read-only.
+
+**No PowerShell in remediation, ever** (Wave 3.1 B1): a one-line cmdlet implies a switch
+flips a posture gap that Purview never solves that simply — the real remediation is the
+scope/SITs/location/audience decision, which is what the guidance names.
+
+Sourcing rule (non-negotiable): guidance is written **only where grounded** — a skills
+self-audit (B2) judged each check against the local Purview skill library and the
+finding's own Learn material before any prose was drafted. Not-grounded checks (AI-04;
+DLP-04 until its Wave 5 retirement) carry portal path + Learn link only. The determination table and the source drafts live
+in `docs/REMEDIATION_REVIEW.md`.
+
+---
+
+## Open items — status
+
+Resolved during the build:
+1. **Device onboarding count** (DLP-03) — RESOLVED: no read-only source, so the row reports **Verify manually** rather than a fabricated 0.
+2. **License detection** — DROPPED (decision D9): the tool never detects licensing; it assumes an E5 baseline and annotates the tier each check needs. No Graph.
+3. **SKU-to-SIT mapping** (DLP-04) — CLOSED by retirement: DLP-04 was removed in Wave 5 cleanup Part 4 (see its tombstone above).
+4. **Copilot service-plan id** (AI-01) — MOOT under D9 (no Graph, no service-plan read); the AI surface is inferred from Copilot-scoped DLP artifacts only.
+5. **Read-only guard** — DONE: `Tests/ReadOnlyGuard.Tests.ps1` asserts no mutating cmdlet appears anywhere under `Private/` or `Public/`.
+
+Remaining (verify on the TEST box before publish):
+6. **Learn-more URLs** — the Sensitivity Labels links are verified; validate the rest against current Microsoft Learn before shipping.

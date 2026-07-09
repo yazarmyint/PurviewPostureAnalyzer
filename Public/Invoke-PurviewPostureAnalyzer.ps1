@@ -40,7 +40,17 @@ function Invoke-PurviewPostureAnalyzer {
         # data: URI (the report stays self-contained/offline). Validated and encoded
         # BEFORE any collection; report chrome only - never the normalized object,
         # the JSON export, or snapshots. Ignored (with a warning) in delta mode.
-        [string]$LogoPath
+        [string]$LogoPath,
+        # One-go run (UX-1): OPT-IN switches whose defaults change NOTHING (F-007 -
+        # PPA never opens or tears down a session unless explicitly told to).
+        # -Connect opens the two read sessions only when none are live; -Disconnect
+        # closes them in a finally, even on a failed run; -Show opens the finished
+        # HTML report; -UserPrincipalName feeds the -Connect sign-in (ignored, with
+        # a warning, without -Connect). All four are ignored in delta mode.
+        [switch]$Connect,
+        [switch]$Disconnect,
+        [switch]$Show,
+        [string]$UserPrincipalName
     )
 
     # ---- DELTA MODE: short-circuits the whole collection pipeline (spec 4.1) ----
@@ -50,6 +60,16 @@ function Invoke-PurviewPostureAnalyzer {
         }
         if (-not [string]::IsNullOrWhiteSpace($LogoPath)) {
             Write-Warning 'Delta mode ignores -LogoPath (the delta renderer carries no logo slot).'
+        }
+        # UX-1 switches are tenant-run concepts; delta mode is fully offline (one
+        # consolidated warning, same rule as -LogoPath above).
+        $ignoredSwitches = @()
+        if ($Connect) { $ignoredSwitches += '-Connect' }
+        if ($Disconnect) { $ignoredSwitches += '-Disconnect' }
+        if ($Show) { $ignoredSwitches += '-Show' }
+        if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName)) { $ignoredSwitches += '-UserPrincipalName' }
+        if ($ignoredSwitches.Count -gt 0) {
+            Write-Warning ("Delta mode ignores {0} - it is a fully offline snapshot comparison (no tenant session, no report auto-open)." -f ($ignoredSwitches -join ', '))
         }
         return Invoke-PpaDelta -FromPath $DeltaFrom -ToPath $DeltaTo -OutputPath $OutputPath -Redact:$Redact -RedactNames:$RedactNames -AllowTenantMismatch:$AllowTenantMismatch
     }
@@ -96,179 +116,258 @@ function Invoke-PurviewPostureAnalyzer {
 
     # ---- RUN MANIFEST (F-008): start recording every cmdlet the read-only chokepoint
     # dispatches this run - metadata only (name, status, count, timestamp), never arguments
-    # or content. Started before the run-context + session-diagnostics probes so they are
-    # captured too; written alongside the report below. Emitted by default (self-auditability
-    # is the point) and never leaves the machine. ----
+    # or content. Started before the -Connect session probe (UX-1) and the run-context +
+    # session-diagnostics probes so they are captured too; written alongside the report
+    # below. Emitted by default (self-auditability is the point) and never leaves the
+    # machine. ----
     Initialize-PpaRunManifest
 
-    $meta = Get-PpaRunContext -Organization $Organization -AsOf $AsOf
-
-    # ---- SESSION DIAGNOSTICS (Verbose) ----
-    # Confirm the read sessions the collectors depend on. Run with -Verbose to see this and
-    # every per-cmdlet outcome (Invoke-PpaReadCmdlet logs each Get-* call and its result/error).
-    Write-Verbose 'Checking read sessions (run with -Verbose for full collector diagnostics)...'
-    foreach ($probe in @('Get-Label', 'Get-DlpCompliancePolicy', 'Get-OrganizationConfig')) {
-        $available = [bool](Get-Command -Name $probe -ErrorAction SilentlyContinue)
-        Write-Verbose ("  session cmdlet {0}: {1}" -f $probe, ($(if ($available) { 'available' } else { 'NOT available - session not connected?' })))
-    }
-    $conn = Invoke-PpaReadCmdlet -Name 'Get-ConnectionInformation'
-    if ($conn.Status -eq 'Ok') {
-        foreach ($c in @($conn.Data)) { Write-Verbose ("  active connection: {0} ({1})" -f $c.ConnectionUri, $c.UserPrincipalName) }
-        if (@($conn.Data).Count -eq 0) { Write-Verbose '  active connection: NONE (Connect-IPPSSession / Connect-ExchangeOnline not established)' }
+    # -UserPrincipalName only feeds the -Connect sign-in; alone it does nothing (UX-1).
+    if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName) -and -not $Connect) {
+        Write-Warning '-UserPrincipalName is only used with -Connect; ignoring it.'
     }
 
-    # ---- COLLECT (read-only; a failure is captured, logged, and yields $null) ----
-    $collectorErrors = @{}
-    # Keyed by SECTION ID (the stable identifier) - the analyze stage below keys its
-    # lookup off the same section id, so the real collector exception survives for ALL
-    # eight sections. (Keying by display name silently missed the four sections whose
-    # collect-name and title differ: Retention, Insider_Risk, Communication_Compliance,
-    # DSPM_for_AI - the generic placeholder was shown instead of the real reason. F-002.)
-    $collect = {
-        param([string]$Id, [scriptblock]$Block)
-        try { & $Block }
-        catch {
-            $collectorErrors[$Id] = $_.Exception.Message
-            $display = ($Id -replace '_', ' ')
-            Write-Warning ("Collector '{0}' failed: {1}" -f $display, $_.Exception.Message)
-            Write-Verbose ("Collector '{0}' exception [{1}]:`n{2}`n{3}" -f $display, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
-            $null
+    # ---- ONE-GO RUN (UX-1): the whole tenant-run body sits in try/finally so an explicit
+    # -Disconnect is honored even when the run throws (including the -Connect both-failed
+    # error below). The finally does NOTHING unless -Disconnect was passed - session
+    # teardown stays opt-in (F-007). ----
+    try {
+
+        # ---- SESSION SETUP (-Connect, opt-in): probe the live sessions first and never
+        # disturb one that already exists. The probe is a Get-verb read and goes through
+        # the read-only chokepoint like every other read; Connect-PurviewPostureSession
+        # below is session management (not a tenant read) and is called DIRECTLY - never
+        # through Invoke-PpaReadCmdlet. ----
+        if ($Connect) {
+            $connProbe = Invoke-PpaReadCmdlet -Name 'Get-ConnectionInformation'
+            $liveRows = @()
+            if ($connProbe.Status -eq 'Ok') {
+                $liveRows = @($connProbe.Data | Where-Object { [string]$_.State -eq 'Connected' })
+            }
+            # Connected rows split by service: a compliance.* ConnectionUri is the
+            # Security & Compliance session; any other Connected row is Exchange Online.
+            $sccLive = @($liveRows | Where-Object { [string]$_.ConnectionUri -like '*compliance*' })
+            $exoLive = @($liveRows | Where-Object { [string]$_.ConnectionUri -notlike '*compliance*' })
+            if ($sccLive.Count -gt 0 -and $exoLive.Count -gt 0) {
+                Write-Verbose '-Connect: Security & Compliance and Exchange Online sessions are already live; nothing to connect.'
+            }
+            elseif ($sccLive.Count -gt 0 -or $exoLive.Count -gt 0) {
+                $haveName = if ($sccLive.Count -gt 0) { 'Security & Compliance' } else { 'Exchange Online' }
+                $missName = if ($sccLive.Count -gt 0) { 'Exchange Online' } else { 'Security & Compliance' }
+                Write-Warning ("-Connect: found a live {0} session but no {1} session - skipping connect rather than disturbing the existing session. If {1}-backed sections come back degraded, run Connect-PurviewPostureSession yourself and re-run." -f $haveName, $missName)
+            }
+            else {
+                $connectArgs = @{}
+                if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName)) { $connectArgs['UserPrincipalName'] = $UserPrincipalName }
+                $connStatus = Connect-PurviewPostureSession @connectArgs
+                $sccOk = ([string]$connStatus.SecurityCompliance -eq 'connected')
+                $exoOk = ([string]$connStatus.ExchangeOnline -eq 'connected')
+                if (-not $sccOk -and -not $exoOk) {
+                    # Both services failed: stop BEFORE any collection - a run with zero
+                    # readable services produces an all-degraded report nobody wants.
+                    # (Guard-scan note: the gallery-install hint below is composed at
+                    # runtime so no mutating-verb cmdlet literal appears in source - it
+                    # is message text for the operator, never an invocation.)
+                    $hint = ''
+                    if (([string]$connStatus.SecurityCompliance + ' ' + [string]$connStatus.ExchangeOnline) -match 'module not installed') {
+                        $hint = (' Install it first: ' + 'Install' + '-Module ExchangeOnlineManagement -Scope CurrentUser.')
+                    }
+                    throw ("-Connect could not establish either service. Security & Compliance: {0}. Exchange Online: {1}.{2}" -f [string]$connStatus.SecurityCompliance, [string]$connStatus.ExchangeOnline, $hint)
+                }
+                if (-not ($sccOk -and $exoOk)) {
+                    Write-Verbose ("-Connect: one service connected (Security & Compliance: {0}; Exchange Online: {1}); proceeding - unreadable sections degrade honestly." -f [string]$connStatus.SecurityCompliance, [string]$connStatus.ExchangeOnline)
+                }
+            }
         }
-    }
-    $rawLabels = & $collect 'Sensitivity_Labels'       { Get-PpaSensitivityLabels }
-    $rawDlp    = & $collect 'Data_Loss_Prevention'     { Get-PpaDlp }
-    $rawRet    = & $collect 'Retention'                { Get-PpaRetention }
-    $rawIrm    = & $collect 'Insider_Risk'             { Get-PpaInsiderRisk }
-    $rawAud    = & $collect 'Audit'                    { Get-PpaAudit }
-    $rawEd     = & $collect 'eDiscovery'               { Get-PpaEdiscovery }
-    $rawCc     = & $collect 'Communication_Compliance' { Get-PpaCommsCompliance }
-    $rawDspm   = & $collect 'DSPM_for_AI'              { Get-PpaDspmAi }
 
-    # Static map: license annotations (never detection - decision D9). The SIT tier
-    # map went with the DLP-04 retirement (Wave 5 cleanup Part 4).
-    $licMap = Get-PpaLicenseRequirements
-    $hasSiteLabels = $false
-    if ($rawLabels) {
-        $hasSiteLabels = @($rawLabels.labels.items | Where-Object { $_.scopes -contains 'Site' -or $_.scopes -contains 'UnifiedGroup' }).Count -gt 0
-    }
+        $meta = Get-PpaRunContext -Organization $Organization -AsOf $AsOf
 
-    # ---- ANALYZE (null raw or analyzer error -> Verify-manually error section) ----
-    # The error section carries the REAL reason: the captured collector exception if the collector
-    # threw, otherwise the analyzer's exception message - not a generic placeholder.
-    $analyze = {
-        param([string]$Id, [string]$Title, [string]$Group, [string]$Icon, [string]$Tag, $Raw, [scriptblock]$Block)
-        if ($null -eq $Raw) {
-            # Look up by section id - the SAME key $collect registers under (F-002).
-            $why = if ($collectorErrors.ContainsKey($Id)) { "Collector error: " + $collectorErrors[$Id] } else { 'Collector returned no data (not connected, missing module, or access denied). Re-run with -Verbose for the underlying cmdlet errors.' }
-            return (New-PpaErrorSection -Id $Id -Title $Title -Group $Group -GroupIcon $Icon -GroupTag $Tag -Message $why)
+        # ---- SESSION DIAGNOSTICS (Verbose) ----
+        # Confirm the read sessions the collectors depend on. Run with -Verbose to see this and
+        # every per-cmdlet outcome (Invoke-PpaReadCmdlet logs each Get-* call and its result/error).
+        Write-Verbose 'Checking read sessions (run with -Verbose for full collector diagnostics)...'
+        foreach ($probe in @('Get-Label', 'Get-DlpCompliancePolicy', 'Get-OrganizationConfig')) {
+            $available = [bool](Get-Command -Name $probe -ErrorAction SilentlyContinue)
+            Write-Verbose ("  session cmdlet {0}: {1}" -f $probe, ($(if ($available) { 'available' } else { 'NOT available - session not connected?' })))
         }
-        try { & $Block }
-        catch {
-            Write-Warning ("Analyzer '{0}' failed: {1}" -f $Title, $_.Exception.Message)
-            Write-Verbose ("Analyzer '{0}' exception [{1}]:`n{2}`n{3}" -f $Title, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
-            New-PpaErrorSection -Id $Id -Title $Title -Group $Group -GroupIcon $Icon -GroupTag $Tag -Message ("Analyzer error: " + $_.Exception.Message)
+        $conn = Invoke-PpaReadCmdlet -Name 'Get-ConnectionInformation'
+        if ($conn.Status -eq 'Ok') {
+            foreach ($c in @($conn.Data)) { Write-Verbose ("  active connection: {0} ({1})" -f $c.ConnectionUri, $c.UserPrincipalName) }
+            if (@($conn.Data).Count -eq 0) { Write-Verbose '  active connection: NONE (Connect-IPPSSession / Connect-ExchangeOnline not established)' }
         }
+
+        # ---- COLLECT (read-only; a failure is captured, logged, and yields $null) ----
+        $collectorErrors = @{}
+        # Keyed by SECTION ID (the stable identifier) - the analyze stage below keys its
+        # lookup off the same section id, so the real collector exception survives for ALL
+        # eight sections. (Keying by display name silently missed the four sections whose
+        # collect-name and title differ: Retention, Insider_Risk, Communication_Compliance,
+        # DSPM_for_AI - the generic placeholder was shown instead of the real reason. F-002.)
+        $collect = {
+            param([string]$Id, [scriptblock]$Block)
+            try { & $Block }
+            catch {
+                $collectorErrors[$Id] = $_.Exception.Message
+                $display = ($Id -replace '_', ' ')
+                Write-Warning ("Collector '{0}' failed: {1}" -f $display, $_.Exception.Message)
+                Write-Verbose ("Collector '{0}' exception [{1}]:`n{2}`n{3}" -f $display, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
+                $null
+            }
+        }
+        $rawLabels = & $collect 'Sensitivity_Labels'       { Get-PpaSensitivityLabels }
+        $rawDlp    = & $collect 'Data_Loss_Prevention'     { Get-PpaDlp }
+        $rawRet    = & $collect 'Retention'                { Get-PpaRetention }
+        $rawIrm    = & $collect 'Insider_Risk'             { Get-PpaInsiderRisk }
+        $rawAud    = & $collect 'Audit'                    { Get-PpaAudit }
+        $rawEd     = & $collect 'eDiscovery'               { Get-PpaEdiscovery }
+        $rawCc     = & $collect 'Communication_Compliance' { Get-PpaCommsCompliance }
+        $rawDspm   = & $collect 'DSPM_for_AI'              { Get-PpaDspmAi }
+
+        # Static map: license annotations (never detection - decision D9). The SIT tier
+        # map went with the DLP-04 retirement (Wave 5 cleanup Part 4).
+        $licMap = Get-PpaLicenseRequirements
+        $hasSiteLabels = $false
+        if ($rawLabels) {
+            $hasSiteLabels = @($rawLabels.labels.items | Where-Object { $_.scopes -contains 'Site' -or $_.scopes -contains 'UnifiedGroup' }).Count -gt 0
+        }
+
+        # ---- ANALYZE (null raw or analyzer error -> Verify-manually error section) ----
+        # The error section carries the REAL reason: the captured collector exception if the collector
+        # threw, otherwise the analyzer's exception message - not a generic placeholder.
+        $analyze = {
+            param([string]$Id, [string]$Title, [string]$Group, [string]$Icon, [string]$Tag, $Raw, [scriptblock]$Block)
+            if ($null -eq $Raw) {
+                # Look up by section id - the SAME key $collect registers under (F-002).
+                $why = if ($collectorErrors.ContainsKey($Id)) { "Collector error: " + $collectorErrors[$Id] } else { 'Collector returned no data (not connected, missing module, or access denied). Re-run with -Verbose for the underlying cmdlet errors.' }
+                return (New-PpaErrorSection -Id $Id -Title $Title -Group $Group -GroupIcon $Icon -GroupTag $Tag -Message $why)
+            }
+            try { & $Block }
+            catch {
+                Write-Warning ("Analyzer '{0}' failed: {1}" -f $Title, $_.Exception.Message)
+                Write-Verbose ("Analyzer '{0}' exception [{1}]:`n{2}`n{3}" -f $Title, $_.Exception.GetType().FullName, $_.Exception.Message, $_.ScriptStackTrace)
+                New-PpaErrorSection -Id $Id -Title $Title -Group $Group -GroupIcon $Icon -GroupTag $Tag -Message ("Analyzer error: " + $_.Exception.Message)
+            }
+        }
+
+        $sections = @(
+            & $analyze 'Sensitivity_Labels' 'Sensitivity Labels' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawLabels { Invoke-PpaLabelAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
+            & $analyze 'Data_Loss_Prevention' 'Data Loss Prevention' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawDlp { Invoke-PpaDlpAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
+            & $analyze 'Retention' 'Retention & Records' 'Data Lifecycle & Records' 'fas fa-archive' '' $rawRet { Invoke-PpaRetentionAnalyzer -Raw $Raw -LicenseMap $licMap }
+            & $analyze 'Insider_Risk' 'Insider Risk Management' 'Insider Risk' 'fas fa-user-secret' '' $rawIrm { Invoke-PpaInsiderRiskAnalyzer -Raw $Raw -LicenseMap $licMap }
+            & $analyze 'Audit' 'Audit' 'Discovery & Response' 'fas fa-search' '' $rawAud { Invoke-PpaAuditAnalyzer -Raw $Raw -LicenseMap $licMap }
+            & $analyze 'eDiscovery' 'eDiscovery' 'Discovery & Response' 'fas fa-search' '' $rawEd { Invoke-PpaEdiscoveryAnalyzer -Raw $Raw -LicenseMap $licMap }
+            & $analyze 'Communication_Compliance' 'Communication Compliance' 'Insider Risk' 'fas fa-user-secret' '' $rawCc { Invoke-PpaCommsComplianceAnalyzer -Raw $Raw -LicenseMap $licMap }
+            & $analyze 'DSPM_for_AI' 'DSPM for AI - Copilot Data Security' 'AI Security' 'fas fa-robot' 'NEW' $rawDspm { Invoke-PpaDspmAiAnalyzer -Raw $Raw -LicenseMap $licMap -HasSiteLabels:$hasSiteLabels }
+        )
+
+        # ---- RUN PROFILE FILTER (P5): applied after analysis, before assembly, so all
+        # collectors/analyzers ran identically and only the report/export thins out ----
+        $selection = Select-PpaSections -Sections $sections -IncludeSection $IncludeSection -ExcludeSection $ExcludeSection
+        $sections  = @($selection.Sections)
+
+        # ---- COLLECTOR -> SECTION MAP (keyed by section id): built once here and reused by
+        # the degraded summary below, the coverage matrix, and the snapshot. ----
+        $rawMap = @{
+            Sensitivity_Labels       = $rawLabels
+            Data_Loss_Prevention     = $rawDlp
+            Retention                = $rawRet
+            Insider_Risk             = $rawIrm
+            Audit                    = $rawAud
+            eDiscovery               = $rawEd
+            Communication_Compliance = $rawCc
+            DSPM_for_AI              = $rawDspm
+        }
+
+        # ---- DEGRADED-SECTION SUMMARY (visible without -Verbose) ----
+        # A section is degraded if it hard-errored to an *-ERR stub OR its collector read did
+        # not fully succeed (access denied / not connected / partial). Warning on the collector
+        # outcome - not just *-ERR - means a not-connected or partial-role run is flagged
+        # instead of silently rendering fabricated "0 / Improvement" gaps (F-001).
+        $degradedOutcomes = @('AccessDenied', 'CmdletUnavailable', 'Failed', 'Partial')
+        $degraded = @($sections | Where-Object {
+            $sid = [string]$_.id
+            (@($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0) -or
+            ($rawMap.ContainsKey($sid) -and $null -ne $rawMap[$sid] -and ($degradedOutcomes -contains [string]$rawMap[$sid].outcome))
+        })
+        if ($degraded.Count -gt 0) {
+            Write-Warning ("{0} section(s) degraded - a read did not fully succeed (access denied / not connected / partial): {1}. Affected findings read 'Verify manually'; re-run with -Verbose for the underlying cmdlet failures." -f $degraded.Count, ((@($degraded).title) -join ', '))
+        }
+
+        # ---- LICENSE-CONTEXT NOTE (assume E5, annotate tier - decision D9) ----
+        $licNote = if ($licMap -and $licMap.contextNote) { [string]$licMap.contextNote }
+                   else { 'This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant subscriptions; findings marked Requires note the tier the feature needs.' }
+        $licBlock = [pscustomobject]@{ note = $licNote }
+
+        # ---- COVERAGE MATRIX (Wave 4 Part D): pure projection from collected data.
+        # $rawMap was built once above (collector -> section map) and is reused here. ----
+        $coverage = Get-PpaCoverageModel -RawMap $rawMap
+
+        # ---- ASSEMBLE -> RENDER (HTML primary) + EXPORT (JSON) ----
+        $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Coverage $coverage
+
+        $stamp = $AsOf.ToUniversalTime().ToString('yyyyMMdd-HHmmss')
+        $reportsDir = Join-Path (Join-Path $OutputDirectory "PurviewPosture-$stamp") 'reports'
+
+        # Create the timestamped reports directory BEFORE any write (-Force is idempotent and creates
+        # every missing parent). The path is absolute, so New-Item and the .NET writes agree on it.
+        New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null
+
+        # Run manifest (F-008): metadata-only record of the cmdlets this run executed, written
+        # alongside the report. Emitted here - after the reads are done and the dir exists, before
+        # the render write - so a render failure still leaves the manifest (best-effort; only a
+        # crash in the pure assemble stage above this point skips it), and it always lands on
+        # degraded runs, which complete normally. Metadata only, so there is nothing to redact.
+        $manifestPath = Export-PpaRunManifest -Directory $reportsDir -PpaVersion ([string]$meta.version)
+
+        $htmlPath = Join-Path $reportsDir 'posture-report.html'
+        $jsonPath = Join-Path $reportsDir 'posture-report.json'
+        [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames -LogoDataUri $logoDataUri), (New-Object System.Text.UTF8Encoding($false)))
+        [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
+
+        # ---- SNAPSHOT (Wave 4 Part B): versioned JSON capture alongside the HTML ----
+        # Post-selection scope: only the selected sections' objects/findings are captured;
+        # excluded sections' collectors record 'Skipped', a crashed collector 'Failed'
+        # (attempted-and-errored; 'NotRun' is reserved for never-attempted).
+        $snapshotPath = $null
+        if (-not $NoSnapshot) {
+            # $rawMap was built once above for the coverage matrix; the snapshot reuses it.
+            $profileName = if ([string]::IsNullOrWhiteSpace($Profile)) { $null } else { [System.IO.Path]::GetFileNameWithoutExtension($Profile) }
+            $snapModel = New-PpaSnapshotModel `
+                -RawMap $rawMap -Sections $sections -Meta $meta `
+                -CapturedAt $AsOf -SnapshotId ([guid]::NewGuid().ToString()) `
+                -ProfileName $profileName `
+                -SectionIds @($sections | ForEach-Object { [string]$_.id })
+            $snapResult = Export-PpaSnapshot -Model $snapModel -Directory $reportsDir -RawMap $rawMap -IncludeRawCapture:$IncludeRawCapture
+            $snapshotPath = $snapResult.SnapshotPath
+        }
+
+        # Only report success once both files are actually on disk. If a write failed, let the failure
+        # surface instead of returning paths that do not exist.
+        if (-not (Test-Path -LiteralPath $htmlPath) -or -not (Test-Path -LiteralPath $jsonPath)) {
+            throw "Report generation did not write its output to '$reportsDir'."
+        }
+
+        Write-Host "Report : $htmlPath"
+        Write-Host "JSON   : $jsonPath"
+        $result = [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; SnapshotPath = $snapshotPath; ManifestPath = $manifestPath; Normalized = $normalized }
+
+        # ---- SHOW (-Show, opt-in): open the finished report with its default handler.
+        # Best-effort: a headless box (no browser / shell association) must not fail a
+        # run that already produced its artifacts. (Invoke-Item rather than a
+        # process-start cmdlet: the read-only guard bans that verb across Private and
+        # Public, and the guard stays unmodified.) ----
+        if ($Show -and (Test-Path -LiteralPath $htmlPath)) {
+            try { Invoke-Item -LiteralPath $htmlPath -ErrorAction Stop }
+            catch { Write-Warning ("-Show could not open the report ({0}). Open it manually: {1}" -f $_.Exception.Message, $htmlPath) }
+        }
+
+        return $result
     }
-
-    $sections = @(
-        & $analyze 'Sensitivity_Labels' 'Sensitivity Labels' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawLabels { Invoke-PpaLabelAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
-        & $analyze 'Data_Loss_Prevention' 'Data Loss Prevention' 'Microsoft Information Protection' 'fas fa-shield-alt' '' $rawDlp { Invoke-PpaDlpAnalyzer -Raw $Raw -AsOf $AsOf -LicenseMap $licMap }
-        & $analyze 'Retention' 'Retention & Records' 'Data Lifecycle & Records' 'fas fa-archive' '' $rawRet { Invoke-PpaRetentionAnalyzer -Raw $Raw -LicenseMap $licMap }
-        & $analyze 'Insider_Risk' 'Insider Risk Management' 'Insider Risk' 'fas fa-user-secret' '' $rawIrm { Invoke-PpaInsiderRiskAnalyzer -Raw $Raw -LicenseMap $licMap }
-        & $analyze 'Audit' 'Audit' 'Discovery & Response' 'fas fa-search' '' $rawAud { Invoke-PpaAuditAnalyzer -Raw $Raw -LicenseMap $licMap }
-        & $analyze 'eDiscovery' 'eDiscovery' 'Discovery & Response' 'fas fa-search' '' $rawEd { Invoke-PpaEdiscoveryAnalyzer -Raw $Raw -LicenseMap $licMap }
-        & $analyze 'Communication_Compliance' 'Communication Compliance' 'Insider Risk' 'fas fa-user-secret' '' $rawCc { Invoke-PpaCommsComplianceAnalyzer -Raw $Raw -LicenseMap $licMap }
-        & $analyze 'DSPM_for_AI' 'DSPM for AI - Copilot Data Security' 'AI Security' 'fas fa-robot' 'NEW' $rawDspm { Invoke-PpaDspmAiAnalyzer -Raw $Raw -LicenseMap $licMap -HasSiteLabels:$hasSiteLabels }
-    )
-
-    # ---- RUN PROFILE FILTER (P5): applied after analysis, before assembly, so all
-    # collectors/analyzers ran identically and only the report/export thins out ----
-    $selection = Select-PpaSections -Sections $sections -IncludeSection $IncludeSection -ExcludeSection $ExcludeSection
-    $sections  = @($selection.Sections)
-
-    # ---- COLLECTOR -> SECTION MAP (keyed by section id): built once here and reused by
-    # the degraded summary below, the coverage matrix, and the snapshot. ----
-    $rawMap = @{
-        Sensitivity_Labels       = $rawLabels
-        Data_Loss_Prevention     = $rawDlp
-        Retention                = $rawRet
-        Insider_Risk             = $rawIrm
-        Audit                    = $rawAud
-        eDiscovery               = $rawEd
-        Communication_Compliance = $rawCc
-        DSPM_for_AI              = $rawDspm
+    finally {
+        # Session teardown stays opt-in (F-007): nothing happens here unless the operator
+        # passed -Disconnect - and then it runs even on a failed run.
+        # Disconnect-PurviewPostureSession is best-effort by contract (it never throws),
+        # so this finally can never mask the real error.
+        if ($Disconnect) { Disconnect-PurviewPostureSession }
     }
-
-    # ---- DEGRADED-SECTION SUMMARY (visible without -Verbose) ----
-    # A section is degraded if it hard-errored to an *-ERR stub OR its collector read did
-    # not fully succeed (access denied / not connected / partial). Warning on the collector
-    # outcome - not just *-ERR - means a not-connected or partial-role run is flagged
-    # instead of silently rendering fabricated "0 / Improvement" gaps (F-001).
-    $degradedOutcomes = @('AccessDenied', 'CmdletUnavailable', 'Failed', 'Partial')
-    $degraded = @($sections | Where-Object {
-        $sid = [string]$_.id
-        (@($_.findings | Where-Object { $_.id -like '*-ERR' }).Count -gt 0) -or
-        ($rawMap.ContainsKey($sid) -and $null -ne $rawMap[$sid] -and ($degradedOutcomes -contains [string]$rawMap[$sid].outcome))
-    })
-    if ($degraded.Count -gt 0) {
-        Write-Warning ("{0} section(s) degraded - a read did not fully succeed (access denied / not connected / partial): {1}. Affected findings read 'Verify manually'; re-run with -Verbose for the underlying cmdlet failures." -f $degraded.Count, ((@($degraded).title) -join ', '))
-    }
-
-    # ---- LICENSE-CONTEXT NOTE (assume E5, annotate tier - decision D9) ----
-    $licNote = if ($licMap -and $licMap.contextNote) { [string]$licMap.contextNote }
-               else { 'This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant subscriptions; findings marked Requires note the tier the feature needs.' }
-    $licBlock = [pscustomobject]@{ note = $licNote }
-
-    # ---- COVERAGE MATRIX (Wave 4 Part D): pure projection from collected data.
-    # $rawMap was built once above (collector -> section map) and is reused here. ----
-    $coverage = Get-PpaCoverageModel -RawMap $rawMap
-
-    # ---- ASSEMBLE -> RENDER (HTML primary) + EXPORT (JSON) ----
-    $normalized = ConvertTo-PpaNormalized -Meta $meta -Licensing $licBlock -Sections $sections -Coverage $coverage
-
-    $stamp = $AsOf.ToUniversalTime().ToString('yyyyMMdd-HHmmss')
-    $reportsDir = Join-Path (Join-Path $OutputDirectory "PurviewPosture-$stamp") 'reports'
-
-    # Create the timestamped reports directory BEFORE any write (-Force is idempotent and creates
-    # every missing parent). The path is absolute, so New-Item and the .NET writes agree on it.
-    New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null
-
-    # Run manifest (F-008): metadata-only record of the cmdlets this run executed, written
-    # alongside the report. Emitted here - after the reads are done and the dir exists, before
-    # the render write - so a render failure still leaves the manifest (best-effort; only a
-    # crash in the pure assemble stage above this point skips it), and it always lands on
-    # degraded runs, which complete normally. Metadata only, so there is nothing to redact.
-    $manifestPath = Export-PpaRunManifest -Directory $reportsDir -PpaVersion ([string]$meta.version)
-
-    $htmlPath = Join-Path $reportsDir 'posture-report.html'
-    $jsonPath = Join-Path $reportsDir 'posture-report.json'
-    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames -LogoDataUri $logoDataUri), (New-Object System.Text.UTF8Encoding($false)))
-    [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
-
-    # ---- SNAPSHOT (Wave 4 Part B): versioned JSON capture alongside the HTML ----
-    # Post-selection scope: only the selected sections' objects/findings are captured;
-    # excluded sections' collectors record 'Skipped', a crashed collector 'Failed'
-    # (attempted-and-errored; 'NotRun' is reserved for never-attempted).
-    $snapshotPath = $null
-    if (-not $NoSnapshot) {
-        # $rawMap was built once above for the coverage matrix; the snapshot reuses it.
-        $profileName = if ([string]::IsNullOrWhiteSpace($Profile)) { $null } else { [System.IO.Path]::GetFileNameWithoutExtension($Profile) }
-        $snapModel = New-PpaSnapshotModel `
-            -RawMap $rawMap -Sections $sections -Meta $meta `
-            -CapturedAt $AsOf -SnapshotId ([guid]::NewGuid().ToString()) `
-            -ProfileName $profileName `
-            -SectionIds @($sections | ForEach-Object { [string]$_.id })
-        $snapResult = Export-PpaSnapshot -Model $snapModel -Directory $reportsDir -RawMap $rawMap -IncludeRawCapture:$IncludeRawCapture
-        $snapshotPath = $snapResult.SnapshotPath
-    }
-
-    # Only report success once both files are actually on disk. If a write failed, let the failure
-    # surface instead of returning paths that do not exist.
-    if (-not (Test-Path -LiteralPath $htmlPath) -or -not (Test-Path -LiteralPath $jsonPath)) {
-        throw "Report generation did not write its output to '$reportsDir'."
-    }
-
-    Write-Host "Report : $htmlPath"
-    Write-Host "JSON   : $jsonPath"
-    return [pscustomobject]@{ HtmlPath = $htmlPath; JsonPath = $jsonPath; SnapshotPath = $snapshotPath; ManifestPath = $manifestPath; Normalized = $normalized }
 }

@@ -198,21 +198,34 @@ required.**
 The module is not published to the PowerShell Gallery yet - **clone and run** it locally.
 
 ```powershell
-# 1. Clone.
 git clone https://github.com/yazarmyint/PurviewPostureAnalyzer.git
 cd PurviewPostureAnalyzer
-
-# 2. Import the module.
 Import-Module .\PurviewPostureAnalyzer.psd1
 
-# 3. Sign in (interactive) to the two read-only sessions.
+# One command: sign in, run, open the report, sign out.
+Invoke-PurviewPostureAnalyzer -Organization 'Northwind Health' -OutputDirectory .\Outputs -Connect -Show -Disconnect
+```
+
+`-Connect` prompts you interactively for the two read-only sessions
+(`-UserPrincipalName you@contoso.com` is optional and pre-fills the account); it never
+disturbs sessions that are already live. `-Show` opens the finished report in your browser;
+`-Disconnect` signs you out afterwards - even when the run fails. Want the report branded?
+Add `-LogoPath .\client-logo.png` (see [Custom logo](#custom-logo)).
+
+Running several tools against the same tenant in one sitting? Keep the session under your
+own control with the four-step flow - PPA leaves it alone:
+
+```powershell
+# 1. Sign in (interactive) to the two read-only sessions.
 Connect-PurviewPostureSession -UserPrincipalName you@contoso.com
 
-# 4. Generate the report.
+# 2. Generate the report (the session survives this - and any other tool you run).
 $result = Invoke-PurviewPostureAnalyzer -Organization 'Northwind Health' -OutputDirectory .\Outputs
 
-# 5. Open the report; sign out.
+# 3. Open the report.
 Start-Process $result.HtmlPath
+
+# 4. Sign out when YOU are done with the session.
 Disconnect-PurviewPostureSession
 ```
 
@@ -220,10 +233,11 @@ Output lands in `Outputs\PurviewPosture-<timestamp>\reports\`:
 - `posture-report.html` - the report (self-contained; opens in any browser, offline).
 - `posture-report.json` - the same normalized findings, for downstream use.
 
-> **You own session teardown.** PPA does not close sessions automatically. `Disconnect-PurviewPostureSession`
-> (step 5) is the only thing that signs you out, and if the run throws part-way through, the authenticated
-> Security & Compliance and Exchange Online sessions stay open - run the disconnect yourself before you
-> leave the console.
+> **You own session teardown - by default.** PPA closes sessions **only** when you pass
+> `-Disconnect`, and then it disconnects even on a failed run. Without `-Disconnect` nothing
+> is ever torn down: if the run throws part-way through, the authenticated Security &
+> Compliance and Exchange Online sessions stay open - run `Disconnect-PurviewPostureSession`
+> yourself before you leave the console.
 
 ### Run profiles: include / exclude sections
 

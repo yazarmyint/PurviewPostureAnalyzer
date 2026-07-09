@@ -35,7 +35,12 @@ function Invoke-PurviewPostureAnalyzer {
         [string]$DeltaFrom,
         [string]$DeltaTo,
         [string]$OutputPath,
-        [switch]$AllowTenantMismatch
+        [switch]$AllowTenantMismatch,
+        # Client logo (UX-2): a .png/.jpg/.jpeg embedded into the HTML header as a
+        # data: URI (the report stays self-contained/offline). Validated and encoded
+        # BEFORE any collection; report chrome only - never the normalized object,
+        # the JSON export, or snapshots. Ignored (with a warning) in delta mode.
+        [string]$LogoPath
     )
 
     # ---- DELTA MODE: short-circuits the whole collection pipeline (spec 4.1) ----
@@ -43,7 +48,19 @@ function Invoke-PurviewPostureAnalyzer {
         if ([string]::IsNullOrWhiteSpace($DeltaFrom) -or [string]::IsNullOrWhiteSpace($DeltaTo)) {
             throw 'Delta mode requires BOTH -DeltaFrom and -DeltaTo snapshot paths.'
         }
+        if (-not [string]::IsNullOrWhiteSpace($LogoPath)) {
+            Write-Warning 'Delta mode ignores -LogoPath (the delta renderer carries no logo slot).'
+        }
         return Invoke-PpaDelta -FromPath $DeltaFrom -ToPath $DeltaTo -OutputPath $OutputPath -Redact:$Redact -RedactNames:$RedactNames -AllowTenantMismatch:$AllowTenantMismatch
+    }
+
+    # ---- CLIENT LOGO (UX-2): validate + encode BEFORE any collection (fail fast - a bad
+    # logo path must never cost the operator a full tenant read). The data URI is handed
+    # only to the HTML renderer below; it never enters the normalized object, the JSON
+    # export, or snapshots. ----
+    $logoDataUri = ''
+    if (-not [string]::IsNullOrWhiteSpace($LogoPath)) {
+        $logoDataUri = ConvertTo-PpaLogoDataUri -Path $LogoPath
     }
 
     # Resolve the output directory to an ABSOLUTE path against the caller's PowerShell location.
@@ -225,7 +242,7 @@ function Invoke-PurviewPostureAnalyzer {
 
     $htmlPath = Join-Path $reportsDir 'posture-report.html'
     $jsonPath = Join-Path $reportsDir 'posture-report.json'
-    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames), (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($htmlPath, (Export-PpaHtmlReport -Normalized $normalized -ExcludedSections $selection.ExcludedTitles -Redact:$Redact -RedactNames:$RedactNames -LogoDataUri $logoDataUri), (New-Object System.Text.UTF8Encoding($false)))
     [void](Export-PpaJson -Normalized $normalized -Path $jsonPath)
 
     # ---- SNAPSHOT (Wave 4 Part B): versioned JSON capture alongside the HTML ----

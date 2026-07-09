@@ -278,11 +278,26 @@ dependencies.
 
 ---
 
-## Custom logo (planned)
+## Custom logo
 
-The report currently renders a **placeholder box** where a client logo would sit; embedding a
-custom logo is **not yet available**. `Image/logo.jpg` is retained as the stub asset for that
-future feature - replacing it does not currently change the report.
+Embed a client logo in the report header with `-LogoPath`:
+
+```powershell
+Invoke-PurviewPostureAnalyzer -Organization 'Northwind Health' -LogoPath .\client-logo.png
+```
+
+- **Allowed types:** `.png`, `.jpg`, `.jpeg` - anything else (or a missing file) fails the run
+  up front, before any collection.
+- The image is embedded into the HTML as a **data: URI**, so the report stays fully
+  self-contained and offline - no external asset reference is added.
+- The logo is report chrome only: it never enters the JSON export or snapshots.
+- Files over **500 KB** trigger a size warning - the image is embedded into every report it
+  brands, so keep it small.
+- Delta mode (`-DeltaFrom`/`-DeltaTo`) ignores `-LogoPath` with a warning.
+- Without `-LogoPath` the header slot renders nothing (no placeholder).
+
+`Image/logo.jpg` is the sample fixture: the sample-report build embeds it into
+`sample-standard.html` so the feature is visible in the shipped samples.
 
 ---
 

@@ -35,9 +35,12 @@ function Write-PpaSampleReport {
 }
 
 # ---- 1. Standard fixture (the Wave 1/2 sample: Northwind Health, 21 findings) ----
+# UX-2: this one sample carries the embedded client logo (Image/logo.jpg is the sample
+# fixture) so the feature is eyeballed on every build; all other samples stay logo-less.
 $std = Read-PpaFixture 'Samples\sample-normalized.json'
 $stdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections
-Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample)
+$stdLogo = ConvertTo-PpaLogoDataUri -Path (Join-Path $root 'Image\logo.jpg')
+Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample -LogoDataUri $stdLogo)
 
 # ---- 2. Dense fixture (Contoso Pharmaceuticals, 26 findings, every severity) ----
 # Wave 4 Part D: the dense sample carries the coverage matrix, projected from the

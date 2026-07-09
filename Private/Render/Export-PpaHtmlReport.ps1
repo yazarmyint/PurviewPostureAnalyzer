@@ -16,7 +16,11 @@ function Export-PpaHtmlReport {
         # pseudonymizes policy/label names. Applied at the display boundary only;
         # the normalized object and the JSON export are never modified.
         [switch] $Redact,
-        [switch] $RedactNames
+        [switch] $RedactNames,
+        # UX-2: client logo, pre-encoded as a data: URI by ConvertTo-PpaLogoDataUri.
+        # Report chrome only - it never enters the normalized object or the JSON export.
+        # Empty means the header slot renders nothing (the dashed placeholder is gone).
+        [string] $LogoDataUri
     )
 
     # Defensive: never inherit redaction state from a previous render (a failed
@@ -85,7 +89,13 @@ function Export-PpaHtmlReport {
     [void]$sb.Append('          <tr><td><strong>Mode &nbsp;</strong></td><td><strong>:&nbsp; ').Append((ConvertTo-PpaHtmlText $meta.mode)).AppendLine('</strong></td></tr>')
     [void]$sb.AppendLine('        </table>')
     [void]$sb.AppendLine('      </div>')
-    [void]$sb.AppendLine('      <div class="col-auto"><div class="logo-ph">Client logo (250&times;150)</div></div>')
+    # UX-2: the data URI is appended RAW, bypassing ConvertTo-PpaHtmlAttr on purpose -
+    # its alphabet (mime prefix + base64) contains no HTML metacharacters, and routing it
+    # through the redaction-aware encoders could let a name-mask substring-match inside
+    # the base64 payload and corrupt the image bytes.
+    if (-not [string]::IsNullOrEmpty($LogoDataUri)) {
+        [void]$sb.Append('      <div class="col-auto"><img class="logo" src="').Append($LogoDataUri).AppendLine('" alt="Client logo"></div>')
+    }
     [void]$sb.AppendLine('    </div>')
 
     # E5-assumption caveat (F-004, option A): one read-only CONTEXT line so an HTML-only

@@ -70,6 +70,40 @@ BeforeAll {
         }
     }
 
+    # ---- label GUID resolution harness (pre-publish Part 4) ---------------------
+    # Raw-TENANT-shaped label reads: Get-Label exposes BOTH Guid and ImmutableId;
+    # Get-LabelPolicy's .Labels references labels by those ids, never by display
+    # name - the shape the hand-authored sample fixtures never exercised.
+    # $PolicyLabels is the policy's .Labels array under test.
+    function New-PpaLabelResolutionStubMap {
+        param($PolicyLabels = @())
+        @{
+            'Get-Label' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    DisplayName = 'Confidential'; Name = 'confidential-1a2b'
+                    Guid = [guid]'cccccccc-0000-0000-0000-000000000001'
+                    ImmutableId = [guid]'dddddddd-0000-0000-0000-000000000001'
+                    Priority = 1; ContentType = 'File, Email'
+                }
+                [pscustomobject]@{
+                    DisplayName = 'Highly Confidential'; Name = 'highconf-3c4d'
+                    Guid = [guid]'cccccccc-0000-0000-0000-000000000002'
+                    ImmutableId = [guid]'dddddddd-0000-0000-0000-000000000002'
+                    Priority = 2; ContentType = 'File, Email'
+                }
+            ) }
+            'Get-LabelPolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'Global publish'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000010'
+                    Labels = @($PolicyLabels); Enabled = $true
+                    ExchangeLocation = @('All'); ModernGroupLocation = @()
+                }
+            ) }
+            'Get-AutoSensitivityLabelPolicy' = @{ Status = 'Ok'; Data = @() }
+            'Get-AutoSensitivityLabelRule'   = @{ Status = 'Ok'; Data = @() }
+        }
+    }
+
     # ---- primitive-leaf walker ---------------------------------------------------
     # Returns "path: TypeName" for every leaf that is not string/number/boolean/null.
     # Arrays, dictionaries and PSCustomObjects are structure and recurse; anything
@@ -504,6 +538,61 @@ Describe 'Opportunistic Guid capture (A.5)' {
             $violations += @(Get-PpaLeafViolation -Value $out -Path 'out')
         }
         ($violations -join "`n") | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Label policy GUID resolution (pre-publish Part 4)' {
+    # On a live tenant Get-LabelPolicy's .Labels carries label GUIDs/ImmutableIds,
+    # not names - raw ids leaked straight into LABELS-02 because the collector
+    # passed them through. The collector must resolve every entry through the
+    # label inventory (keyed on Guid AND ImmutableId, raw Name as last resort)
+    # and preserve unknown entries verbatim: a deleted-but-still-referenced
+    # label must still show something, never vanish.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'resolves Guid-keyed .Labels entries to display names (raw-tenant shape, case-insensitive)' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'cccccccc-0000-0000-0000-000000000001', 'CCCCCCCC-0000-0000-0000-000000000002')
+        $pol = (Get-PpaSensitivityLabels).policies.items[0]
+        @($pol.labels) | Should -Be @('Confidential', 'Highly Confidential')
+    }
+    It 'resolves ImmutableId-keyed .Labels entries too (the dual-key map)' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'dddddddd-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000001')
+        $pol = (Get-PpaSensitivityLabels).policies.items[0]
+        @($pol.labels) | Should -Be @('Highly Confidential', 'Confidential')
+    }
+    It 'preserves an orphan .Labels entry verbatim (deleted-but-referenced label)' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'cccccccc-0000-0000-0000-000000000001', 'eeeeeeee-9999-9999-9999-999999999999')
+        $pol = (Get-PpaSensitivityLabels).policies.items[0]
+        @($pol.labels) | Should -Be @('Confidential', 'eeeeeeee-9999-9999-9999-999999999999')
+    }
+    It 'resolves via the raw internal Name as a last resort' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @('highconf-3c4d')
+        @((Get-PpaSensitivityLabels).policies.items[0].labels) | Should -Be @('Highly Confidential')
+    }
+    It 'passes name-based fixture .Labels through unchanged (sample regression shape)' {
+        # A display name is neither a Guid, an ImmutableId nor the internal Name
+        # key -> verbatim fallback, so the checked-in sample fixtures render as before.
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @('Confidential')
+        @((Get-PpaSensitivityLabels).policies.items[0].labels) | Should -Be @('Confidential')
+    }
+    It 'keeps the projected labels a flat array of plain strings' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'cccccccc-0000-0000-0000-000000000001', 'eeeeeeee-9999-9999-9999-999999999999')
+        foreach ($v in @((Get-PpaSensitivityLabels).policies.items[0].labels)) { $v | Should -BeOfType [string] }
+    }
+    It 'captures the label ImmutableId alongside guid in the inventory' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap
+        $lab = (Get-PpaSensitivityLabels).labels.items[0]
+        $lab.guid        | Should -Be 'cccccccc-0000-0000-0000-000000000001'
+        $lab.immutableId | Should -Be 'dddddddd-0000-0000-0000-000000000001'
+    }
+    It 'projects an empty immutableId when the raw label lacks the property' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap
+        $script:PpaReadStubMap['Get-Label'].Data[0].PSObject.Properties.Remove('ImmutableId')
+        (Get-PpaSensitivityLabels).labels.items[0].immutableId | Should -Be ''
     }
 }
 

@@ -125,6 +125,36 @@ BeforeAll {
         }
     }
 
+    # ---- DSPM label-reference harness (pre-publish Part 8) ----------------------
+    # One Copilot-scoped DLP policy (EnforcementPlanes carries the VERIFIED
+    # CopilotExperiences token) whose rule's label conditions are the shape under
+    # test; Get-Label is the friendly-name inventory. On a live tenant the .name
+    # of a label condition carries the label GUID, never the display name.
+    function New-PpaDspmLabelRefStubMap {
+        param($Rules = @())
+        @{
+            'Get-DlpCompliancePolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'Copilot guard'; Guid = [guid]'aaaaaaaa-2222-0000-0000-000000000001'
+                    Mode = 'Enable'; EnforcementPlanes = @('CopilotExperiences')
+                }
+            ) }
+            'Get-DlpComplianceRule'            = @{ Status = 'Ok'; Data = @($Rules) }
+            'Get-DspmPolicy'                   = @{ Status = 'Ok'; Data = @() }
+            'Get-AppRetentionCompliancePolicy' = @{ Status = 'Ok'; Data = @() }
+            'Get-RetentionCompliancePolicy'    = @{ Status = 'Ok'; Data = @() }
+            'Get-SupervisoryReviewPolicyV2'    = @{ Status = 'Ok'; Data = @() }
+            'Get-SupervisoryReviewRule'        = @{ Status = 'Ok'; Data = @() }
+            'Get-Label' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    DisplayName = 'Highly Confidential'; Name = 'highconf-internal'
+                    Guid = [guid]'cccccccc-1111-0000-0000-000000000001'
+                    ImmutableId = [guid]'dddddddd-1111-0000-0000-000000000001'
+                }
+            ) }
+        }
+    }
+
     # ---- primitive-leaf walker ---------------------------------------------------
     # Returns "path: TypeName" for every leaf that is not string/number/boolean/null.
     # Arrays, dictionaries and PSCustomObjects are structure and recurse; anything
@@ -685,6 +715,98 @@ Describe 'Retention label resolution (pre-publish Part 7)' {
         $out.outcome | Should -Be 'Partial'
         # resolution still degrades gracefully: verbatim rule name, never a crash
         $out.labels.items[0].name | Should -Be 'HR-Retain-7y'
+    }
+}
+
+Describe 'DSPM label reference resolution (pre-publish Part 8)' {
+    # On a live tenant a DLP rule's sensitivity-label condition carries the label
+    # GUID in .name; the collector resolves each reference through the Get-Label
+    # inventory (Guid + ImmutableId + Name -> DisplayName) with verbatim fallback,
+    # so AI-03's labelRefs show friendly names, never GUIDs. The AdvancedRule
+    # text-scan (hasLabelCondition boolean) is unchanged.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'GUID-keyed label condition (group form) resolves to the DisplayName, and hasLabelCondition is true' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ groups = @([pscustomobject]@{ labels = @(
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'cccccccc-1111-0000-0000-000000000001' }
+                    ) }) }
+                )
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        @($item.labelRefs) | Should -Be @('Highly Confidential')
+        $item.hasLabelCondition | Should -BeTrue
+    }
+    It 'flat-entry reference keyed on ImmutableId resolves too (dual-key map + flat branch)' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ type = 'Sensitivity'; name = 'dddddddd-1111-0000-0000-000000000001' }
+                )
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        @($item.labelRefs) | Should -Be @('Highly Confidential')
+        $item.hasLabelCondition | Should -BeTrue
+    }
+    It 'an already-friendly / unmapped name passes through verbatim - no regression' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ groups = @([pscustomobject]@{ labels = @(
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'Highly Confidential' },
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'Custom Label X' }
+                    ) }) }
+                )
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        @($item.labelRefs) | Should -Be @('Highly Confidential', 'Custom Label X')
+    }
+    It 'no label condition: hasLabelCondition false, labelRefs empty - unchanged' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(@{ Name = 'U.S. SSN' })
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        $item.hasLabelCondition | Should -BeFalse
+        @($item.labelRefs).Count | Should -Be 0
+    }
+    It 'AdvancedRule-only label mention: hasLabelCondition true, labelRefs empty - unchanged' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @()
+                AdvancedRule = '{"Condition":{"SubConditions":[{"ConditionName":"ContentContainsSensitiveInformation","Value":[{"groups":[{"labels":[{"type":"Sensitivity","id":"x"}]}]}]}]}}'
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        $item.hasLabelCondition | Should -BeTrue
+        @($item.labelRefs).Count | Should -Be 0
+    }
+    It 'a failed Get-Label read degrades the outcome to Partial and resolution falls back verbatim' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ groups = @([pscustomobject]@{ labels = @(
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'cccccccc-1111-0000-0000-000000000001' }
+                    ) }) }
+                )
+            }
+        )
+        $script:PpaReadStubMap['Get-Label'] = @{ Status = 'AccessDenied'; Data = @(); Error = 'denied' }
+        $out = Get-PpaDspmAi
+        $out.outcome | Should -Be 'Partial'
+        @($out.copilotPolicies.items[0].labelRefs) | Should -Be @('cccccccc-1111-0000-0000-000000000001')
     }
 }
 

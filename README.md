@@ -5,6 +5,9 @@ produces a single self-contained HTML report you can hand to a delivery team at 
 kickoff, plus a JSON export of the same findings. It is a modernized successor to
 [OfficeDev/CAMP](https://github.com/OfficeDev/CAMP) (see [Attribution](#licensing-and-attribution)).
 
+**See a live sample report** (Acme Corporation, demonstration data):
+<https://yazarmyint.github.io/PurviewPostureAnalyzer/>
+
 > **Read-only, always.** PPA only calls read `Get-*` cmdlets (and `Connect-*` to open
 > sessions). It never creates, modifies, or deletes any tenant configuration, and it
 > collects no content. A Pester guard (`Tests/ReadOnlyGuard.Tests.ps1`) fails the build if
@@ -198,21 +201,34 @@ required.**
 The module is not published to the PowerShell Gallery yet - **clone and run** it locally.
 
 ```powershell
-# 1. Clone.
 git clone https://github.com/yazarmyint/PurviewPostureAnalyzer.git
 cd PurviewPostureAnalyzer
-
-# 2. Import the module.
 Import-Module .\PurviewPostureAnalyzer.psd1
 
-# 3. Sign in (interactive) to the two read-only sessions.
+# One command: sign in, run, open the report, sign out.
+Invoke-PurviewPostureAnalyzer -Organization 'Northwind Health' -OutputDirectory .\Outputs -Connect -Show -Disconnect
+```
+
+`-Connect` prompts you interactively for the two read-only sessions
+(`-UserPrincipalName you@contoso.com` is optional and pre-fills the account); it never
+disturbs sessions that are already live. `-Show` opens the finished report in your browser;
+`-Disconnect` signs you out afterwards - even when the run fails. Want the report branded?
+Add `-LogoPath .\client-logo.png` (see [Custom logo](#custom-logo)).
+
+Running several tools against the same tenant in one sitting? Keep the session under your
+own control with the four-step flow - PPA leaves it alone:
+
+```powershell
+# 1. Sign in (interactive) to the two read-only sessions.
 Connect-PurviewPostureSession -UserPrincipalName you@contoso.com
 
-# 4. Generate the report.
+# 2. Generate the report (the session survives this - and any other tool you run).
 $result = Invoke-PurviewPostureAnalyzer -Organization 'Northwind Health' -OutputDirectory .\Outputs
 
-# 5. Open the report; sign out.
+# 3. Open the report.
 Start-Process $result.HtmlPath
+
+# 4. Sign out when YOU are done with the session.
 Disconnect-PurviewPostureSession
 ```
 
@@ -220,10 +236,34 @@ Output lands in `Outputs\PurviewPosture-<timestamp>\reports\`:
 - `posture-report.html` - the report (self-contained; opens in any browser, offline).
 - `posture-report.json` - the same normalized findings, for downstream use.
 
-> **You own session teardown.** PPA does not close sessions automatically. `Disconnect-PurviewPostureSession`
-> (step 5) is the only thing that signs you out, and if the run throws part-way through, the authenticated
-> Security & Compliance and Exchange Online sessions stay open - run the disconnect yourself before you
-> leave the console.
+> **You own session teardown - by default.** PPA closes sessions **only** when you pass
+> `-Disconnect`, and then it disconnects even on a failed run. Without `-Disconnect` nothing
+> is ever torn down: if the run throws part-way through, the authenticated Security &
+> Compliance and Exchange Online sessions stay open - run `Disconnect-PurviewPostureSession`
+> yourself before you leave the console.
+
+### Assessing a client tenant as a B2B guest
+
+Invited as a guest into a customer's tenant? Pass `-DelegatedOrganization` with the
+client's tenant domain and PPA connects both read-only sessions to **their** tenant:
+
+```powershell
+# Four-step flow: sign in to the CLIENT tenant as a guest, then run as usual.
+Connect-PurviewPostureSession -UserPrincipalName you@yourfirm.com -DelegatedOrganization client.onmicrosoft.com
+Invoke-PurviewPostureAnalyzer -Organization 'Client' -OutputDirectory .\Outputs
+
+# Or the one-liner:
+Invoke-PurviewPostureAnalyzer -Organization 'Client' -OutputDirectory .\Outputs -Connect -DelegatedOrganization client.onmicrosoft.com -Show -Disconnect
+```
+
+Notes:
+- `-AzureADAuthorizationEndpointUri` is optional - it is auto-derived from the client
+  domain (`https://login.microsoftonline.com/<domain>`); pass it only to override.
+  (It applies to the Security & Compliance session; Exchange Online needs only the
+  delegated organization, per Microsoft's guest guidance.)
+- Your B2B guest account must hold **Compliance Administrator** (or an equivalent
+  read-capable role) *in the client tenant*.
+- Requires ExchangeOnlineManagement **3.0.0+**. Commercial cloud only.
 
 ### Run profiles: include / exclude sections
 
@@ -278,11 +318,26 @@ dependencies.
 
 ---
 
-## Custom logo (planned)
+## Custom logo
 
-The report currently renders a **placeholder box** where a client logo would sit; embedding a
-custom logo is **not yet available**. `Image/logo.jpg` is retained as the stub asset for that
-future feature - replacing it does not currently change the report.
+Embed a client logo in the report header with `-LogoPath`:
+
+```powershell
+Invoke-PurviewPostureAnalyzer -Organization 'Northwind Health' -LogoPath .\client-logo.png
+```
+
+- **Allowed types:** `.png`, `.jpg`, `.jpeg` - anything else (or a missing file) fails the run
+  up front, before any collection.
+- The image is embedded into the HTML as a **data: URI**, so the report stays fully
+  self-contained and offline - no external asset reference is added.
+- The logo is report chrome only: it never enters the JSON export or snapshots.
+- Files over **500 KB** trigger a size warning - the image is embedded into every report it
+  brands, so keep it small.
+- Delta mode (`-DeltaFrom`/`-DeltaTo`) ignores `-LogoPath` with a warning.
+- Without `-LogoPath` the header slot renders nothing (no placeholder).
+
+`Image/logo.jpg` is the sample fixture: the sample-report build embeds it into
+`sample-standard.html` so the feature is visible in the shipped samples.
 
 ---
 

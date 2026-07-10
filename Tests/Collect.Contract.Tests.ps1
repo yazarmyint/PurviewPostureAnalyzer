@@ -70,6 +70,91 @@ BeforeAll {
         }
     }
 
+    # ---- label GUID resolution harness (pre-publish Part 4) ---------------------
+    # Raw-TENANT-shaped label reads: Get-Label exposes BOTH Guid and ImmutableId;
+    # Get-LabelPolicy's .Labels references labels by those ids, never by display
+    # name - the shape the hand-authored sample fixtures never exercised.
+    # $PolicyLabels is the policy's .Labels array under test.
+    function New-PpaLabelResolutionStubMap {
+        param($PolicyLabels = @())
+        @{
+            'Get-Label' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    DisplayName = 'Confidential'; Name = 'confidential-1a2b'
+                    Guid = [guid]'cccccccc-0000-0000-0000-000000000001'
+                    ImmutableId = [guid]'dddddddd-0000-0000-0000-000000000001'
+                    Priority = 1; ContentType = 'File, Email'
+                }
+                [pscustomobject]@{
+                    DisplayName = 'Highly Confidential'; Name = 'highconf-3c4d'
+                    Guid = [guid]'cccccccc-0000-0000-0000-000000000002'
+                    ImmutableId = [guid]'dddddddd-0000-0000-0000-000000000002'
+                    Priority = 2; ContentType = 'File, Email'
+                }
+            ) }
+            'Get-LabelPolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'Global publish'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000010'
+                    Labels = @($PolicyLabels); Enabled = $true
+                    ExchangeLocation = @('All'); ModernGroupLocation = @()
+                }
+            ) }
+            'Get-AutoSensitivityLabelPolicy' = @{ Status = 'Ok'; Data = @() }
+            'Get-AutoSensitivityLabelRule'   = @{ Status = 'Ok'; Data = @() }
+        }
+    }
+
+    # ---- retention label resolution harness (pre-publish Part 7) ----------------
+    # Raw-TENANT-shaped retention reads: a label-publishing rule carries an
+    # auto-GUID .Name with the label in PublishComplianceTag / ApplyComplianceTag
+    # (either may itself be a GUID); Get-ComplianceTag is the friendly-name
+    # inventory. $Rules and $Tags are the shapes under test.
+    function New-PpaRetentionResolutionStubMap {
+        param($Rules = @(), $Tags = @())
+        @{
+            'Get-RetentionCompliancePolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'HR 7yr'; Guid = [guid]'aaaaaaaa-1111-0000-0000-000000000001'
+                    SharePointLocation = @('All'); ExchangeLocation = @(); ModernGroupLocation = @()
+                    OneDriveLocation = @(); AdaptiveScopeLocation = @()
+                }
+            ) }
+            'Get-RetentionComplianceRule' = @{ Status = 'Ok'; Data = @($Rules) }
+            'Get-AdaptiveScope'           = @{ Status = 'Ok'; Data = @() }
+            'Get-ComplianceTag'           = @{ Status = 'Ok'; Data = @($Tags) }
+        }
+    }
+
+    # ---- DSPM label-reference harness (pre-publish Part 8) ----------------------
+    # One Copilot-scoped DLP policy (EnforcementPlanes carries the VERIFIED
+    # CopilotExperiences token) whose rule's label conditions are the shape under
+    # test; Get-Label is the friendly-name inventory. On a live tenant the .name
+    # of a label condition carries the label GUID, never the display name.
+    function New-PpaDspmLabelRefStubMap {
+        param($Rules = @())
+        @{
+            'Get-DlpCompliancePolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'Copilot guard'; Guid = [guid]'aaaaaaaa-2222-0000-0000-000000000001'
+                    Mode = 'Enable'; EnforcementPlanes = @('CopilotExperiences')
+                }
+            ) }
+            'Get-DlpComplianceRule'            = @{ Status = 'Ok'; Data = @($Rules) }
+            'Get-DspmPolicy'                   = @{ Status = 'Ok'; Data = @() }
+            'Get-AppRetentionCompliancePolicy' = @{ Status = 'Ok'; Data = @() }
+            'Get-RetentionCompliancePolicy'    = @{ Status = 'Ok'; Data = @() }
+            'Get-SupervisoryReviewPolicyV2'    = @{ Status = 'Ok'; Data = @() }
+            'Get-SupervisoryReviewRule'        = @{ Status = 'Ok'; Data = @() }
+            'Get-Label' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    DisplayName = 'Highly Confidential'; Name = 'highconf-internal'
+                    Guid = [guid]'cccccccc-1111-0000-0000-000000000001'
+                    ImmutableId = [guid]'dddddddd-1111-0000-0000-000000000001'
+                }
+            ) }
+        }
+    }
+
     # ---- primitive-leaf walker ---------------------------------------------------
     # Returns "path: TypeName" for every leaf that is not string/number/boolean/null.
     # Arrays, dictionaries and PSCustomObjects are structure and recurse; anything
@@ -144,6 +229,8 @@ BeforeAll {
             'Get-RetentionComplianceRule' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ Name = 'HR-Retain-7y'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000009'; Policy = $polGuid; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }) }
             'Get-AdaptiveScope' = @{ Status = 'Ok'; Data = @() }
+            'Get-ComplianceTag' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{ Name = 'HR-Retain-7y'; Guid = [guid]'bbbbbbbb-0000-0000-0000-000000000101' }) }
             'Get-Label' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ DisplayName = 'Confidential'; Name = 'conf'; Guid = $polGuid; Priority = 2; ContentType = 'File, Email'; ParentId = [guid]::Empty }) }
             'Get-LabelPolicy' = @{ Status = 'Ok'; Data = @(
@@ -504,6 +591,282 @@ Describe 'Opportunistic Guid capture (A.5)' {
             $violations += @(Get-PpaLeafViolation -Value $out -Path 'out')
         }
         ($violations -join "`n") | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Label policy GUID resolution (pre-publish Part 4)' {
+    # On a live tenant Get-LabelPolicy's .Labels carries label GUIDs/ImmutableIds,
+    # not names - raw ids leaked straight into LABELS-02 because the collector
+    # passed them through. The collector must resolve every entry through the
+    # label inventory (keyed on Guid AND ImmutableId, raw Name as last resort)
+    # and preserve unknown entries verbatim: a deleted-but-still-referenced
+    # label must still show something, never vanish.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'resolves Guid-keyed .Labels entries to display names (raw-tenant shape, case-insensitive)' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'cccccccc-0000-0000-0000-000000000001', 'CCCCCCCC-0000-0000-0000-000000000002')
+        $pol = (Get-PpaSensitivityLabels).policies.items[0]
+        @($pol.labels) | Should -Be @('Confidential', 'Highly Confidential')
+    }
+    It 'resolves ImmutableId-keyed .Labels entries too (the dual-key map)' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'dddddddd-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000001')
+        $pol = (Get-PpaSensitivityLabels).policies.items[0]
+        @($pol.labels) | Should -Be @('Highly Confidential', 'Confidential')
+    }
+    It 'preserves an orphan .Labels entry verbatim (deleted-but-referenced label)' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'cccccccc-0000-0000-0000-000000000001', 'eeeeeeee-9999-9999-9999-999999999999')
+        $pol = (Get-PpaSensitivityLabels).policies.items[0]
+        @($pol.labels) | Should -Be @('Confidential', 'eeeeeeee-9999-9999-9999-999999999999')
+    }
+    It 'resolves via the raw internal Name as a last resort' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @('highconf-3c4d')
+        @((Get-PpaSensitivityLabels).policies.items[0].labels) | Should -Be @('Highly Confidential')
+    }
+    It 'passes name-based fixture .Labels through unchanged (sample regression shape)' {
+        # A display name is neither a Guid, an ImmutableId nor the internal Name
+        # key -> verbatim fallback, so the checked-in sample fixtures render as before.
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @('Confidential')
+        @((Get-PpaSensitivityLabels).policies.items[0].labels) | Should -Be @('Confidential')
+    }
+    It 'keeps the projected labels a flat array of plain strings' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap -PolicyLabels @(
+            'cccccccc-0000-0000-0000-000000000001', 'eeeeeeee-9999-9999-9999-999999999999')
+        foreach ($v in @((Get-PpaSensitivityLabels).policies.items[0].labels)) { $v | Should -BeOfType [string] }
+    }
+    It 'captures the label ImmutableId alongside guid in the inventory' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap
+        $lab = (Get-PpaSensitivityLabels).labels.items[0]
+        $lab.guid        | Should -Be 'cccccccc-0000-0000-0000-000000000001'
+        $lab.immutableId | Should -Be 'dddddddd-0000-0000-0000-000000000001'
+    }
+    It 'projects an empty immutableId when the raw label lacks the property' {
+        $script:PpaReadStubMap = New-PpaLabelResolutionStubMap
+        $script:PpaReadStubMap['Get-Label'].Data[0].PSObject.Properties.Remove('ImmutableId')
+        (Get-PpaSensitivityLabels).labels.items[0].immutableId | Should -Be ''
+    }
+}
+
+Describe 'Retention label resolution (pre-publish Part 7)' {
+    # On a live tenant a label-publishing retention rule has an auto-GUID .Name;
+    # the published label lives in PublishComplianceTag / ApplyComplianceTag,
+    # which MAY themselves hold a GUID. The collector prefers the tag reference,
+    # resolves GUID-valued references through the Get-ComplianceTag inventory,
+    # and preserves anything unresolvable verbatim.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'auto-GUID rule name + PublishComplianceTag name: policy labels and label item show the tag, never the GUID' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000001'; Guid = [guid]'dddddddd-aaaa-bbbb-cccc-000000000001'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'Fin-Retain-10y'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('Fin-Retain-10y')
+        $out.labels.items[0].name        | Should -Be 'Fin-Retain-10y'
+        # the auto-GUID rule name never leaks into a display field (guid identity field aside)
+        @($out.policies.items[0].labels) | Should -Not -Contain 'dddddddd-aaaa-bbbb-cccc-000000000001'
+    }
+    It 'GUID-valued PublishComplianceTag resolves through Get-ComplianceTag to the friendly name' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000002'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'cccccccc-0000-0000-0000-000000000201'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('Fin-Retain-10y')
+        $out.labels.items[0].name        | Should -Be 'Fin-Retain-10y'
+    }
+    It 'plain retention rule (no Publish/ApplyComplianceTag) falls back to .Name verbatim - no regression' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'HR-Retain-7y'; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('HR-Retain-7y')
+        $out.labels.items[0].name        | Should -Be 'HR-Retain-7y'
+    }
+    It 'unresolvable reference (no tag match) passes through verbatim - orphan fallback' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000003'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'eeeeeeee-9999-9999-9999-999999999999'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        $out.labels.items[0].name | Should -Be 'eeeeeeee-9999-9999-9999-999999999999'
+    }
+    It 'ApplyComplianceTag resolves when PublishComplianceTag is absent (auto-applied labels)' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000004'; ParentPolicyName = 'HR 7yr'; ApplyComplianceTag = 'cccccccc-0000-0000-0000-000000000201'; ContentMatchQuery = 'kql'; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        $out.labels.items[0].name      | Should -Be 'Fin-Retain-10y'
+        $out.labels.items[0].autoApply | Should -BeTrue
+    }
+    It 'keeps the projected labels a flat array of plain strings' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000001'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'Fin-Retain-10y'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        foreach ($v in @($out.policies.items[0].labels)) { $v | Should -BeOfType [string] }
+        $out.labels.items[0].name | Should -BeOfType [string]
+    }
+    It 'a failed Get-ComplianceTag read degrades the outcome to Partial (folded into ReadStatuses)' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'HR-Retain-7y'; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        )
+        $script:PpaReadStubMap['Get-ComplianceTag'] = @{ Status = 'AccessDenied'; Data = @(); Error = 'denied' }
+        $out = Get-PpaRetention
+        $out.outcome | Should -Be 'Partial'
+        # resolution still degrades gracefully: verbatim rule name, never a crash
+        $out.labels.items[0].name | Should -Be 'HR-Retain-7y'
+    }
+}
+
+Describe 'DSPM label reference resolution (pre-publish Part 8)' {
+    # On a live tenant a DLP rule's sensitivity-label condition carries the label
+    # GUID in .name; the collector resolves each reference through the Get-Label
+    # inventory (Guid + ImmutableId + Name -> DisplayName) with verbatim fallback,
+    # so AI-03's labelRefs show friendly names, never GUIDs. The AdvancedRule
+    # text-scan (hasLabelCondition boolean) is unchanged.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'GUID-keyed label condition (group form) resolves to the DisplayName, and hasLabelCondition is true' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ groups = @([pscustomobject]@{ labels = @(
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'cccccccc-1111-0000-0000-000000000001' }
+                    ) }) }
+                )
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        @($item.labelRefs) | Should -Be @('Highly Confidential')
+        $item.hasLabelCondition | Should -BeTrue
+    }
+    It 'flat-entry reference keyed on ImmutableId resolves too (dual-key map + flat branch)' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ type = 'Sensitivity'; name = 'dddddddd-1111-0000-0000-000000000001' }
+                )
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        @($item.labelRefs) | Should -Be @('Highly Confidential')
+        $item.hasLabelCondition | Should -BeTrue
+    }
+    It 'an already-friendly / unmapped name passes through verbatim - no regression' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ groups = @([pscustomobject]@{ labels = @(
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'Highly Confidential' },
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'Custom Label X' }
+                    ) }) }
+                )
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        @($item.labelRefs) | Should -Be @('Highly Confidential', 'Custom Label X')
+    }
+    It 'no label condition: hasLabelCondition false, labelRefs empty - unchanged' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(@{ Name = 'U.S. SSN' })
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        $item.hasLabelCondition | Should -BeFalse
+        @($item.labelRefs).Count | Should -Be 0
+    }
+    It 'AdvancedRule-only label mention: hasLabelCondition true, labelRefs empty - unchanged' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @()
+                AdvancedRule = '{"Condition":{"SubConditions":[{"ConditionName":"ContentContainsSensitiveInformation","Value":[{"groups":[{"labels":[{"type":"Sensitivity","id":"x"}]}]}]}]}}'
+            }
+        )
+        $item = (Get-PpaDspmAi).copilotPolicies.items[0]
+        $item.hasLabelCondition | Should -BeTrue
+        @($item.labelRefs).Count | Should -Be 0
+    }
+    It 'a failed Get-Label read degrades the outcome to Partial and resolution falls back verbatim' {
+        $script:PpaReadStubMap = New-PpaDspmLabelRefStubMap -Rules @(
+            [pscustomobject]@{
+                Name = 'r-copilot'; ParentPolicyName = 'Copilot guard'
+                ContentContainsSensitiveInformation = @(
+                    [pscustomobject]@{ groups = @([pscustomobject]@{ labels = @(
+                        [pscustomobject]@{ type = 'Sensitivity'; name = 'cccccccc-1111-0000-0000-000000000001' }
+                    ) }) }
+                )
+            }
+        )
+        $script:PpaReadStubMap['Get-Label'] = @{ Status = 'AccessDenied'; Data = @(); Error = 'denied' }
+        $out = Get-PpaDspmAi
+        $out.outcome | Should -Be 'Partial'
+        @($out.copilotPolicies.items[0].labelRefs) | Should -Be @('cccccccc-1111-0000-0000-000000000001')
+    }
+}
+
+Describe 'Retention compound tag references (pre-publish Part 9)' {
+    # Confirmed against live TEST data: PublishComplianceTag / ComplianceTagProperty
+    # carry a COMPOUND "<ImmutableId>,<Name>" string, and the rule references the
+    # tag by ImmutableId (the tag's Guid is a DIFFERENT value). The helper splits
+    # the compound, resolves per segment, and prefers whatever resolves to a
+    # friendly name; worst case shows the name tail, never the raw id blob.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'REAL TEST shape: compound ImmutableId,Name ref shows the tag name ONLY - the ImmutableId reaches no display field' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000009'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = '8969d530-aaaa-bbbb-cccc-00000000042d,Yazar Test Label'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('Yazar Test Label')
+        $out.labels.items[0].name        | Should -Be 'Yazar Test Label'
+        @($out.policies.items[0].labels) -join '|' | Should -Not -Match '8969d530'
+        $out.labels.items[0].name                  | Should -Not -Match '8969d530'
+    }
+    It 'ImmutableId keying is load-bearing: a RENAMED tag resolves to its CURRENT name, not the stale name tail' {
+        # The compound carries the name the rule was saved with; the inventory has
+        # the tag renamed since. Segment 1 (ImmutableId) must win over segment 2.
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000010'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = '8969d530-aaaa-bbbb-cccc-00000000042d,Old Label Name'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'Yazar Test Label'
+    }
+    It 'compound ref with an UNMAPPED ImmutableId still shows the Name segment, never the blob' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000011'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = '8969d530-aaaa-bbbb-cccc-00000000042d,Yazar Test Label'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @()
+        $out = Get-PpaRetention
+        $out.labels.items[0].name | Should -Be 'Yazar Test Label'
+        @($out.policies.items[0].labels) | Should -Be @('Yazar Test Label')
+    }
+    It 'ComplianceTagProperty joins the preference chain when Publish/ApplyComplianceTag are absent' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000012'; ParentPolicyName = 'HR 7yr'; ComplianceTagProperty = '8969d530-aaaa-bbbb-cccc-00000000042d,Yazar Test Label'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'Yazar Test Label'
+    }
+    It 'single-value (no comma) GUID ref still resolves as in Part 7 - regression pin' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000013'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'cca0fd5a-0000-0000-0000-000000000001'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'Yazar Test Label'
+    }
+    It 'plain rule (no tag properties) falls back to .Name verbatim - regression pin' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'HR-Retain-7y'; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'HR-Retain-7y'
+    }
+    It 'true orphan (lone GUID-shaped segment, no tag match) passes through verbatim - honest fallback' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000014'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'eeeeeeee-9999-9999-9999-999999999999'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @()
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'eeeeeeee-9999-9999-9999-999999999999'
     }
 }
 

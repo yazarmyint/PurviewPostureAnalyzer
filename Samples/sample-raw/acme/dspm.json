@@ -1,0 +1,45 @@
+{
+  "outcome": "AccessDenied",
+  "copilotPolicies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      {
+        "name": "Detect sensitive info in AI prompts",
+        "guid": "guid-acme-detect-sensitive-info-in-ai-prompts",
+        "mode": "AuditAndNotify",
+        "sits": ["U.S. SSN", "Credit Card Number", "U.S. Bank Account Number"],
+        "hasLabelCondition": false,
+        "labelRefs": [],
+        "copilotLocations": ["Copilot.M365"],
+        "oneClick": true,
+        "parseFallback": false,
+        "created": "2026-04-20"
+      }
+    ],
+    "thirdPartyAiDlpPolicies": []
+  },
+  "dspmPolicies": {
+    "status": "Ok",
+    "error": null,
+    "items": []
+  },
+  "appRetention": {
+    "status": "Ok",
+    "error": null,
+    "items": []
+  },
+  "retentionLegacy": {
+    "status": "Ok",
+    "error": null,
+    "totalCount": 5,
+    "teamsChatPolicies": ["Teams Chat - 1yr"]
+  },
+  "ccCopilot": {
+    "policiesStatus": "Ok",
+    "policiesError": null,
+    "rulesStatus": "Ok",
+    "rulesError": null,
+    "items": []
+  }
+}

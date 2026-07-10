@@ -1,0 +1,13 @@
+{
+  "outcome": "Populated",
+  "cases": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Litigation-2026-0031", "guid": "guid-acme-litigation-2026-0031", "caseStatus": "Active" },
+      { "name": "Regulatory-EPA-Q2-2026", "guid": "guid-acme-regulatory-epa-q2-2026", "caseStatus": "Active" },
+      { "name": "HR-Investigation-2026-014", "guid": "guid-acme-hr-investigation-2026-014", "caseStatus": "Closed" },
+      { "name": "IP-Leak-Inquiry-2025", "guid": "guid-acme-ip-leak-inquiry-2025", "caseStatus": "Closed" }
+    ]
+  }
+}

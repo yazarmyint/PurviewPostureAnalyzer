@@ -1,0 +1,33 @@
+{
+  "outcome": "Populated",
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "HR Records - 7yr", "guid": "guid-acme-hr-records-7yr", "adaptive": false, "locations": ["SharePoint"], "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["HR-Retain-7y"] },
+      { "name": "Finance Records - 10yr", "guid": "guid-acme-finance-records-10yr", "adaptive": false, "locations": ["SharePoint", "Exchange"], "locationScope": { "exchange": "All", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["Fin-Retain-10y"] },
+      { "name": "Product Design Records - 15yr", "guid": "guid-acme-product-design-records-15yr", "adaptive": false, "locations": ["SharePoint"], "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["Design-Retain-15y"] },
+      { "name": "Legal Hold Archive", "guid": "guid-acme-legal-hold-archive", "adaptive": false, "locations": ["SharePoint"], "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["Legal-Retain-Indef"] },
+      { "name": "General - 3yr", "guid": "guid-acme-general-3yr", "adaptive": false, "locations": ["SharePoint"], "locationScope": { "exchange": "None", "sharePoint": "All", "oneDrive": "None", "groups": "None", "teamsChannel": "None", "teamsChat": "None" }, "labels": ["Gen-Retain-3y"] }
+    ]
+  },
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "HR-Retain-7y", "guid": "guid-acme-hr-retain-7y", "autoApply": false },
+      { "name": "Fin-Retain-10y", "guid": "guid-acme-fin-retain-10y", "autoApply": false },
+      { "name": "Design-Retain-15y", "guid": "guid-acme-design-retain-15y", "autoApply": false },
+      { "name": "Legal-Retain-Indef", "guid": "guid-acme-legal-retain-indef", "autoApply": false },
+      { "name": "Gen-Retain-3y", "guid": "guid-acme-gen-retain-3y", "autoApply": false },
+      { "name": "Contracts-7y", "guid": "guid-acme-contracts-7y", "autoApply": false },
+      { "name": "Email-3y", "guid": "guid-acme-email-3y", "autoApply": false },
+      { "name": "Project-5y", "guid": "guid-acme-project-5y", "autoApply": false },
+      { "name": "Safety-Records-30y", "guid": "guid-acme-safety-records-30y", "autoApply": false },
+      { "name": "Warranty-Claims-6y", "guid": "guid-acme-warranty-claims-6y", "autoApply": false },
+      { "name": "Supplier-Contracts-8y", "guid": "guid-acme-supplier-contracts-8y", "autoApply": false },
+      { "name": "Policy-Docs-6y", "guid": "guid-acme-policy-docs-6y", "autoApply": false }
+    ]
+  },
+  "adaptiveScopes": { "status": "Ok", "count": 0 }
+}

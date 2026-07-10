@@ -15,16 +15,40 @@ Set-StrictMode -Off
 function Connect-PurviewPostureSession {
     [CmdletBinding()]
     param(
-        [string]$UserPrincipalName
+        [string]$UserPrincipalName,
+        # Cross-tenant guest / B2B support (pre-publish Part 6): connect to a CLIENT
+        # tenant as an invited guest. -DelegatedOrganization names the client tenant
+        # (e.g. client.onmicrosoft.com). The Security & Compliance endpoint ALSO
+        # requires -AzureADAuthorizationEndpointUri (module 3.0.0+); when not
+        # supplied it is derived as https://login.microsoftonline.com/<org>, matching
+        # the MS Learn guest example. Commercial cloud only - sovereign clouds are
+        # out of scope. Exchange Online takes the organization ALONE.
+        [string]$DelegatedOrganization,
+        [string]$AzureADAuthorizationEndpointUri
     )
 
     $results = [ordered]@{ SecurityCompliance = 'not attempted'; ExchangeOnline = 'not attempted' }
 
+    # Param hygiene: the endpoint is a guest-call refinement - without the guest
+    # organization it has no meaning, so it is ignored loudly, never applied.
+    if ($AzureADAuthorizationEndpointUri -and -not $DelegatedOrganization) {
+        Write-Warning '-AzureADAuthorizationEndpointUri is only used with -DelegatedOrganization (guest/B2B connect); ignoring it.'
+    }
+
     # Security & Compliance PowerShell
     try {
         if (Get-Command -Name 'Connect-IPPSSession' -ErrorAction SilentlyContinue) {
-            if ($UserPrincipalName) { Connect-IPPSSession -UserPrincipalName $UserPrincipalName -ShowBanner:$false -ErrorAction Stop }
-            else { Connect-IPPSSession -ShowBanner:$false -ErrorAction Stop }
+            $ippsArgs = @{ ShowBanner = $false; ErrorAction = 'Stop' }
+            if ($UserPrincipalName) { $ippsArgs.UserPrincipalName = $UserPrincipalName }
+            if ($DelegatedOrganization) {
+                # Guest call: IPPS needs BOTH the organization and the auth endpoint
+                # (verified against MS Learn, module 3.0.0+).
+                $ippsArgs.DelegatedOrganization = $DelegatedOrganization
+                $ep = if ($AzureADAuthorizationEndpointUri) { $AzureADAuthorizationEndpointUri }
+                      else { "https://login.microsoftonline.com/$DelegatedOrganization" }
+                $ippsArgs.AzureADAuthorizationEndpointUri = $ep
+            }
+            Connect-IPPSSession @ippsArgs
             $results.SecurityCompliance = 'connected'
         }
         else { $results.SecurityCompliance = 'ExchangeOnlineManagement module not installed' }
@@ -34,8 +58,12 @@ function Connect-PurviewPostureSession {
     # Exchange Online
     try {
         if (Get-Command -Name 'Connect-ExchangeOnline' -ErrorAction SilentlyContinue) {
-            if ($UserPrincipalName) { Connect-ExchangeOnline -UserPrincipalName $UserPrincipalName -ShowBanner:$false -ErrorAction Stop }
-            else { Connect-ExchangeOnline -ShowBanner:$false -ErrorAction Stop }
+            $exoArgs = @{ ShowBanner = $false; ErrorAction = 'Stop' }
+            if ($UserPrincipalName) { $exoArgs.UserPrincipalName = $UserPrincipalName }
+            # Guest call: EXO takes the organization ALONE - intentionally NO
+            # AzureADAuthorizationEndpointUri here (per the MS Learn guest example).
+            if ($DelegatedOrganization) { $exoArgs.DelegatedOrganization = $DelegatedOrganization }
+            Connect-ExchangeOnline @exoArgs
             $results.ExchangeOnline = 'connected'
         }
         else { $results.ExchangeOnline = 'ExchangeOnlineManagement module not installed' }

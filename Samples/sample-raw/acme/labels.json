@@ -1,0 +1,44 @@
+{
+  "outcome": "Populated",
+  "labels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Public", "guid": "g-acme-public", "priority": 0, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "General", "guid": "g-acme-general", "priority": 1, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Confidential", "guid": "g-acme-conf", "priority": 2, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Highly Confidential", "guid": "g-acme-hc", "priority": 3, "scopes": ["File", "Email"], "parentId": "" },
+      { "name": "Legal", "guid": "g-acme-hc-legal", "priority": 4, "scopes": ["File"], "parentId": "g-acme-hc" },
+      { "name": "Engineering", "guid": "g-acme-hc-eng", "priority": 5, "scopes": ["File"], "parentId": "g-acme-hc" },
+      { "name": "Manufacturing", "guid": "g-acme-hc-mfg", "priority": 6, "scopes": ["File"], "parentId": "g-acme-hc" },
+      { "name": "Restricted", "guid": "g-acme-restricted", "priority": 7, "scopes": ["File"], "parentId": "" }
+    ]
+  },
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Acme Global Label Policy", "guid": "guid-acme-global-label-policy", "labels": ["Public", "General", "Confidential", "Highly Confidential", "Legal", "Engineering", "Manufacturing"], "enabled": true, "scope": "All users" },
+      { "name": "Executive Protection Policy", "guid": "guid-acme-executive-protection-policy", "labels": ["Confidential", "Highly Confidential", "Restricted"], "enabled": true, "scope": "dl-exec@acmecorp.com" },
+      { "name": "Engineering Label Policy", "guid": "guid-acme-engineering-label-policy", "labels": ["Engineering", "Manufacturing"], "enabled": true, "scope": "Engineering (grp)" }
+    ]
+  },
+  "autoLabels": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Auto-label PII and Payment Data", "guid": "guid-acme-auto-label-pii-payment", "mode": "TestWithoutNotifications", "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false }, "sits": ["U.S. SSN", "Credit Card Number", "U.S. Bank Account Number"], "simulationStartDate": "2026-02-14", "simulationItemCount": 6410 },
+      { "name": "Auto-label Product Design Data", "guid": "guid-acme-auto-label-product-design", "mode": "TestWithoutNotifications", "locationScope": { "exchange": "None", "sharePoint": "All", "oneDrive": "All" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false }, "sits": ["Custom SIT: Design Schematic ID"], "simulationStartDate": "2026-05-02", "simulationItemCount": 890 }
+    ]
+  },
+  "containers": {
+    "status": "Collected",
+    "groups": { "total": 186, "labeled": 0 },
+    "sites": { "total": 203, "labeled": 0 }
+  },
+  "irmConfig": {
+    "status": "Ok",
+    "error": null,
+    "azureRmsEnabled": true
+  }
+}

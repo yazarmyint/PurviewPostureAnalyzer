@@ -92,14 +92,26 @@ function Get-PpaSensitivityLabels {
     # finding (containers precedent), never the section outcome.
     $rawIrm       = Invoke-PpaReadCmdlet -Name 'Get-IRMConfiguration'
 
+    # Pre-publish Part 4: the label inventory doubles as the resolution map for the
+    # policy loop below. On a live tenant Get-LabelPolicy's .Labels carries label
+    # GUIDs / ImmutableIds, never display names (hand-authored fixtures used names,
+    # which is why sample builds never showed the leak), and the reference can key
+    # on EITHER id - so the map keys on Guid AND ImmutableId, plus the raw internal
+    # Name as a last resort. PS hashtable literals compare keys case-insensitively,
+    # which covers GUID casing differences for free.
+    $labelNameByKey = @{}
     $labelItems = foreach ($l in @($rawLabels.Data)) {
         $displayName = if ($l.DisplayName) { [string]$l.DisplayName } else { [string]$l.Name }
+        foreach ($k in @([string]$l.Guid, [string]$l.ImmutableId, [string]$l.Name)) {
+            if (-not [string]::IsNullOrEmpty($k) -and -not $labelNameByKey.ContainsKey($k)) { $labelNameByKey[$k] = $displayName }
+        }
         [pscustomobject]@{
-            name     = $displayName
-            guid     = [string]$l.Guid
-            priority = [int]($l.Priority)
-            scopes   = @(ConvertTo-PpaScopeTokens $l.ContentType)
-            parentId = [string]$l.ParentId
+            name        = $displayName
+            guid        = [string]$l.Guid
+            immutableId = [string]$l.ImmutableId
+            priority    = [int]($l.Priority)
+            scopes      = @(ConvertTo-PpaScopeTokens $l.ContentType)
+            parentId    = [string]$l.ParentId
         }
     }
 
@@ -112,10 +124,17 @@ function Get-PpaSensitivityLabels {
         $locs += @($p.ModernGroupLocation | ForEach-Object { [string]$_ })
         $locs = @($locs | Where-Object { $_ } | Select-Object -Unique)
         $scope = if ($locs -contains 'All') { 'All users' } elseif ($locs.Count -gt 0) { ($locs -join ', ') } else { '' }
+        # Resolve each .Labels entry to its display name via the inventory map; an
+        # entry with no match (a deleted-but-still-referenced label) passes through
+        # verbatim - an orphan must still show SOMETHING, never vanish. The projected
+        # shape stays a flat array of strings (render/normalize/snapshot/delta contract).
         [pscustomobject]@{
             name    = [string]$p.Name
             guid    = Get-PpaOptionalGuid $p
-            labels  = @($p.Labels | ForEach-Object { [string]$_ })
+            labels  = @($p.Labels | ForEach-Object {
+                $k = [string]$_
+                if ($labelNameByKey.ContainsKey($k)) { $labelNameByKey[$k] } else { $k }
+            })
             enabled = [bool]($p.Enabled -ne $false)
             scope   = $scope
         }

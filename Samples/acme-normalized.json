@@ -1,0 +1,539 @@
+{
+  "meta": {
+    "reportTitle": "PurviewPostureAnalyzer (PPA)",
+    "version": "2.0",
+    "versionDate": "June 2026",
+    "dateDisplay": "07-Jul-2026 10:00 UTC",
+    "organization": "Acme Corporation",
+    "tenant": "acmecorp.onmicrosoft.com",
+    "operator": "casey.reyes@acmecorp.com (Compliance Reader)",
+    "mode": "Read-only - configuration metadata only"
+  },
+  "licensing": {
+    "note": "This report assumes Microsoft 365 E5 (or equivalent) licensing when judging Purview workloads and does not read the tenant's subscriptions. Findings marked 'Requires' note the tier or add-on the feature needs per the Microsoft Purview service description (reviewed 2026-07-02); if the tenant is below that tier, read those findings as licensing decisions rather than configuration gaps. Microsoft 365 Copilot is a separate add-on outside the E5 assumption."
+  },
+  "sections": [
+    {
+      "id": "Sensitivity_Labels",
+      "title": "Sensitivity Labels",
+      "group": "Microsoft Information Protection",
+      "groupIcon": "fas fa-shield-alt",
+      "glance": { "status": "Improvement", "name": "Sensitivity Labels", "metric": "8 labels", "sub": "3 policies - auto-label in sim" },
+      "findings": [
+        {
+          "id": "LABELS-01",
+          "domId": "d-lab-1",
+          "title": "Taxonomy is defined",
+          "status": "Informational",
+          "whyline": "A clear, ordered taxonomy is the foundation auto-labeling, DLP and retention build on. The tenant defines:",
+          "table": {
+            "columns": ["Label", "Priority", "Scope", "Status"],
+            "rows": [
+              { "cells": ["Public", "0", "Files, Emails"], "status": "Informational" },
+              { "cells": ["General", "1", "Files, Emails"], "status": "Informational" },
+              { "cells": ["Confidential", "2", "Files, Emails"], "status": "Informational" },
+              { "cells": ["Highly Confidential", "3", "Files, Emails"], "status": "Informational" },
+              { "cells": ["Highly Confidential \\ Legal", "3.1", "Files"], "status": "Informational", "indent": true },
+              { "cells": ["Highly Confidential \\ Engineering", "3.2", "Files"], "status": "Informational", "indent": true },
+              { "cells": ["Highly Confidential \\ Manufacturing", "3.3", "Files"], "status": "Informational", "indent": true },
+              { "cells": ["Restricted", "4", "Files"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Microsoft Purview portal - Information Protection", "url": "https://purview.microsoft.com", "tag": "portal" },
+            { "label": "Overview of sensitivity labels", "url": "https://learn.microsoft.com/en-us/purview/sensitivity-labels", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "LABELS-02",
+          "domId": "d-lab-2",
+          "title": "Labels are published to users",
+          "status": "OK",
+          "whyline": "Labels only classify content once published to the people creating it.",
+          "table": {
+            "columns": ["Label Policy", "Labels", "Assigned To", "Status"],
+            "rows": [
+              { "cells": ["Acme Global Label Policy", "Public, General, Confidential, Highly Confidential (+3 sub)", "All users"], "status": "OK" },
+              { "cells": ["Executive Protection Policy", "Confidential, Highly Confidential, Restricted", "dl-exec@acmecorp.com"], "status": "OK" },
+              { "cells": ["Engineering Label Policy", "Highly Confidential \\ Engineering, Highly Confidential \\ Manufacturing", "Engineering (grp)"], "status": "OK" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Create and publish sensitivity labels", "url": "https://learn.microsoft.com/en-us/purview/create-sensitivity-labels", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "LABELS-03",
+          "domId": "d-lab-3",
+          "title": "Auto-labeling is not enforcing",
+          "status": "Improvement",
+          "requires": "Microsoft 365 E5 (or Information Protection & Governance add-on)",
+          "whyline": "Automatic labeling reduces reliance on users to classify correctly; in simulation it observes but never applies.",
+          "table": {
+            "columns": ["Auto-labeling Policy", "Conditions (SITs)", "Mode", "Status"],
+            "rows": [
+              { "cells": ["Auto-label PII and Payment Data", "U.S. SSN, Credit Card Number, U.S. Bank Account Number", "Simulation"], "status": "Improvement", "remark": "Auto-label PII and Payment Data has run in simulation since 14-Feb-2026 (143 days). Simulation shows 6,410 items would be labeled - consider turning the policy on." },
+              { "cells": ["Auto-label Product Design Data", "Custom SIT: Design Schematic ID", "Simulation"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Microsoft Purview portal - Information Protection", "url": "https://purview.microsoft.com", "tag": "portal" },
+            { "label": "How to apply a sensitivity label to content automatically", "url": "https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "LABELS-04",
+          "domId": "d-lab-4",
+          "title": "No container labels for Teams / Sites / Groups",
+          "status": "Recommendation",
+          "whyline": "Container labels govern guest access, external sharing and unmanaged-device rules on collaborative workspaces.",
+          "table": {
+            "columns": ["Container type", "Coverage", "Status"],
+            "rows": [
+              { "cells": ["Microsoft 365 Groups / Teams", "0 of 186 labeled"], "status": "Recommendation" },
+              { "cells": ["SharePoint sites", "0 of 203 labeled"], "status": "Recommendation" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Use sensitivity labels to protect containers (groups & sites)", "url": "https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Data_Loss_Prevention",
+      "title": "Data Loss Prevention",
+      "group": "Microsoft Information Protection",
+      "groupIcon": "fas fa-shield-alt",
+      "glance": { "status": "Improvement", "name": "Data Loss Prevention", "metric": "9 policies", "sub": "5 enforcing - Teams unscoped" },
+      "findings": [
+        {
+          "id": "DLP-01",
+          "domId": "d-dlp-1",
+          "title": "9 DLP policies exist (5 enforcing, 4 in test)",
+          "status": "Improvement",
+          "whyline": "Policy count alone overstates protection; test-mode policies detect but don't block. Each policy:",
+          "table": {
+            "columns": ["DLP Policy", "Sensitive Information Type", "Remarks", "Status"],
+            "rows": [
+              { "cells": ["Employee Health Records", "U.S. HIPAA, U.S. SSN", "Enforcing - EXO, SPO, ODB"], "status": "OK" },
+              { "cells": ["PCI - Payment Card Data", "Credit Card Number", "Enforcing - EXO, SPO, ODB"], "status": "OK" },
+              { "cells": ["SSN Guard", "U.S. SSN", "Enforcing - EXO, SPO"], "status": "OK" },
+              { "cells": ["Product Design Guard", "Custom SIT: Design Schematic ID", "Enforcing - SPO, ODB"], "status": "OK" },
+              { "cells": ["Financial Data", "ABA Routing, U.S. Bank Account", "Enforcing - SPO, ODB"], "status": "OK" },
+              { "cells": ["Broad PII Pilot", "Full Name, Email, Phone", "Test / simulation mode"], "status": "Improvement", "remark": "Broad PII Pilot has sat in test mode since 09-Mar-2026 - detects but does not block; incident digests go to svc-dlptest@acmecorp.onmicrosoft.com." },
+              { "cells": ["GDPR - EU PII", "EU Passport, EU Driver's License", "Test / simulation mode"], "status": "Improvement" },
+              { "cells": ["Source Code Guard", "Custom SIT: Repo Fingerprint", "Test / simulation mode"], "status": "Improvement" },
+              { "cells": ["Legacy DLP", "U.S. SSN", "Test mode; 2 of 3 rules disabled"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Microsoft Purview portal - Data Loss Prevention", "url": "https://purview.microsoft.com", "tag": "portal" },
+            { "label": "Learn about data loss prevention", "url": "https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "DLP-02",
+          "domId": "d-dlp-2",
+          "title": "Teams is not in scope",
+          "status": "Improvement",
+          "requires": "Microsoft 365 E5 / Office 365 E5 (or Microsoft Purview Suite)",
+          "whyline": "Sensitive data shared in Teams bypasses DLP entirely when Teams isn't a policy location.",
+          "table": {
+            "columns": ["Location", "In scope", "Status"],
+            "rows": [
+              { "cells": ["Exchange Online", "Yes (all policies)"], "status": "OK" },
+              { "cells": ["SharePoint Online", "Yes"], "status": "OK" },
+              { "cells": ["OneDrive", "Yes"], "status": "OK" },
+              { "cells": ["Microsoft Teams", "No"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Use DLP with Microsoft Teams", "url": "https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "DLP-03",
+          "domId": "d-dlp-3",
+          "title": "Endpoint DLP is not configured",
+          "status": "Improvement",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / IP&G add-on)",
+          "whyline": "Without Endpoint DLP there's no control over copy-to-USB, print, or cloud-upload egress on managed devices.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Devices onboarded", "0"], "status": "Improvement" },
+              { "cells": ["Endpoint locations in policy", "None"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Learn about Endpoint DLP", "url": "https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Retention",
+      "title": "Retention & Records",
+      "group": "Data Lifecycle & Records",
+      "groupIcon": "fas fa-archive",
+      "glance": { "status": "Improvement", "name": "Retention & Records", "metric": "5 policies", "sub": "12 labels - static only" },
+      "findings": [
+        {
+          "id": "RET-01",
+          "domId": "d-ret-1",
+          "title": "5 retention policies, 12 retention labels",
+          "status": "Informational",
+          "whyline": "Baseline of what's being retained and where.",
+          "table": {
+            "columns": ["Retention Policy", "Labels", "Remarks", "Status"],
+            "rows": [
+              { "cells": ["HR Records - 7yr", "HR-Retain-7y", "Static - SharePoint HR site"], "status": "Informational" },
+              { "cells": ["Finance Records - 10yr", "Fin-Retain-10y", "Static - Finance site, Exchange"], "status": "Informational" },
+              { "cells": ["Product Design Records - 15yr", "Design-Retain-15y", "Static - Engineering sites"], "status": "Informational" },
+              { "cells": ["Legal Hold Archive", "Legal-Retain-Indef", "Static - Legal site"], "status": "Informational" },
+              { "cells": ["General - 3yr", "Gen-Retain-3y", "Static - all SharePoint"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Learn about retention policies & labels", "url": "https://learn.microsoft.com/en-us/purview/retention", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "RET-02",
+          "domId": "d-ret-2",
+          "title": "No adaptive scopes",
+          "status": "Improvement",
+          "requires": "Microsoft 365 E5 / Office 365 E5 (or IP&G add-on)",
+          "whyline": "Static scopes drift as the org changes; adaptive scopes keep coverage current by attribute/query.",
+          "table": {
+            "columns": ["Scope type", "Count", "Status"],
+            "rows": [
+              { "cells": ["Static scopes", "5"], "status": "Informational" },
+              { "cells": ["Adaptive scopes", "0"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Adaptive vs. static scopes", "url": "https://learn.microsoft.com/en-us/purview/retention-policies-adaptive", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "RET-03",
+          "domId": "d-ret-3",
+          "title": "Retention labels are manual-apply only",
+          "status": "Improvement",
+          "whyline": "Retention outcomes depend on users tagging content, which is inconsistent at scale.",
+          "table": {
+            "columns": ["Retention label", "Auto-apply rule", "Status"],
+            "rows": [
+              { "cells": ["HR-Retain-7y", "None (manual)"], "status": "Improvement" },
+              { "cells": ["Design-Retain-15y", "None (manual)"], "status": "Improvement" },
+              { "cells": ["Fin-Retain-10y", "None (manual)"], "status": "Improvement", "remark": "12 of 12 retention labels have no auto-apply (SIT / KQL / trainable) condition." }
+            ]
+          },
+          "learnmore": [
+            { "label": "Auto-apply retention labels", "url": "https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Insider_Risk",
+      "title": "Insider Risk Management",
+      "group": "Insider Risk",
+      "groupIcon": "fas fa-user-secret",
+      "glance": { "status": "Improvement", "name": "Insider Risk", "metric": "0 policies", "sub": "risky-AI template absent" },
+      "findings": [
+        {
+          "id": "IRM-01",
+          "domId": "d-irm-1",
+          "title": "No IRM policies configured",
+          "status": "Improvement",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+          "whyline": "No insider-risk policy is scoring activity, so leaver data theft and risky-user signals go unwatched.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["IRM policies", "0"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Learn about Insider Risk Management", "url": "https://learn.microsoft.com/en-us/purview/insider-risk-management", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "IRM-02",
+          "domId": "d-irm-2",
+          "title": "Consider IRM for departing-employee risk",
+          "status": "Recommendation",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+          "whyline": "Data theft by leavers is a common uncovered scenario. Needs HR/Legal alignment before scoping - not a quick config win.",
+          "table": null,
+          "learnmore": [
+            { "label": "IRM policy templates", "url": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "IRM-03",
+          "domId": "d-irm-3",
+          "title": "Risky AI usage template is not deployed",
+          "status": "Recommendation",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / Insider Risk Management add-on)",
+          "whyline": "Without the Risky AI usage template, prompt-injection attempts and risky Copilot prompts produce no insider-risk score.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["IRM policies using the Risky AI usage scenario", "0"], "status": "Recommendation" }
+            ]
+          },
+          "learnmore": [
+            { "label": "IRM policy templates", "url": "https://learn.microsoft.com/en-us/purview/insider-risk-management-policies", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Audit",
+      "title": "Audit",
+      "group": "Discovery & Response",
+      "groupIcon": "fas fa-search",
+      "glance": { "status": "Improvement", "name": "Audit", "metric": "Off", "sub": "unified audit disabled" },
+      "findings": [
+        {
+          "id": "AUD-01",
+          "domId": "d-aud-1",
+          "title": "Unified audit logging is disabled",
+          "status": "Improvement",
+          "whyline": "With unified audit off there is no tenant-wide activity record - investigations, eDiscovery and IRM signals all lose their foundation.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Unified audit logging", "Disabled"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Learn about auditing solutions", "url": "https://learn.microsoft.com/en-us/purview/audit-solutions-overview", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AUD-02",
+          "domId": "d-aud-2",
+          "title": "Audit ingestion and latency not confirmable this session",
+          "status": "Verify manually",
+          "whyline": "'Enabled' is not the same as 'ingesting on time' - confirm recent events appear in audit search.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Recent event ingestion", "Not readable from configuration"], "status": "Verify manually" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Search the audit log", "url": "https://learn.microsoft.com/en-us/purview/audit-search", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AUD-03",
+          "domId": "d-aud-3",
+          "title": "Audit (Premium) long-term retention not assessed",
+          "status": "Informational",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / E5 eDiscovery & Audit add-on)",
+          "whyline": "Long-term audit retention bounds how far back an investigation can reach; premium retention configuration is not readable from this session.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Audit (Premium) long-term retention", "Not assessed this session"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Audit (Premium)", "url": "https://learn.microsoft.com/en-us/purview/audit-premium", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eDiscovery",
+      "title": "eDiscovery",
+      "group": "Discovery & Response",
+      "groupIcon": "fas fa-search",
+      "glance": { "status": "Informational", "name": "eDiscovery", "metric": "4 cases", "sub": "Premium not assessed" },
+      "findings": [
+        {
+          "id": "ED-01",
+          "domId": "d-ed-1",
+          "title": "eDiscovery in use - 4 cases",
+          "status": "Informational",
+          "whyline": "Case existence is reported for inventory only - no judgment on process maturity.",
+          "table": {
+            "columns": ["Case Name", "Case Status", "Status"],
+            "rows": [
+              { "cells": ["Litigation-2026-0031", "Active"], "status": "Informational" },
+              { "cells": ["Regulatory-EPA-Q2-2026", "Active"], "status": "Informational" },
+              { "cells": ["HR-Investigation-2026-014", "Closed"], "status": "Informational" },
+              { "cells": ["IP-Leak-Inquiry-2025", "Closed"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Learn about eDiscovery", "url": "https://learn.microsoft.com/en-us/purview/ediscovery", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "ED-02",
+          "domId": "d-ed-2",
+          "title": "eDiscovery (Premium) usage not assessed",
+          "status": "Informational",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite / E5 eDiscovery & Audit add-on)",
+          "whyline": "Premium bounds what the client can do in-platform for legal holds, analytics and review sets; premium case usage is not assessed by this session.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["eDiscovery Premium (hold, analytics, review sets)", "Not assessed this session"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "eDiscovery capabilities by tier", "url": "https://learn.microsoft.com/en-us/purview/ediscovery", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Communication_Compliance",
+      "title": "Communication Compliance",
+      "group": "Insider Risk",
+      "groupIcon": "fas fa-user-secret",
+      "glance": { "status": "Improvement", "name": "Comms Compliance", "metric": "0 policies", "sub": "Copilot monitoring absent" },
+      "findings": [
+        {
+          "id": "CC-01",
+          "domId": "d-cc-1",
+          "title": "No Communication Compliance policies configured",
+          "status": "Improvement",
+          "requires": "Microsoft 365 E5 (or Microsoft Purview Suite)",
+          "whyline": "No supervisory-review policy is capturing communications - relevant wherever regulatory supervision of communications is in scope.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Communication Compliance policies", "0"], "status": "Improvement" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Learn about Communication Compliance", "url": "https://learn.microsoft.com/en-us/purview/communication-compliance", "tag": "docs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DSPM_for_AI",
+      "title": "DSPM for AI - Copilot Data Security",
+      "group": "AI Security",
+      "groupIcon": "fas fa-robot",
+      "groupTag": "NEW",
+      "glance": { "status": "Improvement", "name": "DSPM for AI", "metric": "1 policy", "sub": "simulation only - AI in scope" },
+      "findings": [
+        {
+          "id": "AI-01",
+          "domId": "d-ai-1",
+          "title": "Copilot-scoped DLP artifacts present - AI surface in scope",
+          "status": "Informational",
+          "requires": "Microsoft 365 Copilot license",
+          "whyline": "DLP policies scoped to the Microsoft 365 Copilot location exist, which puts AI data-security posture in scope for this tenant.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Copilot-scoped DLP policies", "1"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Microsoft Purview portal - DSPM for AI", "url": "https://purview.microsoft.com", "tag": "portal" },
+            { "label": "Data security for AI", "url": "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AI-02",
+          "domId": "d-ai-2",
+          "title": "Copilot DLP policy is in simulation mode",
+          "status": "Improvement",
+          "requires": "Prompt DLP: any Microsoft 365 Copilot tier; label-based file/email restriction: Microsoft 365 E5 (or Microsoft Purview Suite / IP&G add-on)",
+          "whyline": "Visibility without control - the tenant can see risky AI interactions but isn't preventing them.",
+          "table": {
+            "columns": ["AI Policy", "Conditions", "Mode", "Status"],
+            "rows": [
+              { "cells": ["Detect sensitive info in AI prompts", "U.S. SSN, Credit Card Number, U.S. Bank Account Number", "Simulation (AuditAndNotify)"], "status": "Improvement", "remark": "Detect sensitive info in AI prompts is the one-click DSPM-for-AI default and ships in simulation - it has never been switched to enforce." }
+            ]
+          },
+          "learnmore": [
+            { "label": "Data Security Posture Management for AI", "url": "https://learn.microsoft.com/en-us/purview/dspm-for-ai", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AI-03",
+          "domId": "d-ai-3",
+          "title": "No label-based Copilot content exclusion",
+          "status": "Recommendation",
+          "whyline": "Without label-based exclusion, Copilot can process and surface labeled content users can technically open but shouldn't - oversharing risk.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Copilot-location rules referencing sensitivity labels", "None detected"], "status": "Recommendation" },
+              { "cells": ["Container/site-scoped sensitivity labels defined", "No"], "status": "Informational" }
+            ]
+          },
+          "learnmore": [
+            { "label": "DLP for Microsoft 365 Copilot and Copilot Chat", "url": "https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about", "tag": "docs" },
+            { "label": "Considerations for Copilot & oversharing", "url": "https://learn.microsoft.com/en-us/purview/ai-microsoft-purview-considerations", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AI-04",
+          "domId": "d-ai-4",
+          "title": "No DSPM collection policies",
+          "status": "Informational",
+          "whyline": "Collection policies extend DSPM visibility to enterprise and third-party AI apps; they sit above E5 (pay-as-you-go / Agent 365 billing), so absence is reported as context only.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["DSPM collection policies", "0"], "status": "Informational", "remark": "collection policies are billed pay-as-you-go / Agent 365; this line is inventory context, not a gap." }
+            ]
+          },
+          "learnmore": [
+            { "label": "Create and configure retention policies (AI app locations)", "url": "https://learn.microsoft.com/en-us/purview/retention-policies-copilot", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AI-05",
+          "domId": "d-ai-5",
+          "title": "Retention exists but Copilot interactions are not covered",
+          "status": "Improvement",
+          "whyline": "Copilot prompts and responses are discoverable content; without a retention policy covering the Copilot location their lifecycle is unmanaged.",
+          "table": {
+            "columns": ["Configuration / Policy", "Setting", "Status"],
+            "rows": [
+              { "cells": ["Retention policies tenant-wide", "5"], "status": "Informational" },
+              { "cells": ["Policies covering Microsoft 365 Copilot interactions", "0"], "status": "Improvement" },
+              { "cells": ["Legacy Teams chat retention", "Teams Chat - 1yr"], "status": "Informational", "remark": "confirm Copilot interaction retention expectations with the records owners at acmecorp.com before scoping a new policy." }
+            ]
+          },
+          "learnmore": [
+            { "label": "Retention cmdlets", "url": "https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-appretentioncompliancepolicy", "tag": "docs" },
+            { "label": "Create and configure retention policies", "url": "https://learn.microsoft.com/en-us/purview/create-retention-policies", "tag": "docs" }
+          ]
+        },
+        {
+          "id": "AI-06",
+          "domId": "d-ai-6",
+          "title": "Communication Compliance is not monitoring Copilot interactions",
+          "status": "Recommendation",
+          "whyline": "The 'Detect Microsoft 365 Copilot interactions' template is the one-step baseline for reviewing risky AI conversations; nothing is scoped to Copilot today.",
+          "table": {
+            "columns": ["Configuration", "Setting", "Status"],
+            "rows": [
+              { "cells": ["CC policies scoped to Copilot workloads", "0"], "status": "Recommendation" }
+            ]
+          },
+          "learnmore": [
+            { "label": "Communication Compliance for generative AI", "url": "https://learn.microsoft.com/en-us/purview/communication-compliance", "tag": "docs" }
+          ]
+        }
+      ]
+    }
+  ]
+}

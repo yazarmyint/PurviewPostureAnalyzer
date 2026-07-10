@@ -103,18 +103,31 @@ function Get-PpaRuleLabelReferences {
     # signal behind label-based Copilot content exclusion ('Content contains -> Sensitivity
     # labels'). Labels appear as label groups (type 'Sensitivity') inside
     # ContentContainsSensitiveInformation, or inside the AdvancedRule JSON.
+    # Pre-publish Part 8: on a live tenant the .name of a label condition carries the
+    # label GUID, not the display name - each reference resolves through the caller's
+    # Get-Label inventory map (verbatim fallback when unmapped, so friendly-name
+    # fixtures render exactly as before). The AdvancedRule text-scan below only sets
+    # the hasLabelCondition boolean and stays unchanged.
     # CONFIRM against a live tenant: rule condition shapes vary by how the policy was built.
-    param($Rule)
+    param($Rule, $LabelMap = @{})
     $names = New-Object System.Collections.Generic.List[string]
     # Walk ContentContainsSensitiveInformation: groups -> labels (type Sensitivity).
     foreach ($entry in @($Rule.ContentContainsSensitiveInformation)) {
         foreach ($grp in @($entry.groups)) {
             foreach ($lab in @($grp.labels)) {
-                if (([string]$lab.type) -match '(?i)sensitivity' -and $lab.name) { [void]$names.Add([string]$lab.name) }
+                if (([string]$lab.type) -match '(?i)sensitivity' -and $lab.name) {
+                    $raw = [string]$lab.name
+                    $disp = if ($LabelMap.ContainsKey($raw)) { $LabelMap[$raw] } else { $raw }
+                    [void]$names.Add($disp)
+                }
             }
         }
         # Flat shape: the entry itself may be a label reference.
-        if (([string]$entry.type) -match '(?i)sensitivity' -and $entry.name) { [void]$names.Add([string]$entry.name) }
+        if (([string]$entry.type) -match '(?i)sensitivity' -and $entry.name) {
+            $raw = [string]$entry.name
+            $disp = if ($LabelMap.ContainsKey($raw)) { $LabelMap[$raw] } else { $raw }
+            [void]$names.Add($disp)
+        }
     }
     $hasLabelCondition = ($names.Count -gt 0)
     # Fallback: AdvancedRule JSON text mentions a Sensitivity-typed label condition.
@@ -260,6 +273,22 @@ function Get-PpaDspmAi {
     $rawRet     = Invoke-PpaReadCmdlet -Name 'Get-RetentionCompliancePolicy'
     $rawCcPols  = Invoke-PpaReadCmdlet -Name 'Get-SupervisoryReviewPolicyV2'
     $rawCcRules = Invoke-PpaReadCmdlet -Name 'Get-SupervisoryReviewRule'
+    # Pre-publish Part 8: the sensitivity-label inventory behind label-reference
+    # resolution in Get-PpaRuleLabelReferences (live DLP rules key label conditions
+    # on the label GUID). Folded into the outcome below like every other read.
+    $rawLabels  = Invoke-PpaReadCmdlet -Name 'Get-Label'
+
+    # Label resolution map (sensitivity-fix shape): Guid, ImmutableId and Name all
+    # key the DisplayName (raw Name fallback). PS hashtable literals compare string
+    # keys case-insensitively, which covers GUID casing differences for free.
+    $labelMap = @{}
+    foreach ($l in @($rawLabels.Data)) {
+        if ($null -eq $l) { continue }
+        $displayName = if ($l.DisplayName) { [string]$l.DisplayName } else { [string]$l.Name }
+        foreach ($k in @([string]$l.Guid, [string]$l.ImmutableId, [string]$l.Name)) {
+            if (-not [string]::IsNullOrEmpty($k) -and -not $labelMap.ContainsKey($k)) { $labelMap[$k] = $displayName }
+        }
+    }
 
     $items = New-Object System.Collections.Generic.List[object]
     $thirdPartyAiDlp = New-Object System.Collections.Generic.List[string]
@@ -280,7 +309,7 @@ function Get-PpaDspmAi {
         $labelNames = New-Object System.Collections.Generic.List[string]
         $hasLabelCondition = $false
         foreach ($r in $rules) {
-            $ref = Get-PpaRuleLabelReferences $r
+            $ref = Get-PpaRuleLabelReferences -Rule $r -LabelMap $labelMap
             if ($ref.hasLabelCondition) { $hasLabelCondition = $true }
             foreach ($n in @($ref.labelNames)) { [void]$labelNames.Add($n) }
         }
@@ -305,7 +334,7 @@ function Get-PpaDspmAi {
         Get-PpaCcCopilotItems $rawCcPols.Data $rawCcRules.Data
     } else { @() }))
     $outcome = Resolve-PpaCollectorOutcome `
-        -ReadStatuses @($rawPols.Status, $rawRules.Status, $rawDspm.Status, $rawAppRet.Status, $rawRet.Status, $rawCcPols.Status, $rawCcRules.Status) `
+        -ReadStatuses @($rawPols.Status, $rawRules.Status, $rawDspm.Status, $rawAppRet.Status, $rawRet.Status, $rawCcPols.Status, $rawCcRules.Status, $rawLabels.Status) `
         -ItemCount ($items.Count + $dspmItems.Count + $appRetItems.Count + @($rawRet.Data).Count + $ccItems.Count)
 
     return [pscustomobject]@{

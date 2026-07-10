@@ -78,3 +78,29 @@ Describe 'HTML render - client safety' {
         $script:Html | Should -Match 'no document, email or prompt content'
     }
 }
+
+Describe 'Sample banner text (pre-publish Part 5)' {
+    # -SampleBannerText lets a published fixture sample name ITS fictional tenant
+    # honestly; omitting it keeps the historical Northwind default so every
+    # existing sample renders byte-identical.
+    It 'defaults to the historical Northwind marker when -SampleBannerText is omitted' {
+        $script:Html | Should -Match ([regex]::Escape('<div class="mock-flag">Illustrative sample data &middot; fictional tenant (Northwind Health) &middot; rendered from Samples/sample-normalized.json</div>'))
+    }
+    It 'renders the override verbatim when -SampleBannerText is provided' {
+        $raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections
+        $html = Export-PpaHtmlReport -Normalized $norm -IsSample -SampleBannerText 'Custom banner &middot; fictional tenant (Acme Corporation)'
+        $html | Should -Match ([regex]::Escape('<div class="mock-flag">Custom banner &middot; fictional tenant (Acme Corporation)</div>'))
+        # the DEFAULT banner phrase is gone (the org name itself still renders in
+        # the title card - this fixture's organization IS Northwind Health)
+        $html | Should -Not -Match ([regex]::Escape('fictional tenant (Northwind Health)'))
+    }
+    It 'renders no banner at all without -IsSample, override or not' {
+        $raw = [System.IO.File]::ReadAllText((Join-Path $script:RepoRoot 'Samples\sample-normalized.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+        $norm = ConvertTo-PpaNormalized -Meta $raw.meta -Licensing $raw.licensing -Sections $raw.sections
+        $html = Export-PpaHtmlReport -Normalized $norm -SampleBannerText 'should not appear'
+        # (the .mock-flag CSS rule is always in the head; only the DIV must be absent)
+        $html | Should -Not -Match '<div class="mock-flag">'
+        $html | Should -Not -Match 'should not appear'
+    }
+}

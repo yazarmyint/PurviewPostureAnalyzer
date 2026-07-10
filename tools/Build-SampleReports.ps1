@@ -35,9 +35,12 @@ function Write-PpaSampleReport {
 }
 
 # ---- 1. Standard fixture (the Wave 1/2 sample: Northwind Health, 21 findings) ----
+# UX-2: this one sample carries the embedded client logo (Image/logo.jpg is the sample
+# fixture) so the feature is eyeballed on every build; all other samples stay logo-less.
 $std = Read-PpaFixture 'Samples\sample-normalized.json'
 $stdNorm = ConvertTo-PpaNormalized -Meta $std.meta -Licensing $std.licensing -Sections $std.sections
-Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample)
+$stdLogo = ConvertTo-PpaLogoDataUri -Path (Join-Path $root 'Image\logo.jpg')
+Write-PpaSampleReport -Name 'sample-standard.html' -Html (Export-PpaHtmlReport -Normalized $stdNorm -IsSample -LogoDataUri $stdLogo)
 
 # ---- 2. Dense fixture (Contoso Pharmaceuticals, 26 findings, every severity) ----
 # Wave 4 Part D: the dense sample carries the coverage matrix, projected from the
@@ -195,6 +198,34 @@ if (Test-PpaDeltaEngine) {
 else {
     Write-Host 'Delta report samples skipped: requires PowerShell 7.5+ (delta mode engine gate).'
 }
+
+# ---- 8. PUBLISHED sample (pre-publish Part 5): the Acme Corporation showcase ----
+# UNLIKE every sample above (throwaway review copies in the gitignored
+# Samples\sample-reports), this artifact is COMMITTED: it renders to docs\index.html
+# so GitHub Pages (Settings -> Pages -> branch /docs) serves it at the site root.
+# Fixtures are a re-themed clone of the dense set (Samples\sample-raw\acme +
+# Samples\acme-normalized.json); the -SampleBannerText override names the Acme
+# fixtures honestly instead of the default Northwind marker, and the ACME wordmark
+# ships embedded as a data: URI like any client logo.
+$acmeRawMap = @{
+    Sensitivity_Labels       = Read-PpaFixture 'Samples\sample-raw\acme\labels.json'
+    Data_Loss_Prevention     = Read-PpaFixture 'Samples\sample-raw\acme\dlp.json'
+    Retention                = Read-PpaFixture 'Samples\sample-raw\acme\retention.json'
+    Insider_Risk             = Read-PpaFixture 'Samples\sample-raw\acme\insiderrisk.json'
+    Audit                    = Read-PpaFixture 'Samples\sample-raw\acme\audit.json'
+    eDiscovery               = Read-PpaFixture 'Samples\sample-raw\acme\ediscovery.json'
+    Communication_Compliance = Read-PpaFixture 'Samples\sample-raw\acme\commscompliance.json'
+    DSPM_for_AI              = Read-PpaFixture 'Samples\sample-raw\acme\dspm.json'
+}
+$acmeCoverage = Get-PpaCoverageModel -RawMap $acmeRawMap
+$acme     = Read-PpaFixture 'Samples\acme-normalized.json'
+$acmeNorm = ConvertTo-PpaNormalized -Meta $acme.meta -Licensing $acme.licensing -Sections $acme.sections -Coverage $acmeCoverage
+$acmeLogo = ConvertTo-PpaLogoDataUri -Path (Join-Path $root 'docs\assets\acme-logo.png')
+$acmeHtml = Export-PpaHtmlReport -Normalized $acmeNorm -IsSample -LogoDataUri $acmeLogo `
+    -SampleBannerText 'Illustrative sample report &middot; fictional tenant (Acme Corporation) &middot; rendered from committed fixtures (Samples/sample-raw/acme)'
+$acmePath = Join-Path $root 'docs\index.html'
+[System.IO.File]::WriteAllText($acmePath, $acmeHtml, (New-Object System.Text.UTF8Encoding($false)))
+$written.Add($acmePath)
 
 # ---- Done ----
 Write-Host ''

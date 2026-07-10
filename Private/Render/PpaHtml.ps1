@@ -462,7 +462,7 @@ function Get-PpaSharedReportCss {
   .sec-hiddennote{ display:none; font-size:var(--fs-sm); font-weight:400; font-family:var(--font-sans); color:var(--faint); margin-left:10px; }
   .seccard.sec-allhidden .sec-hiddennote{ display:inline; }
 
-  .logo-ph{ width:230px; height:132px; border:1px dashed var(--border); border-radius:var(--radius-sm); color:var(--faint); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); font-family:var(--font-sans); background:var(--surface-1); }
+  .logo{ max-width:250px; max-height:150px; width:auto; height:auto; }
   .mock-flag{ background:var(--ink); color:#e9e2d2; font-family:var(--font-sans); font-size:var(--fs-sm); letter-spacing:.02em; text-align:center; padding:7px; }
   .redact-flag{ background:#6a1f1f; color:#ffe1e1; font-family:var(--font-sans); font-size:var(--fs-sm); text-align:center; padding:7px; }
   .app-footer{ background:var(--ink); color:#d7dae1; padding:16px 0; font-family:var(--font-sans); font-size:var(--fs-sm); margin-top:2rem; }

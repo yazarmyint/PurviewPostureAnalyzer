@@ -7,11 +7,27 @@
 # the organization ALONE. The two ExchangeOnlineManagement Connect cmdlets are
 # mocked at module scope - no real sign-in ever happens; global stubs give Pester
 # a command to mock on boxes without the EXO module (SessionSwitches precedent).
+# F-014: the chokepoint now opens with an EXO presence guard, so every contract
+# test mocks the availability probe (Test-PpaExoModuleAvailable) to $true; the
+# guard's own absence/presence coverage is the last Describe.
 # Pester 5. ASCII-only source.
 
 BeforeAll {
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     Import-Module (Join-Path $script:RepoRoot 'PurviewPostureAnalyzer.psd1') -Force
+
+    # F-014 locked, operator-approved guard message - reproduced EXACTLY, including
+    # the 4-space indent on the install line. Composed at runtime the same way the
+    # source composes it, so no mutating-verb cmdlet literal appears here either.
+    $script:PpaExoGuardMessage = @(
+        'ExchangeOnlineManagement module not found.'
+        'PurviewPostureAnalyzer needs it to connect to Microsoft Purview. PPA stopped before connecting.'
+        ''
+        'To install it, run:'
+        ('    ' + 'Install' + '-Module ExchangeOnlineManagement -Scope CurrentUser')
+        ''
+        'Then run PurviewPostureAnalyzer again.'
+    ) -join [Environment]::NewLine
 
     # Global stubs (dev box has no ExchangeOnlineManagement): parameter surfaces
     # mirror the real cmdlets' relevant subset - BOTH stubs accept the endpoint so
@@ -35,6 +51,10 @@ AfterAll {
 }
 
 Describe 'Connect-PurviewPostureSession - host-tenant regression (no guest params)' {
+    BeforeEach {
+        # F-014: satisfy the presence guard so the connection contract is exercised.
+        Mock -ModuleName PurviewPostureAnalyzer Test-PpaExoModuleAvailable { $true }
+    }
     It 'calls IPPS and EXO with NO guest parameters and NO UPN - today''s behavior' {
         Mock -ModuleName PurviewPostureAnalyzer Connect-IPPSSession { }
         Mock -ModuleName PurviewPostureAnalyzer Connect-ExchangeOnline { }
@@ -66,6 +86,10 @@ Describe 'Connect-PurviewPostureSession - host-tenant regression (no guest param
 }
 
 Describe 'Connect-PurviewPostureSession - guest (B2B) calls' {
+    BeforeEach {
+        # F-014: satisfy the presence guard so the connection contract is exercised.
+        Mock -ModuleName PurviewPostureAnalyzer Test-PpaExoModuleAvailable { $true }
+    }
     It 'org only: IPPS gets the org AND the DERIVED endpoint; EXO gets the org and NO endpoint' {
         Mock -ModuleName PurviewPostureAnalyzer Connect-IPPSSession { }
         Mock -ModuleName PurviewPostureAnalyzer Connect-ExchangeOnline { }
@@ -122,5 +146,40 @@ Describe 'Connect-PurviewPostureSession - guest (B2B) calls' {
             $DelegatedOrganization -eq 'client.onmicrosoft.com' -and
             (-not $PSBoundParameters.ContainsKey('AzureADAuthorizationEndpointUri'))
         }
+    }
+}
+
+Describe 'Connect-PurviewPostureSession - ExchangeOnlineManagement presence guard (F-014)' {
+    It 'ABSENT: terminating stop with the exact locked message, and NEITHER Connect cmdlet is attempted' {
+        Mock -ModuleName PurviewPostureAnalyzer Test-PpaExoModuleAvailable { $false }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-IPPSSession { }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-ExchangeOnline { }
+        $err = $null
+        try { $null = Connect-PurviewPostureSession } catch { $err = $_ }
+        $err | Should -Not -BeNullOrEmpty
+        $err.Exception.Message | Should -BeExactly $script:PpaExoGuardMessage
+        Should -Invoke Connect-IPPSSession -ModuleName PurviewPostureAnalyzer -Exactly -Times 0
+        Should -Invoke Connect-ExchangeOnline -ModuleName PurviewPostureAnalyzer -Exactly -Times 0
+    }
+    It 'ABSENT: the guard also stops the guest (B2B) call before any connection work' {
+        Mock -ModuleName PurviewPostureAnalyzer Test-PpaExoModuleAvailable { $false }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-IPPSSession { }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-ExchangeOnline { }
+        $err = $null
+        try { $null = Connect-PurviewPostureSession -DelegatedOrganization 'client.onmicrosoft.com' } catch { $err = $_ }
+        $err | Should -Not -BeNullOrEmpty
+        $err.Exception.Message | Should -BeExactly $script:PpaExoGuardMessage
+        Should -Invoke Connect-IPPSSession -ModuleName PurviewPostureAnalyzer -Exactly -Times 0
+        Should -Invoke Connect-ExchangeOnline -ModuleName PurviewPostureAnalyzer -Exactly -Times 0
+    }
+    It 'PRESENT: the guard stays silent - no terminating error, both connection calls proceed' {
+        Mock -ModuleName PurviewPostureAnalyzer Test-PpaExoModuleAvailable { $true }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-IPPSSession { }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-ExchangeOnline { }
+        $r = Connect-PurviewPostureSession
+        $r.SecurityCompliance | Should -Be 'connected'
+        $r.ExchangeOnline     | Should -Be 'connected'
+        Should -Invoke Connect-IPPSSession -ModuleName PurviewPostureAnalyzer -Exactly -Times 1
+        Should -Invoke Connect-ExchangeOnline -ModuleName PurviewPostureAnalyzer -Exactly -Times 1
     }
 }

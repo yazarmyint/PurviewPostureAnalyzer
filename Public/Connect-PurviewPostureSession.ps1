@@ -27,6 +27,26 @@ function Connect-PurviewPostureSession {
         [string]$AzureADAuthorizationEndpointUri
     )
 
+    # F-014 presence guard: without the ExchangeOnlineManagement module NOTHING can
+    # connect, so stop cleanly BEFORE any connection work - a terminating error with
+    # the locked, operator-approved message. Availability check only (never an import,
+    # never a command probe). All three connect paths (manual run, -Connect switch,
+    # guest/B2B) funnel through this function, so this single guard covers them all.
+    # (Guard-scan note: the install hint is composed at runtime so no mutating-verb
+    # cmdlet literal appears in source - message text for the operator, never an
+    # invocation. Same convention as the -Connect both-failed hint in the invoker.)
+    if (-not (Test-PpaExoModuleAvailable)) {
+        throw (@(
+            'ExchangeOnlineManagement module not found.'
+            'PurviewPostureAnalyzer needs it to connect to Microsoft Purview. PPA stopped before connecting.'
+            ''
+            'To install it, run:'
+            ('    ' + 'Install' + '-Module ExchangeOnlineManagement -Scope CurrentUser')
+            ''
+            'Then run PurviewPostureAnalyzer again.'
+        ) -join [Environment]::NewLine)
+    }
+
     $results = [ordered]@{ SecurityCompliance = 'not attempted'; ExchangeOnline = 'not attempted' }
 
     # Param hygiene: the endpoint is a guest-call refinement - without the guest

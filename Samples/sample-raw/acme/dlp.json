@@ -1,0 +1,35 @@
+{
+  "outcome": "Populated",
+  "policies": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "name": "Employee Health Records", "guid": "guid-acme-employee-health-records", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "PCI - Payment Card Data", "guid": "guid-acme-pci-payment-card-data", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "Scoped", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "SSN Guard", "guid": "guid-acme-ssn-guard", "mode": "Enable", "locations": { "exchange": true, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "locationScope": { "exchange": "Scoped", "sharePoint": "All", "oneDrive": "None", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Product Design Guard", "guid": "guid-acme-product-design-guard", "mode": "Enable", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Financial Data", "guid": "guid-acme-financial-data", "mode": "Enable", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Broad PII Pilot", "guid": "guid-acme-broad-pii-pilot", "mode": "TestWithoutNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All", "teams": "None", "endpoint": "None", "powerBI": "All" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "2026-03-09" },
+      { "name": "GDPR - EU PII", "guid": "guid-acme-gdpr-eu-pii", "mode": "TestWithoutNotifications", "locations": { "exchange": true, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "All", "sharePoint": "All", "oneDrive": "All", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Source Code Guard", "guid": "guid-acme-source-code-guard", "mode": "TestWithoutNotifications", "locations": { "exchange": false, "sharePoint": true, "oneDrive": true, "teams": false, "endpoint": false }, "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "Scoped", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" },
+      { "name": "Legacy DLP", "guid": "guid-acme-legacy-dlp", "mode": "TestWithoutNotifications", "locations": { "exchange": false, "sharePoint": true, "oneDrive": false, "teams": false, "endpoint": false }, "locationScope": { "exchange": "None", "sharePoint": "Scoped", "oneDrive": "None", "teams": "None", "endpoint": "None", "powerBI": "None" }, "locationExceptions": { "exchange": false, "sharePoint": false, "oneDrive": false, "teams": false, "endpoint": false, "powerBI": false }, "testModeSince": "" }
+    ]
+  },
+  "rules": {
+    "status": "Ok",
+    "error": null,
+    "items": [
+      { "policyName": "Employee Health Records", "name": "r-health", "guid": "guid-acme-r-health", "disabled": false, "sits": ["U.S. HIPAA", "U.S. SSN"] },
+      { "policyName": "PCI - Payment Card Data", "name": "r-pci", "guid": "guid-acme-r-pci", "disabled": false, "sits": ["Credit Card Number"] },
+      { "policyName": "SSN Guard", "name": "r-ssn", "guid": "guid-acme-r-ssn", "disabled": true, "sits": ["U.S. SSN"] },
+      { "policyName": "Product Design Guard", "name": "r-design", "guid": "guid-acme-r-design", "disabled": false, "sits": ["Custom SIT: Design Schematic ID"] },
+      { "policyName": "Financial Data", "name": "r-fin", "guid": "guid-acme-r-fin", "disabled": false, "sits": ["ABA Routing", "U.S. Bank Account"] },
+      { "policyName": "Broad PII Pilot", "name": "r-pii", "guid": "guid-acme-r-pii", "disabled": false, "sits": ["Full Name", "Email", "Phone"] },
+      { "policyName": "GDPR - EU PII", "name": "r-gdpr", "guid": "guid-acme-r-gdpr", "disabled": false, "sits": ["EU Passport", "EU Driver's License"] },
+      { "policyName": "Source Code Guard", "name": "r-source", "guid": "guid-acme-r-source", "disabled": false, "sits": ["Custom SIT: Repo Fingerprint"] },
+      { "policyName": "Legacy DLP", "name": "r-legacy-1", "guid": "guid-acme-r-legacy-1", "disabled": false, "sits": ["U.S. SSN"] },
+      { "policyName": "Legacy DLP", "name": "r-legacy-2", "guid": "guid-acme-r-legacy-2", "disabled": true, "sits": [] },
+      { "policyName": "Legacy DLP", "name": "r-legacy-3", "guid": "guid-acme-r-legacy-3", "disabled": true, "sits": [] }
+    ]
+  }
+}

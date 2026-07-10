@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<style>
+  /* =====================================================================
+     PurviewPostureAnalyzer (PPA) report stylesheet - enterprise compliance-brief style (Mockup A v2).
+     Editorial: serif display + humanist sans body, warm paper, one brass accent,
+     wider responsive shell with capped prose measure. Same markup + hooks as before.
+     Layer 1 (compat: grid + FA glyph map + collapse) is preserved so the report
+     stays framework-free / offline; layers 2-3 are the tokens + components.
+     ===================================================================== */
+
+  /* ---- 1. framework-free compat layer (structural - preserved) ---- */
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-sans);line-height:1.5;color:var(--body);}
+  img{max-width:100%;height:auto;}
+  p{margin:0 0 1rem;}
+  .row{display:flex;flex-wrap:wrap;}
+  .container-fluid{width:100%;padding-left:12px;padding-right:12px;}
+  .navbar{display:flex;flex-wrap:wrap;align-items:center;padding:.5rem 1rem;}
+  .col,.col-sm{flex:1 1 0%;min-width:0;}
+  .col-auto{flex:0 0 auto;width:auto;}
+  .col-sm-10{flex:1 1 auto;min-width:0;}
+  .col-sm-2{flex:0 0 auto;margin-left:auto;text-align:right;}
+  .col-6{flex:0 0 50%;max-width:50%;padding-left:6px;padding-right:6px;}
+  @media (min-width:768px){ .col-md-3{flex:0 0 25%;max-width:25%;} }
+  .text-right{text-align:right;} .text-center{text-align:center;}
+  .ml-3{margin-left:1rem;} .mt-3{margin-top:1.35rem;} .p-3{padding:1rem;}
+  .text-success{color:var(--sev-ok);} .text-danger{color:#b23b2e;}
+  .text-muted{color:var(--faint);} .text-secondary{color:var(--sev-verify);}
+  .bg-light{background:var(--paper);}
+  table{border-collapse:collapse;}
+  .table{width:100%;margin-bottom:1rem;}
+  .table td,.table th{padding:.5rem .55rem;text-align:left;}
+  .table-sm td,.table-sm th{padding:.34rem .45rem;}
+  .table-borderless td,.table-borderless th{border:0;}
+  .fas,.far,.fa{font-style:normal;display:inline-block;line-height:1;font-family:inherit;}
+  .fa-chevron-right::before{content:"\203A";}
+  .fa-external-link-square-alt::before{content:"\2197";}
+  .fa-tools::before{content:"\2699";}
+  .fa-info-circle::before{content:"\2139";}
+  .fa-check-circle::before{content:"\2714";}
+  .fa-times-circle::before{content:"\2716";}
+  .fa-user-check::before{content:"\25CB";}
+  .fa-user-cog::before,.fa-shield-alt::before,.fa-archive::before,.fa-user-secret::before,.fa-search::before,.fa-robot::before,.fa-binoculars::before{content:"\25AA";}
+  .collapse{display:none;} .collapse.show{display:block;}
+
+  /* ---- 2. design tokens ---- */
+  :root{
+    --font-serif:Georgia,'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Cambria,'Times New Roman',serif;
+    --font-sans:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,'Cascadia Code','Cascadia Mono',Consolas,'Courier New',monospace;
+    --fs-xs:11px; --fs-sm:12.5px; --fs-base:14px; --fs-md:15px; --fs-lg:19px; --fs-xl:24px;
+    --ink:#1b2a44; --ink-soft:#2c3c56; --body:#3c4858; --muted:#5c6a7c; --faint:#7c8a9b;
+    --paper:#faf7f0; --surface:#ffffff; --surface-1:#f7f3ea; --surface-2:#efe9db; --hover:#faf5e9;
+    --hairline:#e8e1d2; --border:#d9d0be;
+    --accent:#9a6a1e; --accent-strong:#7c5316; --accent-soft:#f3e9d4;
+    --link:#1b527d; --link-strong:#123e60;
+    --sev-ok:#1f7a37; --sev-impr:#b4690e; --sev-rec:#0f6a86; --sev-info:#8a94a2; --sev-verify:#56636f;
+    --badge-ok-bg:#1f7a37; --badge-ok-fg:#ffffff;
+    --badge-impr-bg:#eda93a; --badge-impr-fg:#3a2905;
+    --badge-rec-bg:#0f6a86; --badge-rec-fg:#ffffff;
+    --badge-info-bg:#6d7889; --badge-info-fg:#ffffff;
+    --badge-verify-bg:#39434f; --badge-verify-fg:#ffffff;
+    --radius:7px; --radius-sm:4px; --radius-pill:16px;
+    --shadow:0 1px 2px rgba(27,42,68,.05),0 8px 26px -18px rgba(27,42,68,.28);
+  }
+
+  h2,h5,h6,.card-title,.card-header strong,.card-header a{font-family:var(--font-serif);}
+  h2{font-size:var(--fs-xl);font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:0 0 .35rem;line-height:1.15;}
+  h5{font-size:1.2rem;font-weight:600;color:var(--ink);margin:0 0 .5rem;}
+  h6{font-size:1.02rem;font-weight:600;margin:0 0 .5rem;}
+  a{color:var(--link);}
+  a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px; border-radius:2px; }
+
+  /* ---- 3. structural chrome ---- */
+  .navbar-custom{ background:var(--ink); color:#fff; padding:.7rem 1rem; box-shadow:inset 0 -3px 0 var(--accent); }
+  .navbar-custom strong{ font-family:var(--font-serif); font-weight:600; letter-spacing:.01em; font-size:var(--fs-md); }
+  .navbar-custom .fa-binoculars::before{ content:"\25C8"; }
+  .btn{ display:inline-block;font-weight:600;text-align:center;padding:.4rem .95rem;font-size:var(--fs-sm);line-height:1.4;border:1px solid transparent;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-sans); }
+  .btn-primary{ color:var(--ink); background:#fff; border-color:rgba(255,255,255,.5); }
+  .btn-primary:hover{ background:var(--accent-soft); }
+
+  .app-body{ max-width:1680px; margin:0 auto; padding:1.75rem clamp(16px,3.5vw,52px) 3rem; }
+  .card{ position:relative; background:var(--surface); border:1px solid var(--hairline); border-radius:var(--radius); box-shadow:var(--shadow); }
+  .card-body{ padding:1.15rem 1.4rem; }
+  .card-title{ margin-bottom:.5rem; }
+  .card > .card-body > .row > .col > strong:first-of-type{ color:var(--accent-strong); font-family:var(--font-sans); font-weight:700; font-size:var(--fs-sm); text-transform:uppercase; letter-spacing:.06em; }
+
+  /* Card headers: light, serif, ruled - editorial (not a solid blue bar). */
+  .card-header{ background:var(--surface); color:var(--ink); padding:.85rem 1.4rem; border-bottom:1px solid var(--hairline); border-radius:var(--radius) var(--radius) 0 0; }
+  .card-header strong{ font-size:var(--fs-md); font-weight:600; letter-spacing:.005em; }
+  .card-header a{ color:var(--ink); text-decoration:none; }
+  .seccard > .card-header{ border-bottom:2px solid var(--ink); }
+  .sec-hiddennote{ display:none; font-size:var(--fs-sm); font-weight:400; font-family:var(--font-sans); color:var(--faint); margin-left:10px; }
+  .seccard.sec-allhidden .sec-hiddennote{ display:inline; }
+
+  .logo{ max-width:250px; max-height:150px; width:auto; height:auto; }
+  .mock-flag{ background:var(--ink); color:#e9e2d2; font-family:var(--font-sans); font-size:var(--fs-sm); letter-spacing:.02em; text-align:center; padding:7px; }
+  .redact-flag{ background:#6a1f1f; color:#ffe1e1; font-family:var(--font-sans); font-size:var(--fs-sm); text-align:center; padding:7px; }
+  .app-footer{ background:var(--ink); color:#d7dae1; padding:16px 0; font-family:var(--font-sans); font-size:var(--fs-sm); margin-top:2rem; }
+  .app-footer .container-fluid{ max-width:1680px; margin:0 auto; }
+  .app-footer a{ color:#e7d3ac; }
+
+  /* ---- badges (solid, calm pills) ---- */
+  .badge{ display:inline-block;padding:.32em .6em;font-size:var(--fs-xs);font-weight:700;line-height:1;text-align:center;white-space:nowrap;border-radius:var(--radius-pill);vertical-align:baseline;letter-spacing:.02em;font-family:var(--font-sans); }
+  .badge-success{ background:var(--badge-ok-bg); color:var(--badge-ok-fg); }
+  .badge-warning{ background:var(--badge-impr-bg); color:var(--badge-impr-fg); }
+  .badge-info{ background:var(--badge-rec-bg); color:var(--badge-rec-fg); }
+  .badge-secondary{ background:var(--badge-info-bg); color:var(--badge-info-fg); }
+  .badge-dark{ background:var(--badge-verify-bg); color:var(--badge-verify-fg); }
+  .seccard > .card-header .badge{ margin-left:5px; }
+
+  /* ---- severity dots ---- */
+  .gdot{ width:9px; height:9px; border-radius:50%; display:inline-block; flex:none; }
+  .gdot.ok{ background:var(--sev-ok); } .gdot.impr{ background:var(--sev-impr); } .gdot.rec{ background:var(--sev-rec); }
+  .gdot.info{ background:var(--sev-info); } .gdot.verify{ background:var(--sev-verify); }
+
+  /* ---- collapsible summary headers (posture / coverage) ---- */
+  .card-header.sumhead{ display:flex; align-items:center; cursor:pointer; background:var(--surface-1); border-bottom:1px solid var(--hairline); }
+  .card-header.sumhead:hover{ background:var(--hover); }
+  .sumhead .chev{ color:var(--accent); margin-right:9px; width:12px; font-size:1.05rem; }
+  .sumhead[aria-expanded="true"] .chev{ transform:rotate(90deg); }
+  .sum-glance{ margin-left:auto; display:inline-flex; align-items:center; flex-wrap:wrap; gap:14px; font-size:var(--fs-base); font-weight:600; color:var(--ink-soft); font-family:var(--font-sans); }
+  .sum-glance .sg-item{ display:inline-flex; align-items:center; gap:6px; }
+  .sum-glance .gdot{ box-shadow:0 0 0 1.5px var(--surface),0 0 0 2.5px rgba(27,42,68,.12); }
+
+  /* ---- EXECUTIVE HERO BAND (injected by A.js; degrades to glance dots) ---- */
+  .execband{ margin-top:1.35rem; background:var(--surface); border:1px solid var(--hairline); border-top:3px solid var(--accent); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.2rem 1.4rem 1.35rem; }
+  .eb-head{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:.85rem; }
+  .eb-kicker{ font-family:var(--font-sans); font-size:var(--fs-xs); font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--accent-strong); }
+  .eb-total{ font-family:var(--font-serif); font-size:var(--fs-lg); font-weight:600; color:var(--ink); }
+  .eb-total span{ color:var(--faint); font-size:var(--fs-sm); font-family:var(--font-sans); font-weight:600; margin-left:4px; }
+  .eb-bar{ display:flex; height:20px; border-radius:5px; overflow:hidden; border:1px solid var(--hairline); background:var(--surface-2); }
+  .eb-seg{ min-width:0; }
+  .eb-seg.ok{ background:var(--sev-ok); } .eb-seg.impr{ background:var(--sev-impr); } .eb-seg.rec{ background:var(--sev-rec); }
+  .eb-seg.info{ background:var(--sev-info); } .eb-seg.verify{ background:var(--sev-verify); }
+  .eb-legend{ display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:.85rem; }
+  .eb-li{ display:inline-flex; align-items:baseline; gap:7px; font-family:var(--font-sans); font-size:var(--fs-sm); color:var(--muted); }
+  .eb-li b{ font-size:var(--fs-md); color:var(--ink); font-weight:700; }
+  .eb-li .gdot{ align-self:center; }
+
+  /* ---- posture summary body ---- */
+  .es-meta{ color:var(--muted); font-size:var(--fs-base); margin-bottom:.9rem; font-family:var(--font-sans); }
+  .es-tiles{ display:flex; flex-wrap:wrap; gap:12px; margin-bottom:1rem; }
+  .es-tile{ border:1px solid var(--hairline); border-radius:var(--radius); padding:.7rem 1.15rem; min-width:120px; text-align:center; background:var(--surface-1); }
+  .es-num{ font-size:var(--fs-lg); font-weight:800; padding:5px 13px; display:inline-block; border-radius:var(--radius-pill); }
+  .es-lbl{ font-size:var(--fs-xs); color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-top:8px; font-family:var(--font-sans); }
+  .es-top{ font-family:var(--font-serif); font-size:1.05rem; font-weight:600; color:var(--ink); margin:0 0 .5rem; padding-top:.4rem; border-top:1px solid var(--hairline); }
+  .es-list a.es-item{ display:flex; align-items:baseline; gap:9px; padding:5px 0; color:inherit; text-decoration:none; font-size:var(--fs-base); border-bottom:1px solid var(--surface-1); }
+  .es-list a.es-item:last-child{ border-bottom:0; }
+  .es-list a.es-item:hover{ color:var(--accent-strong); }
+  .es-list a.es-item strong{ font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--ink); font-weight:700; }
+  .es-list .gdot{ align-self:center; }
+  .es-sec{ color:var(--faint); font-size:var(--fs-sm); margin-left:auto; padding-left:12px; white-space:nowrap; font-family:var(--font-sans); }
+  .es-more{ color:var(--muted); font-size:var(--fs-sm); padding:6px 0 0 18px; font-style:italic; }
+  .es-none{ color:var(--muted); font-size:var(--fs-base); margin:0; }
+
+  /* ---- filter bar (slim, quiet) ---- */
+  .filterbar{ position:sticky; top:8px; z-index:100; background:rgba(255,255,255,.94); backdrop-filter:saturate(1.1) blur(3px); border:1px solid var(--hairline); border-radius:var(--radius);
+              padding:.5rem .8rem; margin-top:1.35rem; display:flex; flex-wrap:wrap; align-items:center; gap:8px; box-shadow:var(--shadow); }
+  .fb-label{ font-size:var(--fs-xs); font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-family:var(--font-sans); }
+  .fb-chip{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-pill); font-size:var(--fs-sm); font-weight:600; color:var(--muted); padding:3px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; font-family:var(--font-sans); }
+  .fb-chip:hover{ border-color:var(--accent); }
+  .fb-chip.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong); }
+  .fb-chip:not(.active) .gdot{ opacity:.32; }
+  .fb-search{ border:1px solid var(--border); border-radius:var(--radius-sm); font-size:var(--fs-base); padding:5px 11px; min-width:210px; flex:1 1 210px; max-width:330px; font-family:var(--font-sans); }
+  .fb-search:focus{ border-color:var(--accent); outline:none; }
+  .fb-reset{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); font-size:var(--fs-sm); font-weight:600; color:var(--muted); padding:5px 13px; cursor:pointer; font-family:var(--font-sans); }
+  .fb-reset:hover{ border-color:var(--accent); color:var(--accent-strong); }
+  .fb-status{ font-size:var(--fs-sm); color:var(--faint); margin-left:auto; font-family:var(--font-sans); }
+  .finding.fb-hidden{ display:none; }
+  .seccard.sec-allhidden .card-body{ display:none; }
+
+  /* ---- environment at a glance ---- */
+  .glance .cell{ display:block; border:1px solid var(--hairline); border-radius:var(--radius); padding:.7rem .85rem; height:100%; text-decoration:none; color:inherit; background:var(--surface); transition:border-color .12s ease, box-shadow .12s ease; }
+  .glance .cell:hover{ border-color:var(--accent); box-shadow:var(--shadow); }
+  .glance .nm{ font-size:var(--fs-sm); color:var(--muted); font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:5px; font-family:var(--font-sans); }
+  .glance .mx{ font-family:var(--font-serif); font-size:var(--fs-xl); font-weight:600; letter-spacing:-.01em; line-height:1.1; color:var(--ink); }
+  .glance .sub{ font-size:var(--fs-xs); color:var(--faint); margin-top:2px; font-family:var(--font-sans); }
+
+  /* ---- solutions summary ---- */
+  table.summary td{ vertical-align:middle; padding:.42rem .5rem; }
+  .sscount{ width:32px; padding:.32rem 0; text-align:center; display:inline-block; margin-left:3px; font-size:var(--fs-sm); border-radius:var(--radius-sm); }
+  .ssparent{ background:var(--surface-1); }
+  .ssparent td{ font-family:var(--font-serif); font-weight:600; color:var(--ink); letter-spacing:.005em; }
+  .sschild a{ color:var(--link); text-decoration:none; }
+  .sschild a:hover{ color:var(--link-strong); text-decoration:underline; }
+
+  /* ---- findings ---- */
+  .finding{ border-bottom:1px solid var(--hairline); }
+  .finding:last-of-type{ border-bottom:0; }
+  .finding-head{ cursor:pointer; padding:.75rem .5rem; margin:0; align-items:center; border-radius:var(--radius-sm); }
+  .finding-head:hover{ background:var(--hover); }
+  .finding-head h6{ margin:0; display:inline; font-weight:600; font-family:var(--font-serif); color:var(--ink); }
+  .chev{ color:var(--accent); transition:transform .15s ease; margin-right:11px; width:12px; font-size:1.05rem; }
+  .finding-head[aria-expanded="true"] .chev{ transform:rotate(90deg); }
+  .finding:target{ background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent); }
+
+  .bd-callout{ padding:1rem 1.2rem; margin:.35rem 0 1rem; border:1px solid var(--hairline); border-left-width:4px; border-radius:var(--radius-sm); background:var(--surface-1); }
+  .bd-callout-info{ border-left-color:var(--sev-rec); }
+  .bd-callout-warning{ border-left-color:var(--sev-impr); }
+  .bd-callout-success{ border-left-color:var(--sev-ok); }
+  .bd-callout-secondary{ border-left-color:var(--sev-info); }
+  .bd-callout-dark{ border-left-color:var(--sev-verify); }
+  .whyline{ color:var(--body); margin:.1rem 0 .35rem; font-size:var(--fs-base); }
+
+  table.detail{ font-size:var(--fs-base); margin-top:.7rem; margin-bottom:.25rem; background:var(--surface); border:1px solid var(--hairline); border-radius:var(--radius-sm); overflow:hidden; }
+  table.detail thead th{ background:var(--surface-2); border-bottom:2px solid var(--border); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:.45rem .7rem; font-family:var(--font-sans); }
+  table.detail td{ padding:.45rem .7rem; vertical-align:top; border-top:1px solid var(--hairline); }
+  table.detail tbody tr:first-child td{ border-top:0; }
+  .rowstat{ white-space:nowrap; font-weight:600; font-family:var(--font-sans); font-size:var(--fs-sm); }
+  .remarks{ background:var(--surface-2); border:0; color:var(--body); font-size:var(--fs-sm); }
+  .remarks i{ color:var(--faint); margin-right:6px; }
+
+  .learnmore{ margin-top:.65rem; padding-top:.5rem; border-top:1px dashed var(--hairline); }
+  .learnmore a{ text-decoration:none; display:block; padding:3px 0; color:var(--link); font-size:var(--fs-base); }
+  .learnmore a:hover{ color:var(--link-strong); }
+  .lm-tag{ font-size:var(--fs-xs); color:var(--faint); text-transform:uppercase; margin-left:7px; letter-spacing:.04em; }
+  .anchor-link{ margin-left:9px; color:var(--faint); text-decoration:none; font-weight:700; opacity:0; transition:opacity .12s ease; }
+  .finding-head:hover .anchor-link{ opacity:1; }
+  .anchor-link:hover{ color:var(--accent); }
+  .anchor-link.copied{ color:var(--sev-ok); opacity:1; }
+  .backlink a{ color:var(--link); text-decoration:none; font-size:var(--fs-sm); }
+  .backlink a:hover{ text-decoration:underline; }
+
+  /* ---- remediation ---- */
+  details.remed{ margin-top:.65rem; border-top:1px dashed var(--hairline); padding-top:.5rem; }
+  details.remed summary{ cursor:pointer; font-size:var(--fs-base); font-weight:600; color:var(--accent-strong); list-style-position:inside; font-family:var(--font-sans); }
+  details.remed summary i{ margin-right:5px; color:var(--accent); }
+  .remed-body{ padding:.5rem .1rem .1rem; }
+  .remed-portal{ font-size:var(--fs-base); margin-bottom:.5rem; color:var(--body); }
+  .remed-learn{ font-size:var(--fs-base); text-decoration:none; display:inline-block; padding:2px 0; color:var(--link); }
+  .remed-note{ font-size:var(--fs-sm); color:var(--faint); margin:.45rem 0 0; }
+
+  .profile-note{ color:var(--muted); font-size:var(--fs-sm); margin:1.35rem 2px 0; padding:.55rem .8rem; background:var(--surface-2); border:1px solid var(--hairline); border-radius:var(--radius); font-family:var(--font-sans); }
+
+  /* ---- coverage matrix (None hatching / Unknown dotting preserved) ---- */
+  table.covm-grid{ border-collapse:collapse; width:100%; font-size:var(--fs-base); margin-top:.4rem; }
+  table.covm-grid thead th{ background:var(--ink); color:#fff; border:1px solid var(--ink); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.05em; padding:.5rem .6rem; text-align:center; font-family:var(--font-sans); }
+  table.covm-grid th.covm-row{ background:var(--surface-1); border:1px solid var(--border); text-align:left; padding:.5rem .6rem; font-size:var(--fs-sm); color:var(--ink); font-weight:600; width:16%; }
+  td.covm-cell{ border:1px solid var(--border); padding:.5rem .6rem; text-align:center; vertical-align:middle; }
+  .covm-cell a.covm-link{ text-decoration:none; color:inherit; }
+  .covm-glyph{ font-weight:800; margin-right:5px; }
+  .covm-text{ font-weight:700; font-size:var(--fs-sm); font-family:var(--font-sans); }
+  .covm-covered{ background:#e7f4ea; color:#186a2f; }
+  .covm-partial{ background:#fbeecd; color:#7a5410; }
+  .covm-testonly{ background:#e8eef6; color:#164e6e; }
+  .covm-none{ background:repeating-linear-gradient(45deg,#f7dcd8,#f7dcd8 6px,#ffffff 6px,#ffffff 12px); color:#9a2a22; }
+  .covm-unknown{ background:radial-gradient(#cfd6dd 1.3px,#f6f3ec 1.3px); background-size:8px 8px; color:var(--body); }
+  .covm-na{ background:var(--surface-1); color:var(--faint); }
+  .covm-held{ background:#ffffff; color:var(--faint); }
+  .covm-held sup a{ text-decoration:none; color:var(--link); }
+  .covm-reason{ display:inline-block; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:10px; padding:0 6px; margin-top:3px; color:var(--muted); background:var(--surface); }
+  .covm-prov{ color:#a8781f; margin-left:4px; cursor:help; font-weight:700; }
+  .covm-banner{ background:#fbf1d6; border:1px solid var(--sev-impr); border-radius:var(--radius); padding:.5rem .8rem; margin-bottom:.6rem; font-size:var(--fs-base); }
+  .covm-strip{ font-size:var(--fs-base); margin:.7rem 0 0; color:var(--ink-soft); }
+  .covm-strip a{ color:var(--link); text-decoration:none; }
+  .covm-foot{ color:var(--faint); font-size:var(--fs-sm); margin:.5rem 0 0; }
+
+  @media (prefers-reduced-motion:reduce){ .chev{ transition:none; } .glance .cell{ transition:none; } }
+
+  /* ---- print / PDF (asserted substrings kept verbatim; brief adds around them) ---- */
+  /* ---- v2 additions: wider shell alignment, readable prose measure, per-section solution icons ---- */
+  .navbar-custom .container-fluid{ max-width:1680px; margin:0 auto; }
+  .card-body .col > p{ max-width:82ch; }
+  .bd-callout p{ max-width:82ch; }
+  .es-list{ display:grid; grid-template-columns:1fr; gap:0 34px; }
+  @media (min-width:920px){ .es-list{ grid-template-columns:1fr 1fr; } }
+  .es-list .es-more{ grid-column:1 / -1; }
+  .seccard > .card-header .col-sm > a{ font-size:1.08rem; font-weight:600; letter-spacing:.005em; }
+  @media print{
+    *{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    body{ background:#fff; font-size:11.5pt; }
+    .app-body{ max-width:none; margin:0; padding:0; }
+    .navbar-custom .container-fluid, .app-footer .container-fluid{ max-width:none; }
+    .filterbar, .anchor-link, .backlink, .navbar-custom .btn, .mock-flag, .chev{ display:none !important; }
+    .collapse{ display:block !important; height:auto !important; }
+    .card{ box-shadow:none; border:1px solid #d7cfbe; }
+    .execband{ break-inside:avoid; page-break-inside:avoid; }
+    .postsum{ break-after:page; page-break-after:always; }
+    .seccard{ break-before:page; page-break-before:always; }
+    .finding, .glance .cell, .bd-callout{ break-inside:avoid; page-break-inside:avoid; }
+    .finding-head{ cursor:default; }
+    .card-header.sumhead{ cursor:default; }
+  }
+  /* ---- per-solution section icons (A-v2): decorative CSS ::before, keyed on stable section IDs; .seccard-scoped so the Solutions Summary table is never touched; unmapped sections use the neutral fallback ---- */
+  .seccard > .card-header .col-sm > a::before{ content:""; display:inline-block; width:19px; height:19px; margin-right:9px; vertical-align:-4px; background:var(--sec-icon, url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='4'%20y='4'%20width='7'%20height='7'%20rx='1.3'/%3E%3Crect%20x='13'%20y='4'%20width='7'%20height='7'%20rx='1.3'/%3E%3Crect%20x='4'%20y='13'%20width='7'%20height='7'%20rx='1.3'/%3E%3Crect%20x='13'%20y='13'%20width='7'%20height='7'%20rx='1.3'/%3E%3C/svg%3E")) no-repeat center / contain; }
+  #Sensitivity_Labels{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3.7%2012.6%2012.1%204.2h7.7v7.7l-8.4%208.4a1.6%201.6%200%200%201-2.3%200L3.7%2014.9a1.6%201.6%200%200%201%200-2.3Z'/%3E%3Ccircle%20cx='16'%20cy='8'%20r='1.3'/%3E%3C/svg%3E"); }
+  #Data_Loss_Prevention{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%203.2%205.4%205.8v5c0%204.2%202.8%206.9%206.6%208.4%203.8-1.5%206.6-4.2%206.6-8.4v-5L12%203.2Z'/%3E%3Cpath%20d='m9.2%2011.9%202%202%203.6-3.8'/%3E%3C/svg%3E"); }
+  #Retention{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3.8'%20y='4.3'%20width='16.4'%20height='4'%20rx='1'/%3E%3Cpath%20d='M5.4%208.3v10.4a1.4%201.4%200%200%200%201.4%201.4h10.4a1.4%201.4%200%200%200%201.4-1.4V8.3'/%3E%3Cpath%20d='M10%2012h4'/%3E%3C/svg%3E"); }
+  #Insider_Risk{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='9.4'%20cy='8.2'%20r='3'/%3E%3Cpath%20d='M3.9%2019.3a5.6%205.6%200%200%201%2011%200'/%3E%3Cpath%20d='M17.7%2012.4%2021.1%2019h-6.8l3.4-6.6Z'/%3E%3Cpath%20d='M17.7%2015v1.4'/%3E%3C/svg%3E"); }
+  #Audit{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M9%204.2H7.2a2%202%200%200%200-2%202v12.6a2%202%200%200%200%202%202h9.6a2%202%200%200%200%202-2V6.2a2%202%200%200%200-2-2H15'/%3E%3Crect%20x='9'%20y='2.6'%20width='6'%20height='3.2'%20rx='1'/%3E%3Cpath%20d='m8.8%2013%202%202%204.4-4.4'/%3E%3C/svg%3E"); }
+  #eDiscovery{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='10.5'%20cy='10.5'%20r='5.8'/%3E%3Cpath%20d='m14.7%2014.7%204.6%204.6'/%3E%3C/svg%3E"); }
+  #Communication_Compliance{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M20%2011.5a7%207%200%200%201-9.9%206.4L4.5%2020l1.6-4.2A7%207%200%201%201%2020%2011.5Z'/%3E%3Cpath%20d='m8.9%2011.4%202%202%203.8-3.8'/%3E%3C/svg%3E"); }
+  #DSPM_for_AI{ --sec-icon:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a6a1e'%20stroke-width='1.7'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M11.5%203.8c.6%203.6%201.6%204.6%205.2%205.2-3.6.6-4.6%201.6-5.2%205.2-.6-3.6-1.6-4.6-5.2-5.2%203.6-.6%204.6-1.6%205.2-5.2Z'/%3E%3Cpath%20d='M18.4%2013.6c.3%201.6.8%202.1%202.4%202.4-1.6.3-2.1.8-2.4%202.4-.3-1.6-.8-2.1-2.4-2.4%201.6-.3%202.1-.8%202.4-2.4Z'/%3E%3C/svg%3E"); }
+
+</style>
+<title>PurviewPostureAnalyzer (PPA)</title>
+</head>
+<body class="app bg-light">
+
+<div class="mock-flag">Illustrative sample report &middot; fictional tenant (Acme Corporation) &middot; rendered from committed fixtures (Samples/sample-raw/acme)</div>
+<nav class="navbar navbar-custom">
+  <div class="container-fluid">
+    <div class="col-sm" style="text-align:left"><div class="row"><div><i class="fas fa-binoculars"></i></div>
+      <div class="ml-3"><strong>PurviewPostureAnalyzer (PPA)</strong></div></div></div>
+    <div class="col-sm" style="text-align:right"><button type="button" class="btn btn-primary" onclick="window.print();">Print</button></div>
+  </div>
+</nav>
+
+<div class="app-body p-3"><main class="main">
+
+  <div class="card"><div class="card-body">
+    <div class="row">
+      <div class="col">
+        <h2 class="card-title">PurviewPostureAnalyzer (PPA)</h2>
+        <strong>Version 2.0 &middot; June 2026</strong>
+        <p>Reads your Microsoft Purview configuration and summarizes current posture across data protection, governance,
+           insider risk, discovery, and AI &mdash; an input to user judgment, not a compliance determination.
+           <em>Click any finding to drill down to the enumerated detail.</em></p>
+        <table>
+          <tr><td><strong>Date</strong></td><td><strong>:&nbsp; 07-Jul-2026 10:00 UTC</strong></td></tr>
+          <tr><td><strong>Organization &nbsp;</strong></td><td><strong>:&nbsp; Acme Corporation</strong></td></tr>
+          <tr><td><strong>Tenant &nbsp;</strong></td><td><strong>:&nbsp; acmecorp.onmicrosoft.com</strong></td></tr>
+          <tr><td><strong>Operator &nbsp;</strong></td><td><strong>:&nbsp; casey.reyes@acmecorp.com (Compliance Reader)</strong></td></tr>
+          <tr><td><strong>Mode &nbsp;</strong></td><td><strong>:&nbsp; Read-only - configuration metadata only</strong></td></tr>
+        </table>
+      </div>
+      <div class="col-auto"><img class="logo" src="data:image/png;base64,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" alt="Client logo"></div>
+    </div>
+    <p style="color:var(--muted); font-size:var(--fs-sm); font-family:var(--font-sans); margin:.15rem 0 0;"><strong>Licensing:</strong> this report assumes a Microsoft 365 E5 / E5 Compliance baseline when judging Purview workloads and does not read your subscriptions &mdash; some flagged gaps may require higher licensing rather than a configuration change.</p>
+  </div></div>
+
+  <div class="card mt-3 postsum" id="Posturesummary">
+    <div class="card-header sumhead" data-toggle="collapse" data-target="#body-Posturesummary" role="button" tabindex="0" aria-expanded="false" aria-controls="body-Posturesummary">
+      <i class="fas fa-chevron-right chev"></i><strong>Posture Summary</strong>
+      <span class="sum-glance" aria-label="OK 1, Improvement 11, Recommendation 5, Informational 7, Verify manually 1"><span class="sg-item"><span class="gdot ok"></span>1</span><span class="sg-item"><span class="gdot impr"></span>11</span><span class="sg-item"><span class="gdot rec"></span>5</span><span class="sg-item"><span class="gdot info"></span>7</span><span class="sg-item"><span class="gdot verify"></span>1</span></span>
+    </div>
+    <div class="collapse" id="body-Posturesummary">
+    <div class="card-body">
+      <p class="es-meta">PurviewPostureAnalyzer (PPA) v2.0 &middot; 07-Jul-2026 10:00 UTC &middot; tenant: acmecorp.onmicrosoft.com</p>
+      <div class="es-tiles">
+        <div class="es-tile"><span class="badge badge-info es-num">5</span><div class="es-lbl">Recommendations</div></div>
+        <div class="es-tile"><span class="badge badge-warning es-num">11</span><div class="es-lbl">Improvements</div></div>
+        <div class="es-tile"><span class="badge badge-success es-num">1</span><div class="es-lbl">OK</div></div>
+        <div class="es-tile"><span class="badge badge-secondary es-num">7</span><div class="es-lbl">Informational</div></div>
+        <div class="es-tile"><span class="badge badge-dark es-num">1</span><div class="es-lbl">Verify manually</div></div>
+      </div>
+      <h6 class="es-top">Top findings</h6>
+      <div class="es-list">
+        <a class="es-item" data-sev="Recommendation" href="#finding-LABELS-04"><span class="gdot rec"></span><strong>LABELS-04</strong> No container labels for Teams / Sites / Groups<span class="es-sec">Sensitivity Labels</span></a>
+        <a class="es-item" data-sev="Recommendation" href="#finding-AI-03"><span class="gdot rec"></span><strong>AI-03</strong> No label-based Copilot content exclusion<span class="es-sec">DSPM for AI - Copilot Data Security</span></a>
+        <a class="es-item" data-sev="Recommendation" href="#finding-AI-06"><span class="gdot rec"></span><strong>AI-06</strong> Communication Compliance is not monitoring Copilot interactions<span class="es-sec">DSPM for AI - Copilot Data Security</span></a>
+        <a class="es-item" data-sev="Recommendation" href="#finding-IRM-02"><span class="gdot rec"></span><strong>IRM-02</strong> Consider IRM for departing-employee risk<span class="es-sec">Insider Risk Management</span></a>
+        <a class="es-item" data-sev="Recommendation" href="#finding-IRM-03"><span class="gdot rec"></span><strong>IRM-03</strong> Risky AI usage template is not deployed<span class="es-sec">Insider Risk Management</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-LABELS-03"><span class="gdot impr"></span><strong>LABELS-03</strong> Auto-labeling is not enforcing<span class="es-sec">Sensitivity Labels</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-DLP-01"><span class="gdot impr"></span><strong>DLP-01</strong> 9 DLP policies exist (5 enforcing, 4 in test)<span class="es-sec">Data Loss Prevention</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-DLP-02"><span class="gdot impr"></span><strong>DLP-02</strong> Teams is not in scope<span class="es-sec">Data Loss Prevention</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-DLP-03"><span class="gdot impr"></span><strong>DLP-03</strong> Endpoint DLP is not configured<span class="es-sec">Data Loss Prevention</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-AI-02"><span class="gdot impr"></span><strong>AI-02</strong> Copilot DLP policy is in simulation mode<span class="es-sec">DSPM for AI - Copilot Data Security</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-AI-05"><span class="gdot impr"></span><strong>AI-05</strong> Retention exists but Copilot interactions are not covered<span class="es-sec">DSPM for AI - Copilot Data Security</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-RET-02"><span class="gdot impr"></span><strong>RET-02</strong> No adaptive scopes<span class="es-sec">Retention &amp; Records</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-RET-03"><span class="gdot impr"></span><strong>RET-03</strong> Retention labels are manual-apply only<span class="es-sec">Retention &amp; Records</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-IRM-01"><span class="gdot impr"></span><strong>IRM-01</strong> No IRM policies configured<span class="es-sec">Insider Risk Management</span></a>
+        <a class="es-item" data-sev="Improvement" href="#finding-CC-01"><span class="gdot impr"></span><strong>CC-01</strong> No Communication Compliance policies configured<span class="es-sec">Communication Compliance</span></a>
+        <div class="es-more">+1 more below</div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+
+  <div class="card mt-3 covm" id="Coveragematrix">
+    <div class="card-header sumhead" data-toggle="collapse" data-target="#body-Coveragematrix" role="button" tabindex="0" aria-expanded="false" aria-controls="body-Coveragematrix"><i class="fas fa-chevron-right chev"></i><strong>Coverage Matrix</strong><span class="sum-glance">3 covered &middot; 2 partial &middot; 4 test-only &middot; 4 none &middot; 2 unknown</span></div>
+    <div class="collapse" id="body-Coveragematrix">
+    <div class="card-body">
+      <div class="covm-banner">Coverage visibility is degraded for: DSPM for AI (AccessDenied). Affected cells read Unknown and are excluded from gap counts.</div>
+      <table class="covm-grid">
+        <thead><tr><th>Workload</th><th>Auto-labeling</th><th>DLP</th><th>Retention</th></tr></thead>
+        <tbody>
+          <tr><th class="covm-row">Exchange Online</th><td class="covm-cell covm-testonly"><a class="covm-link" href="#finding-LABELS-03" title="Contributing policies: Auto-label PII and Payment Data"><span class="covm-glyph">&#9675;</span><span class="covm-text">Test-only</span></a></td><td class="covm-cell covm-covered"><a class="covm-link" href="#finding-DLP-01" title="Contributing policies: Employee Health Records, PCI - Payment Card Data, SSN Guard, Broad PII Pilot, GDPR - EU PII"><span class="covm-glyph">&#10003;</span><span class="covm-text">Covered</span></a></td><td class="covm-cell covm-covered"><a class="covm-link" href="#finding-RET-01" title="Contributing policies: Finance Records - 10yr"><span class="covm-glyph">&#10003;</span><span class="covm-text">Covered</span></a></td></tr>
+          <tr><th class="covm-row">SharePoint</th><td class="covm-cell covm-testonly"><a class="covm-link" href="#finding-LABELS-03" title="Contributing policies: Auto-label PII and Payment Data, Auto-label Product Design Data"><span class="covm-glyph">&#9675;</span><span class="covm-text">Test-only</span></a></td><td class="covm-cell covm-partial"><a class="covm-link" href="#finding-DLP-01" title="Contributing policies: Employee Health Records, PCI - Payment Card Data, SSN Guard, Product Design Guard, Financial Data, Broad PII Pilot, GDPR - EU PII, Source Code Guard, Legacy DLP"><span class="covm-glyph">&#9680;</span><span class="covm-text">Partial</span></a><br><span class="covm-reason">HasExceptions</span><br><span class="covm-reason">RuleDisabled</span><br><span class="covm-reason">ScopedInclude</span></td><td class="covm-cell covm-covered"><a class="covm-link" href="#finding-RET-01" title="Contributing policies: HR Records - 7yr, Finance Records - 10yr, Product Design Records - 15yr, Legal Hold Archive, General - 3yr"><span class="covm-glyph">&#10003;</span><span class="covm-text">Covered</span></a></td></tr>
+          <tr><th class="covm-row">OneDrive</th><td class="covm-cell covm-testonly"><a class="covm-link" href="#finding-LABELS-03" title="Contributing policies: Auto-label PII and Payment Data, Auto-label Product Design Data"><span class="covm-glyph">&#9675;</span><span class="covm-text">Test-only</span></a></td><td class="covm-cell covm-partial"><a class="covm-link" href="#finding-DLP-01" title="Contributing policies: Employee Health Records, PCI - Payment Card Data, Product Design Guard, Financial Data, Broad PII Pilot, GDPR - EU PII, Source Code Guard"><span class="covm-glyph">&#9680;</span><span class="covm-text">Partial</span></a><br><span class="covm-reason">ScopedInclude</span></td><td class="covm-cell covm-none"><a class="covm-link" href="#finding-RET-01"><span class="covm-glyph">&#10007;</span><span class="covm-text">None</span></a></td></tr>
+          <tr><th class="covm-row">Teams</th><td class="covm-cell covm-na"><a class="covm-link" href="#finding-LABELS-03" title="Auto-sensitivity-label policies carry Exchange/SharePoint/OneDrive locations only; Teams messages are not an auto-labeling location."><span class="covm-glyph">&#8211;</span><span class="covm-text">N/A</span></a></td><td class="covm-cell covm-none"><a class="covm-link" href="#finding-DLP-01"><span class="covm-glyph">&#10007;</span><span class="covm-text">None</span></a></td><td class="covm-cell covm-none"><a class="covm-link" href="#finding-RET-01"><span class="covm-glyph">&#10007;</span><span class="covm-text">None</span></a></td></tr>
+          <tr><th class="covm-row">Endpoint</th><td class="covm-cell covm-na"><a class="covm-link" href="#finding-LABELS-03" title="Devices are not an auto-labeling location; endpoint protection is Endpoint DLP's job (DLP column)."><span class="covm-glyph">&#8211;</span><span class="covm-text">N/A</span></a></td><td class="covm-cell covm-none"><a class="covm-link" href="#finding-DLP-01"><span class="covm-glyph">&#10007;</span><span class="covm-text">None</span></a></td><td class="covm-cell covm-na"><a class="covm-link" href="#finding-RET-01" title="Retention compliance policies expose no device/endpoint location property."><span class="covm-glyph">&#8211;</span><span class="covm-text">N/A</span></a></td></tr>
+          <tr><th class="covm-row">Power BI</th><td class="covm-cell covm-na"><a class="covm-link" href="#finding-LABELS-03" title="Power BI is not an auto-sensitivity-label policy location; Power BI default labeling is a Fabric admin setting outside Security &amp; Compliance PowerShell."><span class="covm-glyph">&#8211;</span><span class="covm-text">N/A</span></a></td><td class="covm-cell covm-testonly"><a class="covm-link" href="#finding-DLP-01" title="Contributing policies: Broad PII Pilot"><span class="covm-glyph">&#9675;</span><span class="covm-text">Test-only</span></a></td><td class="covm-cell covm-na"><a class="covm-link" href="#finding-RET-01" title="Power BI/Fabric content retention is not a retention-compliance-policy location readable via Security &amp; Compliance PowerShell."><span class="covm-glyph">&#8211;</span><span class="covm-text">N/A</span></a></td></tr>
+          <tr><th class="covm-row">Copilot</th><td class="covm-cell covm-na"><a class="covm-link" href="#finding-LABELS-03" title="Copilot interactions are not an auto-labeling location; label-based Copilot controls surface through DLP rule conditions (check AI-03)."><span class="covm-glyph">&#8211;</span><span class="covm-text">N/A</span></a></td><td class="covm-cell covm-unknown"><a class="covm-link" href="#finding-DLP-01"><span class="covm-glyph">?</span><span class="covm-text">Unknown</span></a></td><td class="covm-cell covm-unknown"><a class="covm-link" href="#finding-AI-05"><span class="covm-glyph">?</span><span class="covm-text">Unknown</span></a></td></tr>
+        </tbody>
+      </table>
+      <p class="covm-strip"><strong>Tenant-level:</strong> Unified audit: Off &middot; <a href="#finding-AUD-01">details</a></p>
+      <p class="covm-strip"><strong>Other solutions (no workload cells):</strong> <a href="#Sensitivity_Labels">Label publishing</a>: 3 policies &middot; <a href="#Insider_Risk">Insider Risk</a>: 0 policies &middot; <a href="#Communication_Compliance">Communication Compliance</a>: 0 policies &middot; <a href="#eDiscovery">eDiscovery</a>: 4 cases</p>
+      <p class="covm-foot">Assessed via Security &amp; Compliance PowerShell only. Container labeling for SharePoint and Teams is out of scope for this matrix.</p>
+    </div>
+    </div>
+  </div>
+
+
+  <div class="filterbar" id="Filterbar">
+    <span class="fb-label">Filter:</span>
+    <button type="button" class="fb-chip active" data-fb="OK"><span class="gdot ok"></span>OK</button>
+    <button type="button" class="fb-chip active" data-fb="Improvement"><span class="gdot impr"></span>Improvement</button>
+    <button type="button" class="fb-chip active" data-fb="Recommendation"><span class="gdot rec"></span>Recommendation</button>
+    <button type="button" class="fb-chip active" data-fb="Informational"><span class="gdot info"></span>Informational</button>
+    <button type="button" class="fb-chip active" data-fb="Verify manually"><span class="gdot verify"></span>Verify manually</button>
+    <input type="text" class="fb-search" placeholder="Search findings..." aria-label="Search findings">
+    <button type="button" class="fb-reset">Reset</button>
+    <span class="fb-status"></span>
+  </div>
+
+
+  <div class="card mt-3 glance">
+    <div class="card-header"><strong>Environment at a glance</strong></div>
+    <div class="card-body">
+      <div class="row" style="row-gap:10px;">
+        <div class="col-6 col-md-3"><a class="cell" href="#Sensitivity_Labels"><div class="nm"><span class="gdot impr"></span>Sensitivity Labels</div><div class="mx">8 labels</div><div class="sub">3 policies - auto-label in sim</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#Data_Loss_Prevention"><div class="nm"><span class="gdot impr"></span>Data Loss Prevention</div><div class="mx">9 policies</div><div class="sub">5 enforcing - Teams unscoped</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#DSPM_for_AI"><div class="nm"><span class="gdot impr"></span>DSPM for AI</div><div class="mx">1 policy</div><div class="sub">simulation only - AI in scope</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#Retention"><div class="nm"><span class="gdot impr"></span>Retention &amp; Records</div><div class="mx">5 policies</div><div class="sub">12 labels - static only</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#Insider_Risk"><div class="nm"><span class="gdot impr"></span>Insider Risk</div><div class="mx">0 policies</div><div class="sub">risky-AI template absent</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#Communication_Compliance"><div class="nm"><span class="gdot impr"></span>Comms Compliance</div><div class="mx">0 policies</div><div class="sub">Copilot monitoring absent</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#Audit"><div class="nm"><span class="gdot impr"></span>Audit</div><div class="mx">Off</div><div class="sub">unified audit disabled</div></a></div>
+        <div class="col-6 col-md-3"><a class="cell" href="#eDiscovery"><div class="nm"><span class="gdot info"></span>eDiscovery</div><div class="mx">4 cases</div><div class="sub">Premium not assessed</div></a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3" id="Solutionsummary">
+    <div class="card-header"><strong>Solutions Summary</strong></div>
+    <div class="card-body">
+      <table class="table table-borderless summary" style="margin-bottom:.5rem;">
+        <tbody>
+          <tr style="border-bottom:2px solid #d7e0ea;">
+            <td width="20"><i class="fas fa-user-cog"></i></td>
+            <td><strong>All Solutions</strong></td>
+            <td align="right"><span class="badge badge-success sscount">1</span><span class="badge badge-warning sscount">11</span><span class="badge badge-info sscount">5</span><span class="badge badge-secondary sscount">7</span><span class="badge badge-dark sscount">1</span></td>
+          </tr>
+
+          <tr class="ssparent"><td width="20"><i class="fas fa-shield-alt"></i></td><td colspan="2">Microsoft Information Protection</td></tr>
+          <tr class="sschild"><td></td><td><a href="#Sensitivity_Labels">Sensitivity Labels</a></td>
+            <td align="right"><span class="badge badge-success sscount">1</span><span class="badge badge-warning sscount">1</span><span class="badge badge-info sscount">1</span><span class="badge badge-secondary sscount">1</span><span class="badge badge-dark sscount">0</span></td></tr>
+          <tr class="sschild"><td></td><td><a href="#Data_Loss_Prevention">Data Loss Prevention</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">3</span><span class="badge badge-info sscount">0</span><span class="badge badge-secondary sscount">0</span><span class="badge badge-dark sscount">0</span></td></tr>
+          <tr class="ssparent"><td width="20"><i class="fas fa-robot"></i></td><td colspan="2">AI Security <span style="font-weight:600; font-size:11px; color:#0078D4;">&nbsp;NEW</span></td></tr>
+          <tr class="sschild"><td></td><td><a href="#DSPM_for_AI">DSPM for AI - Copilot Data Security</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">2</span><span class="badge badge-info sscount">2</span><span class="badge badge-secondary sscount">2</span><span class="badge badge-dark sscount">0</span></td></tr>
+          <tr class="ssparent"><td width="20"><i class="fas fa-archive"></i></td><td colspan="2">Data Lifecycle &amp; Records</td></tr>
+          <tr class="sschild"><td></td><td><a href="#Retention">Retention &amp; Records</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">2</span><span class="badge badge-info sscount">0</span><span class="badge badge-secondary sscount">1</span><span class="badge badge-dark sscount">0</span></td></tr>
+          <tr class="ssparent"><td width="20"><i class="fas fa-user-secret"></i></td><td colspan="2">Insider Risk</td></tr>
+          <tr class="sschild"><td></td><td><a href="#Insider_Risk">Insider Risk Management</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">1</span><span class="badge badge-info sscount">2</span><span class="badge badge-secondary sscount">0</span><span class="badge badge-dark sscount">0</span></td></tr>
+          <tr class="sschild"><td></td><td><a href="#Communication_Compliance">Communication Compliance</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">1</span><span class="badge badge-info sscount">0</span><span class="badge badge-secondary sscount">0</span><span class="badge badge-dark sscount">0</span></td></tr>
+          <tr class="ssparent"><td width="20"><i class="fas fa-search"></i></td><td colspan="2">Discovery &amp; Response</td></tr>
+          <tr class="sschild"><td></td><td><a href="#Audit">Audit</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">1</span><span class="badge badge-info sscount">0</span><span class="badge badge-secondary sscount">1</span><span class="badge badge-dark sscount">1</span></td></tr>
+          <tr class="sschild"><td></td><td><a href="#eDiscovery">eDiscovery</a></td>
+            <td align="right"><span class="badge badge-success sscount">0</span><span class="badge badge-warning sscount">0</span><span class="badge badge-info sscount">0</span><span class="badge badge-secondary sscount">2</span><span class="badge badge-dark sscount">0</span></td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:13px; text-align:right;">
+        <span class="badge badge-success" style="padding:5px;">&nbsp;</span> OK &nbsp;
+        <span class="badge badge-warning" style="padding:5px;">&nbsp;</span> Improvement &nbsp;
+        <span class="badge badge-info" style="padding:5px;">&nbsp;</span> Recommendation &nbsp;
+        <span class="badge badge-secondary" style="padding:5px;">&nbsp;</span> Informational &nbsp;
+        <span class="badge badge-dark" style="padding:5px;">&nbsp;</span> Verify manually
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="Sensitivity_Labels">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>Sensitivity Labels</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-success">OK 1</span><span class="badge badge-warning">Improvement 1</span><span class="badge badge-info">Recommendation 1</span><span class="badge badge-secondary">Informational 1</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-LABELS-01" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-lab-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Taxonomy is defined</h6><a class="anchor-link" href="#finding-LABELS-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-lab-1"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">A clear, ordered taxonomy is the foundation auto-labeling, DLP and retention build on. The tenant defines:</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Label</th><th>Priority</th><th>Scope</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Public</td><td>0</td><td>Files, Emails</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>General</td><td>1</td><td>Files, Emails</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Confidential</td><td>2</td><td>Files, Emails</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Highly Confidential</td><td>3</td><td>Files, Emails</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>&nbsp;&nbsp;&#8627; Highly Confidential \ Legal</td><td>3.1</td><td>Files</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>&nbsp;&nbsp;&#8627; Highly Confidential \ Engineering</td><td>3.2</td><td>Files</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>&nbsp;&nbsp;&#8627; Highly Confidential \ Manufacturing</td><td>3.3</td><td>Files</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Restricted</td><td>4</td><td>Files</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://purview.microsoft.com" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Purview portal - Information Protection<span class="lm-tag">portal</span></a>
+            <a href="https://learn.microsoft.com/en-us/purview/sensitivity-labels" target="_blank"><i class="fas fa-external-link-square-alt"></i> Overview of sensitivity labels<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-LABELS-02" data-status="OK">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-lab-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Labels are published to users</h6><a class="anchor-link" href="#finding-LABELS-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-success">OK</span></div>
+        </div>
+        <div class="collapse" id="d-lab-2"><div class="bd-callout bd-callout-success">
+          <p class="whyline">Labels only classify content once published to the people creating it.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Label Policy</th><th>Labels</th><th>Assigned To</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Acme Global Label Policy</td><td>Public, General, Confidential, Highly Confidential (+3 sub)</td><td>All users</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>Executive Protection Policy</td><td>Confidential, Highly Confidential, Restricted</td><td>dl-exec@acmecorp.com</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>Engineering Label Policy</td><td>Highly Confidential \ Engineering, Highly Confidential \ Manufacturing</td><td>Engineering (grp)</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/create-sensitivity-labels" target="_blank"><i class="fas fa-external-link-square-alt"></i> Create and publish sensitivity labels<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-LABELS-03" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-lab-3" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Auto-labeling is not enforcing</h6><a class="anchor-link" href="#finding-LABELS-03" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-lab-3"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Automatic labeling reduces reliance on users to classify correctly; in simulation it observes but never applies.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Auto-labeling Policy</th><th>Conditions (SITs)</th><th>Mode</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Auto-label PII and Payment Data</td><td>U.S. SSN, Credit Card Number, U.S. Bank Account Number</td><td>Simulation</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td colspan="4" class="remarks"><i class="fas fa-info-circle"></i> Remarks: Auto-label PII and Payment Data has run in simulation since 14-Feb-2026 (143 days). Simulation shows 6,410 items would be labeled - consider turning the policy on.</td></tr>
+              <tr><td>Auto-label Product Design Data</td><td>Custom SIT: Design Schematic ID</td><td>Simulation</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Information protection &gt; Auto-labeling, review the policy's simulation results to confirm the matched items and sensitive info types are what you intend, then turn the policy on. Enabling before reviewing simulation can mislabel content at scale.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://purview.microsoft.com" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Purview portal - Information Protection<span class="lm-tag">portal</span></a>
+            <a href="https://learn.microsoft.com/en-us/purview/apply-sensitivity-label-automatically" target="_blank"><i class="fas fa-external-link-square-alt"></i> How to apply a sensitivity label to content automatically<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-LABELS-04" data-status="Recommendation">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-lab-4" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>No container labels for Teams / Sites / Groups</h6><a class="anchor-link" href="#finding-LABELS-04" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-info">Recommendation</span></div>
+        </div>
+        <div class="collapse" id="d-lab-4"><div class="bd-callout bd-callout-info">
+          <p class="whyline">Container labels govern guest access, external sharing and unmanaged-device rules on collaborative workspaces.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Container type</th><th>Coverage</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Microsoft 365 Groups / Teams</td><td>0 of 186 labeled</td><td><span class="rowstat"><i class="fas fa-info-circle text-muted"></i> Recommendation</span></td></tr>
+              <tr><td>SharePoint sites</td><td>0 of 203 labeled</td><td><span class="rowstat"><i class="fas fa-info-circle text-muted"></i> Recommendation</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Container labels are created under Information protection &gt; Sensitivity labels by scoping a label to Groups &amp; sites. The real decision is what each label enforces on a workspace - guest access, external sharing, and unmanaged-device limits - so agree those settings with site owners before publishing.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/sensitivity-labels-teams-groups-sites" target="_blank"><i class="fas fa-external-link-square-alt"></i> Use sensitivity labels to protect containers (groups &amp; sites)<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="Data_Loss_Prevention">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>Data Loss Prevention</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-warning">Improvement 3</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-DLP-01" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-dlp-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>9 DLP policies exist (5 enforcing, 4 in test)</h6><a class="anchor-link" href="#finding-DLP-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-dlp-1"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Policy count alone overstates protection; test-mode policies detect but don't block. Each policy:</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>DLP Policy</th><th>Sensitive Information Type</th><th>Remarks</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Employee Health Records</td><td>U.S. HIPAA, U.S. SSN</td><td>Enforcing - EXO, SPO, ODB</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>PCI - Payment Card Data</td><td>Credit Card Number</td><td>Enforcing - EXO, SPO, ODB</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>SSN Guard</td><td>U.S. SSN</td><td>Enforcing - EXO, SPO</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>Product Design Guard</td><td>Custom SIT: Design Schematic ID</td><td>Enforcing - SPO, ODB</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>Financial Data</td><td>ABA Routing, U.S. Bank Account</td><td>Enforcing - SPO, ODB</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>Broad PII Pilot</td><td>Full Name, Email, Phone</td><td>Test / simulation mode</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td colspan="4" class="remarks"><i class="fas fa-info-circle"></i> Remarks: Broad PII Pilot has sat in test mode since 09-Mar-2026 - detects but does not block; incident digests go to svc-dlptest@acmecorp.onmicrosoft.com.</td></tr>
+              <tr><td>GDPR - EU PII</td><td>EU Passport, EU Driver's License</td><td>Test / simulation mode</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td>Source Code Guard</td><td>Custom SIT: Repo Fingerprint</td><td>Test / simulation mode</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td>Legacy DLP</td><td>U.S. SSN</td><td>Test mode; 2 of 3 rules disabled</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Data loss prevention &gt; Policies, review each test-mode policy's matches in Activity Explorer and define the exceptions and override justifications the business needs before switching the policy to enforce. Blocking without an exception path produces business escalations within hours.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://purview.microsoft.com" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Purview portal - Data Loss Prevention<span class="lm-tag">portal</span></a>
+            <a href="https://learn.microsoft.com/en-us/purview/dlp-learn-about-dlp" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about data loss prevention<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-DLP-02" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-dlp-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Teams is not in scope</h6><a class="anchor-link" href="#finding-DLP-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-dlp-2"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Sensitive data shared in Teams bypasses DLP entirely when Teams isn't a policy location.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Location</th><th>In scope</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Exchange Online</td><td>Yes (all policies)</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>SharePoint Online</td><td>Yes</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>OneDrive</td><td>Yes</td><td><span class="rowstat"><i class="fas fa-check-circle text-success"></i> OK</span></td></tr>
+              <tr><td>Microsoft Teams</td><td>No</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Data loss prevention &gt; Policies, edit each policy's locations to add Teams chat and channel messages, deciding which policies genuinely need Teams coverage. Teams DLP applies only to messages posted after the change - it is not retroactive - so set expectations and start with warn-level actions.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/dlp-microsoft-teams" target="_blank"><i class="fas fa-external-link-square-alt"></i> Use DLP with Microsoft Teams<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-DLP-03" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-dlp-3" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Endpoint DLP is not configured</h6><a class="anchor-link" href="#finding-DLP-03" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-dlp-3"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Without Endpoint DLP there's no control over copy-to-USB, print, or cloud-upload egress on managed devices.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Devices onboarded</td><td>0</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td>Endpoint locations in policy</td><td>None</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Endpoint DLP only works on onboarded devices, so onboard them first (Intune is the preferred path, or Defender for Endpoint) and confirm per-user licensing covers Endpoint DLP. Then add the Devices location to the relevant policies and run audit-only before warn or block - blocking on day one turns users against the agent.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/endpoint-dlp-learn-about" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about Endpoint DLP<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="DSPM_for_AI">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>DSPM for AI - Copilot Data Security</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-warning">Improvement 2</span><span class="badge badge-info">Recommendation 2</span><span class="badge badge-secondary">Informational 2</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-AI-01" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ai-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Copilot-scoped DLP artifacts present - AI surface in scope</h6><a class="anchor-link" href="#finding-AI-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-ai-1"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">DLP policies scoped to the Microsoft 365 Copilot location exist, which puts AI data-security posture in scope for this tenant.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Copilot-scoped DLP policies</td><td>1</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://purview.microsoft.com" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Purview portal - DSPM for AI<span class="lm-tag">portal</span></a>
+            <a href="https://learn.microsoft.com/en-us/purview/ai-microsoft-purview" target="_blank"><i class="fas fa-external-link-square-alt"></i> Data security for AI<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AI-02" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ai-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Copilot DLP policy is in simulation mode</h6><a class="anchor-link" href="#finding-AI-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-ai-2"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Visibility without control - the tenant can see risky AI interactions but isn't preventing them.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>AI Policy</th><th>Conditions</th><th>Mode</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Detect sensitive info in AI prompts</td><td>U.S. SSN, Credit Card Number, U.S. Bank Account Number</td><td>Simulation (AuditAndNotify)</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td colspan="4" class="remarks"><i class="fas fa-info-circle"></i> Remarks: Detect sensitive info in AI prompts is the one-click DSPM-for-AI default and ships in simulation - it has never been switched to enforce.</td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Data loss prevention &gt; Policies, review what the Copilot-scoped policy matched during simulation - whether the sensitive info types and prompt matches are what you intend to act on - then switch it to enforce. Classification maturity gates its value: tune the conditions rather than enforcing a noisy default.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/dspm-for-ai" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/dspm-for-ai" target="_blank"><i class="fas fa-external-link-square-alt"></i> Data Security Posture Management for AI<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AI-03" data-status="Recommendation">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ai-3" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>No label-based Copilot content exclusion</h6><a class="anchor-link" href="#finding-AI-03" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-info">Recommendation</span></div>
+        </div>
+        <div class="collapse" id="d-ai-3"><div class="bd-callout bd-callout-info">
+          <p class="whyline">Without label-based exclusion, Copilot can process and surface labeled content users can technically open but shouldn't - oversharing risk.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Copilot-location rules referencing sensitivity labels</td><td>None detected</td><td><span class="rowstat"><i class="fas fa-info-circle text-muted"></i> Recommendation</span></td></tr>
+              <tr><td>Container/site-scoped sensitivity labels defined</td><td>No</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">The decision is which sensitivity labels Copilot must not ground on: create or edit a policy on the Microsoft 365 Copilot location with a rule referencing those labels, which requires the labels to be deployed and applied first. Verify with a test prompt that Copilot no longer returns the labeled content.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/dlp-microsoft365-copilot-location-learn-about" target="_blank"><i class="fas fa-external-link-square-alt"></i> DLP for Microsoft 365 Copilot and Copilot Chat<span class="lm-tag">docs</span></a>
+            <a href="https://learn.microsoft.com/en-us/purview/ai-microsoft-purview-considerations" target="_blank"><i class="fas fa-external-link-square-alt"></i> Considerations for Copilot &amp; oversharing<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AI-04" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ai-4" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>No DSPM collection policies</h6><a class="anchor-link" href="#finding-AI-04" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-ai-4"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">Collection policies extend DSPM visibility to enterprise and third-party AI apps; they sit above E5 (pay-as-you-go / Agent 365 billing), so absence is reported as context only.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>DSPM collection policies</td><td>0</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td colspan="3" class="remarks"><i class="fas fa-info-circle"></i> Remarks: collection policies are billed pay-as-you-go / Agent 365; this line is inventory context, not a gap.</td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/retention-policies-copilot" target="_blank"><i class="fas fa-external-link-square-alt"></i> Create and configure retention policies (AI app locations)<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AI-05" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ai-5" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Retention exists but Copilot interactions are not covered</h6><a class="anchor-link" href="#finding-AI-05" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-ai-5"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Copilot prompts and responses are discoverable content; without a retention policy covering the Copilot location their lifecycle is unmanaged.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration / Policy</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Retention policies tenant-wide</td><td>5</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Policies covering Microsoft 365 Copilot interactions</td><td>0</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td>Legacy Teams chat retention</td><td>Teams Chat - 1yr</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td colspan="3" class="remarks"><i class="fas fa-info-circle"></i> Remarks: confirm Copilot interaction retention expectations with the records owners at acmecorp.com before scoping a new policy.</td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Data lifecycle management &gt; Retention policies, create or extend a policy to include the Microsoft 365 Copilot interactions location, deciding the retain/delete period with the records owner rather than defaulting. Check precedence against existing policies - retention wins over deletion and the longest retention wins - so the outcome is deliberate.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/create-retention-policies" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/get-appretentioncompliancepolicy" target="_blank"><i class="fas fa-external-link-square-alt"></i> Retention cmdlets<span class="lm-tag">docs</span></a>
+            <a href="https://learn.microsoft.com/en-us/purview/create-retention-policies" target="_blank"><i class="fas fa-external-link-square-alt"></i> Create and configure retention policies<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AI-06" data-status="Recommendation">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ai-6" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Communication Compliance is not monitoring Copilot interactions</h6><a class="anchor-link" href="#finding-AI-06" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-info">Recommendation</span></div>
+        </div>
+        <div class="collapse" id="d-ai-6"><div class="bd-callout bd-callout-info">
+          <p class="whyline">The 'Detect Microsoft 365 Copilot interactions' template is the one-step baseline for reviewing risky AI conversations; nothing is scoped to Copilot today.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>CC policies scoped to Copilot workloads</td><td>0</td><td><span class="rowstat"><i class="fas fa-info-circle text-muted"></i> Recommendation</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Communication compliance &gt; Policies, start from the 'Detect Microsoft 365 Copilot interactions' template and decide which population's AI interactions genuinely need supervision. Apply the same privacy prerequisites as any Communication Compliance policy - pseudonymized reviewers, scoped access, and legal sign-off - before enabling.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/communication-compliance" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/communication-compliance" target="_blank"><i class="fas fa-external-link-square-alt"></i> Communication Compliance for generative AI<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="Retention">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>Retention &amp; Records</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-warning">Improvement 2</span><span class="badge badge-secondary">Informational 1</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-RET-01" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ret-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>5 retention policies, 12 retention labels</h6><a class="anchor-link" href="#finding-RET-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-ret-1"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">Baseline of what's being retained and where.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Retention Policy</th><th>Labels</th><th>Remarks</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>HR Records - 7yr</td><td>HR-Retain-7y</td><td>Static - SharePoint HR site</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Finance Records - 10yr</td><td>Fin-Retain-10y</td><td>Static - Finance site, Exchange</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Product Design Records - 15yr</td><td>Design-Retain-15y</td><td>Static - Engineering sites</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Legal Hold Archive</td><td>Legal-Retain-Indef</td><td>Static - Legal site</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>General - 3yr</td><td>Gen-Retain-3y</td><td>Static - all SharePoint</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/retention" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about retention policies &amp; labels<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-RET-02" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ret-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>No adaptive scopes</h6><a class="anchor-link" href="#finding-RET-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-ret-2"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Static scopes drift as the org changes; adaptive scopes keep coverage current by attribute/query.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Scope type</th><th>Count</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Static scopes</td><td>5</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Adaptive scopes</td><td>0</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Data lifecycle management &gt; Adaptive scopes, create query-based scopes on user, group, or site attributes and preview the membership they return before retargeting retention policies to them. Adaptive scopes keep coverage current as the organization changes; static scopes quietly drift.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/retention-policies-adaptive" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/retention-policies-adaptive" target="_blank"><i class="fas fa-external-link-square-alt"></i> Adaptive vs. static scopes<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-RET-03" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ret-3" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Retention labels are manual-apply only</h6><a class="anchor-link" href="#finding-RET-03" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-ret-3"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">Retention outcomes depend on users tagging content, which is inconsistent at scale.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Retention label</th><th>Auto-apply rule</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>HR-Retain-7y</td><td>None (manual)</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td>Design-Retain-15y</td><td>None (manual)</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td>Fin-Retain-10y</td><td>None (manual)</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+              <tr><td colspan="3" class="remarks"><i class="fas fa-info-circle"></i> Remarks: 12 of 12 retention labels have no auto-apply (SIT / KQL / trainable) condition.</td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Under Data lifecycle management &gt; Label policies, add auto-apply rules for the retention labels, choosing the conditions deliberately - sensitive info types, KQL, or trainable classifiers - and run them in simulation first. Mis-targeted auto-apply is hard to roll back at scale, so review simulated coverage before broad rollout.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/apply-retention-labels-automatically" target="_blank"><i class="fas fa-external-link-square-alt"></i> Auto-apply retention labels<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="Insider_Risk">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>Insider Risk Management</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-warning">Improvement 1</span><span class="badge badge-info">Recommendation 2</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-IRM-01" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-irm-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>No IRM policies configured</h6><a class="anchor-link" href="#finding-IRM-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-irm-1"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">No insider-risk policy is scoring activity, so leaver data theft and risky-user signals go unwatched.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>IRM policies</td><td>0</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Before creating any policy under Insider risk management, configure the privacy controls - pseudonymized usernames, separated admin/analyst/investigator roles, and legal or works-council review where required. Then start with a single template in analytics mode for about two weeks to baseline alert volume; enabling every template on day one buries the team in untriaged alerts.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/insider-risk-management" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/insider-risk-management" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about Insider Risk Management<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-IRM-02" data-status="Recommendation">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-irm-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Consider IRM for departing-employee risk</h6><a class="anchor-link" href="#finding-IRM-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-info">Recommendation</span></div>
+        </div>
+        <div class="collapse" id="d-irm-2"><div class="bd-callout bd-callout-info">
+          <p class="whyline">Data theft by leavers is a common uncovered scenario. Needs HR/Legal alignment before scoping - not a quick config win.</p>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Treat this as a scoping conversation, not a configuration task: the departing-users template needs HR/Legal alignment and an HR data connector before it has a trigger to fire on. Settle licensing, privacy controls, and the HR feed first, then scope the policy.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/insider-risk-management-policies" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/insider-risk-management-policies" target="_blank"><i class="fas fa-external-link-square-alt"></i> IRM policy templates<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-IRM-03" data-status="Recommendation">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-irm-3" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Risky AI usage template is not deployed</h6><a class="anchor-link" href="#finding-IRM-03" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-info">Recommendation</span></div>
+        </div>
+        <div class="collapse" id="d-irm-3"><div class="bd-callout bd-callout-info">
+          <p class="whyline">Without the Risky AI usage template, prompt-injection attempts and risky Copilot prompts produce no insider-risk score.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>IRM policies using the Risky AI usage scenario</td><td>0</td><td><span class="rowstat"><i class="fas fa-info-circle text-muted"></i> Recommendation</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">The Risky AI usage template is created under Insider risk management &gt; Policies, but it scores on DSPM for AI signals - enable that visibility first or the policy has nothing to evaluate. Pair it with the same privacy controls and analytics-mode baseline as any other IRM template.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/insider-risk-management-policies" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/insider-risk-management-policies" target="_blank"><i class="fas fa-external-link-square-alt"></i> IRM policy templates<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="Communication_Compliance">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>Communication Compliance</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-warning">Improvement 1</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-CC-01" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-cc-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>No Communication Compliance policies configured</h6><a class="anchor-link" href="#finding-CC-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-cc-1"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">No supervisory-review policy is capturing communications - relevant wherever regulatory supervision of communications is in scope.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Communication Compliance policies</td><td>0</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">Before creating a policy under Communication compliance, put the privacy guardrails in place: pseudonymized usernames for reviewers, tightly scoped reviewer access, and legal/HR sign-off on what is monitored. Then start narrow - one template scoped to the population that genuinely needs supervision - and expand once triage keeps up.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/communication-compliance" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/communication-compliance" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about Communication Compliance<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="Audit">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>Audit</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-warning">Improvement 1</span><span class="badge badge-secondary">Informational 1</span><span class="badge badge-dark">Verify 1</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-AUD-01" data-status="Improvement">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-aud-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Unified audit logging is disabled</h6><a class="anchor-link" href="#finding-AUD-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-warning">Improvement</span></div>
+        </div>
+        <div class="collapse" id="d-aud-1"><div class="bd-callout bd-callout-warning">
+          <p class="whyline">With unified audit off there is no tenant-wide activity record - investigations, eDiscovery and IRM signals all lose their foundation.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Unified audit logging</td><td>Disabled</td><td><span class="rowstat"><i class="fas fa-times-circle text-danger"></i> Improvement</span></td></tr>
+            </tbody>
+          </table>
+          <details class="remed">
+            <summary><i class="fas fa-tools"></i> How to remediate</summary>
+            <div class="remed-body">
+              <p class="remed-portal">In the Audit solution, select 'Start recording user and admin activity'; the account needs the Audit Logs role in Exchange Online and enablement can take up to an hour to apply. Once recording, decide audit retention against your investigation window - default retention is the gap most often discovered after a breach.</p>
+              <a class="remed-learn" href="https://learn.microsoft.com/en-us/purview/audit-log-enable-disable" target="_blank"><i class="fas fa-external-link-square-alt"></i> Microsoft Learn guidance</a>
+              <p class="remed-note">Portal guidance for planning - Microsoft guidance evolves, so confirm against the current Microsoft Learn article before acting. This tool never executes remediation.</p>
+            </div>
+          </details>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/audit-solutions-overview" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about auditing solutions<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AUD-02" data-status="Verify manually">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-aud-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Audit ingestion and latency not confirmable this session</h6><a class="anchor-link" href="#finding-AUD-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-dark">Verify manually</span></div>
+        </div>
+        <div class="collapse" id="d-aud-2"><div class="bd-callout bd-callout-dark">
+          <p class="whyline">'Enabled' is not the same as 'ingesting on time' - confirm recent events appear in audit search.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Recent event ingestion</td><td>Not readable from configuration</td><td><span class="rowstat"><i class="fas fa-user-check text-secondary"></i> Verify manually</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/audit-search" target="_blank"><i class="fas fa-external-link-square-alt"></i> Search the audit log<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-AUD-03" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-aud-3" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>Audit (Premium) long-term retention not assessed</h6><a class="anchor-link" href="#finding-AUD-03" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-aud-3"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">Long-term audit retention bounds how far back an investigation can reach; premium retention configuration is not readable from this session.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Audit (Premium) long-term retention</td><td>Not assessed this session</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/audit-premium" target="_blank"><i class="fas fa-external-link-square-alt"></i> Audit (Premium)<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+  <div class="card mt-3 seccard" id="eDiscovery">
+    <div class="card-header"><div class="row">
+      <div class="col-sm" style="margin:auto 0;"><a>eDiscovery</a><span class="sec-hiddennote"></span></div>
+      <div class="col-sm text-right" style="padding-right:10px;">
+        <span class="badge badge-secondary">Informational 2</span>
+      </div></div></div>
+    <div class="card-body" style="padding-top:4px;">
+
+      <div class="finding" id="finding-ED-01" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ed-1" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>eDiscovery in use - 4 cases</h6><a class="anchor-link" href="#finding-ED-01" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-ed-1"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">Case existence is reported for inventory only - no judgment on process maturity.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Case Name</th><th>Case Status</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Litigation-2026-0031</td><td>Active</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>Regulatory-EPA-Q2-2026</td><td>Active</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>HR-Investigation-2026-014</td><td>Closed</td><td><span class="rowstat">Informational</span></td></tr>
+              <tr><td>IP-Leak-Inquiry-2025</td><td>Closed</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/ediscovery" target="_blank"><i class="fas fa-external-link-square-alt"></i> Learn about eDiscovery<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="finding" id="finding-ED-02" data-status="Informational">
+        <div class="row finding-head" data-toggle="collapse" data-target="#d-ed-2" aria-expanded="false">
+          <div class="col-sm-10"><i class="fas fa-chevron-right chev"></i><h6>eDiscovery (Premium) usage not assessed</h6><a class="anchor-link" href="#finding-ED-02" title="Copy link to this finding">&para;</a></div>
+          <div class="col-sm-2 text-right"><span class="badge badge-secondary">Informational</span></div>
+        </div>
+        <div class="collapse" id="d-ed-2"><div class="bd-callout bd-callout-secondary">
+          <p class="whyline">Premium bounds what the client can do in-platform for legal holds, analytics and review sets; premium case usage is not assessed by this session.</p>
+          <table class="table table-sm detail">
+            <thead><tr><th>Configuration</th><th>Setting</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>eDiscovery Premium (hold, analytics, review sets)</td><td>Not assessed this session</td><td><span class="rowstat">Informational</span></td></tr>
+            </tbody>
+          </table>
+          <div class="learnmore">
+            <a href="https://learn.microsoft.com/en-us/purview/ediscovery" target="_blank"><i class="fas fa-external-link-square-alt"></i> eDiscovery capabilities by tier<span class="lm-tag">docs</span></a>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="text-right backlink" style="padding:8px 10px 0;"><a href="#Solutionsummary">Go to Solutions Summary</a></div>
+    </div>
+  </div>
+
+</main></div>
+
+<script>
+(function () {
+  'use strict';
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text); return; }
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'absolute'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e) { }
+    document.body.removeChild(ta);
+  }
+  // Per-finding anchor: copy the deep link; stop the click reaching the collapse toggle.
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    var a = (t && t.closest) ? t.closest('.anchor-link') : null;
+    if (!a) { return; }
+    ev.stopPropagation();
+    copyText(location.href.split('#')[0] + a.getAttribute('href'));
+    a.classList.add('copied');
+    setTimeout(function () { a.classList.remove('copied'); }, 1200);
+  }, true);
+
+  // Vanilla collapse (Wave 5, replaces Bootstrap): a click on any collapse toggle
+  // (finding drill-down heads + the Posture Summary / Coverage Matrix headers) shows or
+  // hides its data-target and flips aria-expanded. Matched via [data-target] so the toggle
+  // markup stays the single source of the collapse-toggle count (this handler adds none).
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t.closest && t.closest('.anchor-link')) { return; }
+    var h = (t && t.closest) ? t.closest('[data-target]') : null;
+    if (!h) { return; }
+    var sel = h.getAttribute('data-target');
+    if (!sel) { return; }
+    var body = document.querySelector(sel);
+    if (!body) { return; }
+    var open = body.classList.toggle('show');
+    h.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  // Keyboard toggle (Enter/Space) for focusable collapse headers (the summary sections).
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') { return; }
+    var h = (ev.target && ev.target.closest) ? ev.target.closest('[data-target]') : null;
+    if (!h || !h.hasAttribute('tabindex')) { return; }
+    ev.preventDefault();
+    h.click();
+  });
+
+  // Auto-expand on anchor: a deep link to a finding, the Posture Summary, or the Coverage
+  // Matrix opens the relevant collapse so the target never lands on an empty-looking section.
+  function expandForHash() {
+    var id = (location.hash || '').slice(1);
+    if (!id) { return; }
+    var el = document.getElementById(id);
+    if (!el) { return; }
+    var head = el.classList.contains('finding')
+      ? el.querySelector('.finding-head[data-target]')
+      : el.querySelector('.card-header.sumhead[data-target]');
+    if (!head) { return; }
+    var sel = head.getAttribute('data-target');
+    var body = sel && document.querySelector(sel);
+    if (body && !body.classList.contains('show')) {
+      body.classList.add('show');
+      head.setAttribute('aria-expanded', 'true');
+    }
+    el.scrollIntoView({ block: 'start' });
+  }
+  window.addEventListener('hashchange', expandForHash);
+
+  // P2 severity filter + text search. Hides finding cards only (never touches the
+  // collapse elements, so drill-down open state survives filtering).
+  var bar = document.getElementById('Filterbar');
+  if (bar) {
+    var chips = [].slice.call(bar.querySelectorAll('.fb-chip'));
+    var search = bar.querySelector('.fb-search');
+    var reset = bar.querySelector('.fb-reset');
+    var statusEl = bar.querySelector('.fb-status');
+    var items = [].slice.call(document.querySelectorAll('.finding')).map(function (el) {
+      return { el: el, status: el.getAttribute('data-status') || '', text: (el.textContent || '').toLowerCase() };
+    });
+    var sections = [].slice.call(document.querySelectorAll('.seccard'));
+    var applyFilter = function () {
+      var active = {};
+      chips.forEach(function (c) { if (c.classList.contains('active')) { active[c.getAttribute('data-fb')] = true; } });
+      var q = (search.value || '').toLowerCase().trim();
+      var shown = 0;
+      items.forEach(function (it) {
+        var ok = !!active[it.status] && (q === '' || it.text.indexOf(q) !== -1);
+        it.el.classList.toggle('fb-hidden', !ok);
+        if (ok) { shown++; }
+      });
+      // A fully-filtered section collapses to its header with a note, never vanishes.
+      sections.forEach(function (sec) {
+        var fs = [].slice.call(sec.querySelectorAll('.finding'));
+        var hidden = fs.filter(function (f) { return f.classList.contains('fb-hidden'); }).length;
+        var all = fs.length > 0 && hidden === fs.length;
+        sec.classList.toggle('sec-allhidden', all);
+        var note = sec.querySelector('.sec-hiddennote');
+        if (note) { note.textContent = all ? '(' + hidden + ' finding' + (hidden === 1 ? '' : 's') + ' hidden by filter)' : ''; }
+      });
+      var isDefault = q === '' && chips.every(function (c) { return c.classList.contains('active'); });
+      statusEl.textContent = isDefault ? '' : shown + ' of ' + items.length + ' findings shown';
+    };
+    chips.forEach(function (c) { c.addEventListener('click', function () { c.classList.toggle('active'); applyFilter(); }); });
+    var debounce = null;
+    search.addEventListener('input', function () { if (debounce) { clearTimeout(debounce); } debounce = setTimeout(applyFilter, 120); });
+    reset.addEventListener('click', function () { chips.forEach(function (c) { c.classList.add('active'); }); search.value = ''; applyFilter(); });
+  }
+
+  // P3 print: expand every drill-down before printing, restore afterwards. The
+  // @media print .collapse rule remains as a CSS fallback.
+  var printOpened = [];
+  window.addEventListener('beforeprint', function () {
+    printOpened = [];
+    [].slice.call(document.querySelectorAll('.collapse:not(.show)')).forEach(function (el) {
+      el.classList.add('show'); printOpened.push(el);
+    });
+    [].slice.call(document.querySelectorAll('details:not([open])')).forEach(function (el) {
+      el.setAttribute('open', ''); el.setAttribute('data-print-opened', '');
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    printOpened.forEach(function (el) { el.classList.remove('show'); });
+    printOpened = [];
+    [].slice.call(document.querySelectorAll('details[data-print-opened]')).forEach(function (el) {
+      el.removeAttribute('open'); el.removeAttribute('data-print-opened');
+    });
+  });
+
+  expandForHash();
+})();
+
+  // Posture-at-a-glance band (A-v2 port): additive, vanilla, safe to fail.
+/* Posture-at-a-glance band (A-v2 port). Progressive enhancement: builds a severity
+   distribution band from the counts already present in the Posture Summary
+   header (.sum-glance). Adds NO new content - only re-encodes existing counts and
+   the report's own severity labels. No data-target, unique id, degrades to the
+   glance dots if scripting is off. */
+(function () {
+  'use strict';
+  function build() {
+    var host = document.getElementById('Posturesummary');
+    if (!host || document.getElementById('ppa-execband')) { return; }
+    var items = host.querySelectorAll('.sum-glance .sg-item');
+    if (!items.length) { return; }
+    var order  = ['rec', 'impr', 'ok', 'info', 'verify'];
+    var known  = ['ok', 'impr', 'rec', 'info', 'verify'];
+    var labels = { ok: 'OK', impr: 'Improvements', rec: 'Recommendations', info: 'Informational', verify: 'Verify manually' };
+    var counts = {}, total = 0;
+    for (var i = 0; i < items.length; i++) {
+      var dot = items[i].querySelector('.gdot');
+      if (!dot) { continue; }
+      var cls = known.filter(function (c) { return dot.classList.contains(c); })[0];
+      if (!cls) { continue; }
+      var n = parseInt((items[i].textContent || '').replace(/[^0-9]/g, ''), 10) || 0;
+      counts[cls] = n; total += n;
+    }
+    if (total <= 0) { return; }
+
+    var bar = '<div class="eb-bar" role="img" aria-label="Severity distribution of findings">';
+    var legend = '<div class="eb-legend">';
+    for (var j = 0; j < order.length; j++) {
+      var c = order[j], v = counts[c] || 0;
+      if (v > 0) { bar += '<span class="eb-seg ' + c + '" style="flex-grow:' + v + ';min-width:6px" title="' + labels[c] + ': ' + v + '"></span>'; }
+      legend += '<span class="eb-li"><span class="gdot ' + c + '"></span><b>' + v + '</b> ' + labels[c] + '</span>';
+    }
+    bar += '</div>'; legend += '</div>';
+
+    var band = document.createElement('section');
+    band.id = 'ppa-execband';
+    band.className = 'execband';
+    band.setAttribute('aria-label', 'Posture at a glance');
+    band.innerHTML =
+      '<div class="eb-head"><span class="eb-kicker">Posture at a glance</span>' +
+      '<span class="eb-total">' + total + ' <span>findings</span></span></div>' + bar + legend;
+    host.parentNode.insertBefore(band, host);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', build); } else { build(); }
+})();
+</script>
+<footer class="app-footer"><div class="container-fluid">
+  <strong>PurviewPostureAnalyzer (PPA) &middot; read-only.</strong> Based on OfficeDev/CAMP (Configuration Analyzer for Microsoft Purview). Reads configuration metadata only &mdash; no document, email or prompt content, no matched values.
+  Does not create, modify or delete tenant configuration. Statuses are inputs to user judgment, not compliance determinations,
+  and are not mapped to any regulatory framework.
+</div></footer>
+</body>
+</html>

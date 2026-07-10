@@ -20,7 +20,13 @@ function Export-PpaHtmlReport {
         # UX-2: client logo, pre-encoded as a data: URI by ConvertTo-PpaLogoDataUri.
         # Report chrome only - it never enters the normalized object or the JSON export.
         # Empty means the header slot renders nothing (the dashed placeholder is gone).
-        [string] $LogoDataUri
+        [string] $LogoDataUri,
+        # Pre-publish Part 5: overrides the -IsSample banner text so a published
+        # fixture sample can name ITS fictional tenant honestly. Empty keeps the
+        # historical Northwind default (existing samples render byte-identical).
+        # Trusted build-script literal, never tenant data - rendered raw like the
+        # rest of the chrome (may carry entities such as &middot;).
+        [string] $SampleBannerText
     )
 
     # Defensive: never inherit redaction state from a previous render (a failed
@@ -60,7 +66,11 @@ function Export-PpaHtmlReport {
     # ---- document head + navbar ----
     [void]$sb.AppendLine((Get-PpaReportHead))
     if ($IsSample) {
-        [void]$sb.AppendLine('<div class="mock-flag">Illustrative sample data &middot; fictional tenant (Northwind Health) &middot; rendered from Samples/sample-normalized.json</div>')
+        $bannerText = $SampleBannerText
+        if ([string]::IsNullOrEmpty($bannerText)) {
+            $bannerText = 'Illustrative sample data &middot; fictional tenant (Northwind Health) &middot; rendered from Samples/sample-normalized.json'
+        }
+        [void]$sb.Append('<div class="mock-flag">').Append($bannerText).AppendLine('</div>')
     }
     if ($Redact -or $RedactNames) {
         $scope = 'tenant domains, UPNs and email addresses masked'

@@ -5,6 +5,9 @@ produces a single self-contained HTML report you can hand to a delivery team at 
 kickoff, plus a JSON export of the same findings. It is a modernized successor to
 [OfficeDev/CAMP](https://github.com/OfficeDev/CAMP) (see [Attribution](#licensing-and-attribution)).
 
+**See a live sample report** (Acme Corporation, demonstration data):
+<https://yazarmyint.github.io/PurviewPostureAnalyzer/>
+
 > **Read-only, always.** PPA only calls read `Get-*` cmdlets (and `Connect-*` to open
 > sessions). It never creates, modifies, or deletes any tenant configuration, and it
 > collects no content. A Pester guard (`Tests/ReadOnlyGuard.Tests.ps1`) fails the build if

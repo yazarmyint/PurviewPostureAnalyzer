@@ -242,6 +242,29 @@ Output lands in `Outputs\PurviewPosture-<timestamp>\reports\`:
 > Compliance and Exchange Online sessions stay open - run `Disconnect-PurviewPostureSession`
 > yourself before you leave the console.
 
+### Assessing a client tenant as a B2B guest
+
+Invited as a guest into a customer's tenant? Pass `-DelegatedOrganization` with the
+client's tenant domain and PPA connects both read-only sessions to **their** tenant:
+
+```powershell
+# Four-step flow: sign in to the CLIENT tenant as a guest, then run as usual.
+Connect-PurviewPostureSession -UserPrincipalName you@yourfirm.com -DelegatedOrganization client.onmicrosoft.com
+Invoke-PurviewPostureAnalyzer -Organization 'Client' -OutputDirectory .\Outputs
+
+# Or the one-liner:
+Invoke-PurviewPostureAnalyzer -Organization 'Client' -OutputDirectory .\Outputs -Connect -DelegatedOrganization client.onmicrosoft.com -Show -Disconnect
+```
+
+Notes:
+- `-AzureADAuthorizationEndpointUri` is optional - it is auto-derived from the client
+  domain (`https://login.microsoftonline.com/<domain>`); pass it only to override.
+  (It applies to the Security & Compliance session; Exchange Online needs only the
+  delegated organization, per Microsoft's guest guidance.)
+- Your B2B guest account must hold **Compliance Administrator** (or an equivalent
+  read-capable role) *in the client tenant*.
+- Requires ExchangeOnlineManagement **3.0.0+**. Commercial cloud only.
+
 ### Run profiles: include / exclude sections
 
 ```powershell

@@ -19,14 +19,31 @@ Set-StrictMode -Off
 
 function Get-PpaRetentionRuleLabel {
     # Display label for ONE retention rule: prefer the published/applied tag over
-    # the (often auto-GUID) rule name, then resolve a GUID-valued reference to the
-    # friendly tag name; keep the reference verbatim when unmapped - a deleted or
-    # unreadable tag must still show SOMETHING, never vanish.
+    # the (often auto-GUID) rule name, then resolve through the Get-ComplianceTag
+    # inventory. Part 9 (confirmed against live TEST data): the tag reference is a
+    # COMPOUND string "<ImmutableId>,<Name>" - and the rule keys on the tag's
+    # ImmutableId, NOT its Guid, so the map's ImmutableId key is load-bearing.
+    # Resolution order:
+    #   1. whole ref as a map key (protects inventory tag names that carry commas)
+    #   2. split on ',' (trimmed) - first segment that resolves wins
+    #   3. first non-GUID-shaped segment verbatim (worst case shows the name tail,
+    #      never the raw id)
+    #   4. first segment verbatim (true orphan - still shows SOMETHING, never blank)
     param($Rule, $TagMap)
     $ref = if ($Rule.PublishComplianceTag) { [string]$Rule.PublishComplianceTag }
            elseif ($Rule.ApplyComplianceTag) { [string]$Rule.ApplyComplianceTag }
+           elseif ($Rule.ComplianceTagProperty) { [string]$Rule.ComplianceTagProperty }
            else { [string]$Rule.Name }
-    if ($ref -and $TagMap.ContainsKey($ref)) { return $TagMap[$ref] }
+    if ([string]::IsNullOrEmpty($ref)) { return $ref }
+    if ($TagMap.ContainsKey($ref)) { return $TagMap[$ref] }
+    $segments = @($ref -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    foreach ($seg in $segments) {
+        if ($TagMap.ContainsKey($seg)) { return $TagMap[$seg] }
+    }
+    foreach ($seg in $segments) {
+        if ($seg -notmatch '^[0-9a-fA-F-]{36}$') { return $seg }
+    }
+    if ($segments.Count -gt 0) { return $segments[0] }
     return $ref
 }
 

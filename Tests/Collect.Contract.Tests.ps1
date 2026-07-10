@@ -810,6 +810,66 @@ Describe 'DSPM label reference resolution (pre-publish Part 8)' {
     }
 }
 
+Describe 'Retention compound tag references (pre-publish Part 9)' {
+    # Confirmed against live TEST data: PublishComplianceTag / ComplianceTagProperty
+    # carry a COMPOUND "<ImmutableId>,<Name>" string, and the rule references the
+    # tag by ImmutableId (the tag's Guid is a DIFFERENT value). The helper splits
+    # the compound, resolves per segment, and prefers whatever resolves to a
+    # friendly name; worst case shows the name tail, never the raw id blob.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'REAL TEST shape: compound ImmutableId,Name ref shows the tag name ONLY - the ImmutableId reaches no display field' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000009'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = '8969d530-aaaa-bbbb-cccc-00000000042d,Yazar Test Label'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('Yazar Test Label')
+        $out.labels.items[0].name        | Should -Be 'Yazar Test Label'
+        @($out.policies.items[0].labels) -join '|' | Should -Not -Match '8969d530'
+        $out.labels.items[0].name                  | Should -Not -Match '8969d530'
+    }
+    It 'ImmutableId keying is load-bearing: a RENAMED tag resolves to its CURRENT name, not the stale name tail' {
+        # The compound carries the name the rule was saved with; the inventory has
+        # the tag renamed since. Segment 1 (ImmutableId) must win over segment 2.
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000010'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = '8969d530-aaaa-bbbb-cccc-00000000042d,Old Label Name'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'Yazar Test Label'
+    }
+    It 'compound ref with an UNMAPPED ImmutableId still shows the Name segment, never the blob' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000011'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = '8969d530-aaaa-bbbb-cccc-00000000042d,Yazar Test Label'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @()
+        $out = Get-PpaRetention
+        $out.labels.items[0].name | Should -Be 'Yazar Test Label'
+        @($out.policies.items[0].labels) | Should -Be @('Yazar Test Label')
+    }
+    It 'ComplianceTagProperty joins the preference chain when Publish/ApplyComplianceTag are absent' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000012'; ParentPolicyName = 'HR 7yr'; ComplianceTagProperty = '8969d530-aaaa-bbbb-cccc-00000000042d,Yazar Test Label'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'Yazar Test Label'
+    }
+    It 'single-value (no comma) GUID ref still resolves as in Part 7 - regression pin' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000013'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'cca0fd5a-0000-0000-0000-000000000001'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'Yazar Test Label'
+    }
+    It 'plain rule (no tag properties) falls back to .Name verbatim - regression pin' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'HR-Retain-7y'; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Yazar Test Label'; Guid = [guid]'cca0fd5a-0000-0000-0000-000000000001'; ImmutableId = [guid]'8969d530-aaaa-bbbb-cccc-00000000042d' })
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'HR-Retain-7y'
+    }
+    It 'true orphan (lone GUID-shaped segment, no tag match) passes through verbatim - honest fallback' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000014'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'eeeeeeee-9999-9999-9999-999999999999'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @()
+        (Get-PpaRetention).labels.items[0].name | Should -Be 'eeeeeeee-9999-9999-9999-999999999999'
+    }
+}
+
 Describe 'Auto-labeling AdvancedRule capture (Wave 5 cleanup Part 2)' {
     # Grouped-condition auto-label policies leave the flat property empty; the SITs
     # live in the rule-level AdvancedRule JSON. The collector reads

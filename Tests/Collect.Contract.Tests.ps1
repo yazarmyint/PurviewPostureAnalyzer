@@ -104,6 +104,27 @@ BeforeAll {
         }
     }
 
+    # ---- retention label resolution harness (pre-publish Part 7) ----------------
+    # Raw-TENANT-shaped retention reads: a label-publishing rule carries an
+    # auto-GUID .Name with the label in PublishComplianceTag / ApplyComplianceTag
+    # (either may itself be a GUID); Get-ComplianceTag is the friendly-name
+    # inventory. $Rules and $Tags are the shapes under test.
+    function New-PpaRetentionResolutionStubMap {
+        param($Rules = @(), $Tags = @())
+        @{
+            'Get-RetentionCompliancePolicy' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{
+                    Name = 'HR 7yr'; Guid = [guid]'aaaaaaaa-1111-0000-0000-000000000001'
+                    SharePointLocation = @('All'); ExchangeLocation = @(); ModernGroupLocation = @()
+                    OneDriveLocation = @(); AdaptiveScopeLocation = @()
+                }
+            ) }
+            'Get-RetentionComplianceRule' = @{ Status = 'Ok'; Data = @($Rules) }
+            'Get-AdaptiveScope'           = @{ Status = 'Ok'; Data = @() }
+            'Get-ComplianceTag'           = @{ Status = 'Ok'; Data = @($Tags) }
+        }
+    }
+
     # ---- primitive-leaf walker ---------------------------------------------------
     # Returns "path: TypeName" for every leaf that is not string/number/boolean/null.
     # Arrays, dictionaries and PSCustomObjects are structure and recurse; anything
@@ -178,6 +199,8 @@ BeforeAll {
             'Get-RetentionComplianceRule' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ Name = 'HR-Retain-7y'; Guid = [guid]'aaaaaaaa-0000-0000-0000-000000000009'; Policy = $polGuid; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }) }
             'Get-AdaptiveScope' = @{ Status = 'Ok'; Data = @() }
+            'Get-ComplianceTag' = @{ Status = 'Ok'; Data = @(
+                [pscustomobject]@{ Name = 'HR-Retain-7y'; Guid = [guid]'bbbbbbbb-0000-0000-0000-000000000101' }) }
             'Get-Label' = @{ Status = 'Ok'; Data = @(
                 [pscustomobject]@{ DisplayName = 'Confidential'; Name = 'conf'; Guid = $polGuid; Priority = 2; ContentType = 'File, Email'; ParentId = [guid]::Empty }) }
             'Get-LabelPolicy' = @{ Status = 'Ok'; Data = @(
@@ -593,6 +616,75 @@ Describe 'Label policy GUID resolution (pre-publish Part 4)' {
         $script:PpaReadStubMap = New-PpaLabelResolutionStubMap
         $script:PpaReadStubMap['Get-Label'].Data[0].PSObject.Properties.Remove('ImmutableId')
         (Get-PpaSensitivityLabels).labels.items[0].immutableId | Should -Be ''
+    }
+}
+
+Describe 'Retention label resolution (pre-publish Part 7)' {
+    # On a live tenant a label-publishing retention rule has an auto-GUID .Name;
+    # the published label lives in PublishComplianceTag / ApplyComplianceTag,
+    # which MAY themselves hold a GUID. The collector prefers the tag reference,
+    # resolves GUID-valued references through the Get-ComplianceTag inventory,
+    # and preserves anything unresolvable verbatim.
+    BeforeEach { $script:PpaReadStubMap = @{} }
+
+    It 'auto-GUID rule name + PublishComplianceTag name: policy labels and label item show the tag, never the GUID' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000001'; Guid = [guid]'dddddddd-aaaa-bbbb-cccc-000000000001'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'Fin-Retain-10y'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('Fin-Retain-10y')
+        $out.labels.items[0].name        | Should -Be 'Fin-Retain-10y'
+        # the auto-GUID rule name never leaks into a display field (guid identity field aside)
+        @($out.policies.items[0].labels) | Should -Not -Contain 'dddddddd-aaaa-bbbb-cccc-000000000001'
+    }
+    It 'GUID-valued PublishComplianceTag resolves through Get-ComplianceTag to the friendly name' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000002'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'cccccccc-0000-0000-0000-000000000201'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('Fin-Retain-10y')
+        $out.labels.items[0].name        | Should -Be 'Fin-Retain-10y'
+    }
+    It 'plain retention rule (no Publish/ApplyComplianceTag) falls back to .Name verbatim - no regression' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'HR-Retain-7y'; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        @($out.policies.items[0].labels) | Should -Be @('HR-Retain-7y')
+        $out.labels.items[0].name        | Should -Be 'HR-Retain-7y'
+    }
+    It 'unresolvable reference (no tag match) passes through verbatim - orphan fallback' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000003'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'eeeeeeee-9999-9999-9999-999999999999'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        $out.labels.items[0].name | Should -Be 'eeeeeeee-9999-9999-9999-999999999999'
+    }
+    It 'ApplyComplianceTag resolves when PublishComplianceTag is absent (auto-applied labels)' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000004'; ParentPolicyName = 'HR 7yr'; ApplyComplianceTag = 'cccccccc-0000-0000-0000-000000000201'; ContentMatchQuery = 'kql'; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        $out.labels.items[0].name      | Should -Be 'Fin-Retain-10y'
+        $out.labels.items[0].autoApply | Should -BeTrue
+    }
+    It 'keeps the projected labels a flat array of plain strings' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'dddddddd-aaaa-bbbb-cccc-000000000001'; ParentPolicyName = 'HR 7yr'; PublishComplianceTag = 'Fin-Retain-10y'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        ) -Tags @([pscustomobject]@{ Name = 'Fin-Retain-10y'; Guid = [guid]'cccccccc-0000-0000-0000-000000000201' })
+        $out = Get-PpaRetention
+        foreach ($v in @($out.policies.items[0].labels)) { $v | Should -BeOfType [string] }
+        $out.labels.items[0].name | Should -BeOfType [string]
+    }
+    It 'a failed Get-ComplianceTag read degrades the outcome to Partial (folded into ReadStatuses)' {
+        $script:PpaReadStubMap = New-PpaRetentionResolutionStubMap -Rules @(
+            [pscustomobject]@{ Name = 'HR-Retain-7y'; ParentPolicyName = 'HR 7yr'; ContentMatchQuery = ''; ContentContainsSensitiveInformation = @() }
+        )
+        $script:PpaReadStubMap['Get-ComplianceTag'] = @{ Status = 'AccessDenied'; Data = @(); Error = 'denied' }
+        $out = Get-PpaRetention
+        $out.outcome | Should -Be 'Partial'
+        # resolution still degrades gracefully: verbatim rule name, never a crash
+        $out.labels.items[0].name | Should -Be 'HR-Retain-7y'
     }
 }
 

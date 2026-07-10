@@ -50,7 +50,15 @@ function Invoke-PurviewPostureAnalyzer {
         [switch]$Connect,
         [switch]$Disconnect,
         [switch]$Show,
-        [string]$UserPrincipalName
+        [string]$UserPrincipalName,
+        # Cross-tenant guest / B2B (pre-publish Part 6, Option B): forwarded to the
+        # -Connect sign-in so a consultant guest account can read a CLIENT tenant.
+        # -DelegatedOrganization names the client tenant (client.onmicrosoft.com);
+        # -AzureADAuthorizationEndpointUri is an optional override (auto-derived from
+        # the organization otherwise). Both follow the -UserPrincipalName rules:
+        # ignored (with a warning) without -Connect, and ignored in delta mode.
+        [string]$DelegatedOrganization,
+        [string]$AzureADAuthorizationEndpointUri
     )
 
     # ---- DELTA MODE: short-circuits the whole collection pipeline (spec 4.1) ----
@@ -68,6 +76,8 @@ function Invoke-PurviewPostureAnalyzer {
         if ($Disconnect) { $ignoredSwitches += '-Disconnect' }
         if ($Show) { $ignoredSwitches += '-Show' }
         if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName)) { $ignoredSwitches += '-UserPrincipalName' }
+        if (-not [string]::IsNullOrWhiteSpace($DelegatedOrganization)) { $ignoredSwitches += '-DelegatedOrganization' }
+        if (-not [string]::IsNullOrWhiteSpace($AzureADAuthorizationEndpointUri)) { $ignoredSwitches += '-AzureADAuthorizationEndpointUri' }
         if ($ignoredSwitches.Count -gt 0) {
             Write-Warning ("Delta mode ignores {0} - it is a fully offline snapshot comparison (no tenant session, no report auto-open)." -f ($ignoredSwitches -join ', '))
         }
@@ -122,9 +132,17 @@ function Invoke-PurviewPostureAnalyzer {
     # machine. ----
     Initialize-PpaRunManifest
 
-    # -UserPrincipalName only feeds the -Connect sign-in; alone it does nothing (UX-1).
-    if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName) -and -not $Connect) {
-        Write-Warning '-UserPrincipalName is only used with -Connect; ignoring it.'
+    # -UserPrincipalName and the guest (B2B) parameters only feed the -Connect
+    # sign-in; alone they do nothing (UX-1 rule - one consolidated warning).
+    if (-not $Connect) {
+        $connectOnly = @()
+        if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName)) { $connectOnly += '-UserPrincipalName' }
+        if (-not [string]::IsNullOrWhiteSpace($DelegatedOrganization)) { $connectOnly += '-DelegatedOrganization' }
+        if (-not [string]::IsNullOrWhiteSpace($AzureADAuthorizationEndpointUri)) { $connectOnly += '-AzureADAuthorizationEndpointUri' }
+        if ($connectOnly.Count -gt 0) {
+            $verb = if ($connectOnly.Count -gt 1) { 'are' } else { 'is' }
+            Write-Warning (($connectOnly -join ', ') + ' ' + $verb + ' only used with -Connect; ignoring.')
+        }
     }
 
     # ---- ONE-GO RUN (UX-1): the whole tenant-run body sits in try/finally so an explicit
@@ -159,6 +177,11 @@ function Invoke-PurviewPostureAnalyzer {
             else {
                 $connectArgs = @{}
                 if (-not [string]::IsNullOrWhiteSpace($UserPrincipalName)) { $connectArgs['UserPrincipalName'] = $UserPrincipalName }
+                # Guest (B2B) forwarding (Part 6): whichever guest parameters were
+                # supplied ride along; Connect-PurviewPostureSession owns the
+                # endpoint derivation and the endpoint-without-org hygiene warning.
+                if (-not [string]::IsNullOrWhiteSpace($DelegatedOrganization)) { $connectArgs['DelegatedOrganization'] = $DelegatedOrganization }
+                if (-not [string]::IsNullOrWhiteSpace($AzureADAuthorizationEndpointUri)) { $connectArgs['AzureADAuthorizationEndpointUri'] = $AzureADAuthorizationEndpointUri }
                 $connStatus = Connect-PurviewPostureSession @connectArgs
                 $sccOk = ([string]$connStatus.SecurityCompliance -eq 'connected')
                 $exoOk = ([string]$connStatus.ExchangeOnline -eq 'connected')

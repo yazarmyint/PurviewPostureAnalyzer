@@ -124,6 +124,42 @@ Describe 'UX-1 -UserPrincipalName without -Connect' {
     }
 }
 
+Describe 'UX-1 guest (B2B) forwarding (pre-publish Part 6)' {
+    It '-Connect + guest params: all three connect knobs forwarded to Connect-PurviewPostureSession' {
+        Mock -ModuleName PurviewPostureAnalyzer Get-ConnectionInformation { @() }
+        Mock -ModuleName PurviewPostureAnalyzer Connect-PurviewPostureSession { $script:BothConnected }
+        $null = Invoke-PurviewPostureAnalyzer -OutputDirectory (Join-Path $script:OutRoot 'guest-fwd') -Connect `
+            -UserPrincipalName 'you@yourfirm.com' -DelegatedOrganization 'client.onmicrosoft.com' `
+            -AzureADAuthorizationEndpointUri 'https://login.microsoftonline.com/client.onmicrosoft.com' -WarningAction SilentlyContinue
+        Should -Invoke Connect-PurviewPostureSession -ModuleName PurviewPostureAnalyzer -Exactly -Times 1 -ParameterFilter {
+            $UserPrincipalName -eq 'you@yourfirm.com' -and
+            $DelegatedOrganization -eq 'client.onmicrosoft.com' -and
+            $AzureADAuthorizationEndpointUri -eq 'https://login.microsoftonline.com/client.onmicrosoft.com'
+        }
+    }
+    It '-DelegatedOrganization without -Connect: warned (consolidated), never forwarded' {
+        Mock -ModuleName PurviewPostureAnalyzer Connect-PurviewPostureSession { }
+        $null = Invoke-PurviewPostureAnalyzer -OutputDirectory (Join-Path $script:OutRoot 'guest-alone') `
+            -DelegatedOrganization 'client.onmicrosoft.com' -WarningVariable warns -WarningAction SilentlyContinue
+        @($warns | Where-Object { $_ -match 'only used with -Connect' -and $_ -match '-DelegatedOrganization' }).Count | Should -Be 1
+        Should -Invoke Connect-PurviewPostureSession -ModuleName PurviewPostureAnalyzer -Exactly -Times 0
+    }
+    It 'delta mode ignores the guest params in the one consolidated warning; no connect' {
+        Mock -ModuleName PurviewPostureAnalyzer Connect-PurviewPostureSession { }
+        $threw = $false
+        try {
+            $null = Invoke-PurviewPostureAnalyzer -DeltaFrom (Join-Path $TestDrive 'a.json') -DeltaTo (Join-Path $TestDrive 'b.json') `
+                -Connect -DelegatedOrganization 'client.onmicrosoft.com' `
+                -AzureADAuthorizationEndpointUri 'https://login.microsoftonline.com/client.onmicrosoft.com' `
+                -WarningVariable warns -WarningAction SilentlyContinue
+        }
+        catch { $threw = $true }
+        $threw | Should -BeTrue
+        @($warns | Where-Object { $_ -match 'Delta mode ignores' -and $_ -match '-DelegatedOrganization' -and $_ -match '-AzureADAuthorizationEndpointUri' }).Count | Should -Be 1
+        Should -Invoke Connect-PurviewPostureSession -ModuleName PurviewPostureAnalyzer -Exactly -Times 0
+    }
+}
+
 Describe 'UX-1 delta mode' {
     It 'ignores all four switches with one consolidated warning; no connect, no disconnect' {
         Mock -ModuleName PurviewPostureAnalyzer Connect-PurviewPostureSession { }

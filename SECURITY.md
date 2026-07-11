@@ -12,10 +12,6 @@ private vulnerability reporting**, which is the sole reporting channel for this 
 Your report stays private to the maintainer until a fix is coordinated and published.
 Please do **not** open a public GitHub issue for a security vulnerability.
 
-> Maintainer action: GitHub private vulnerability reporting must be enabled for this
-> repository (Settings -> Code security -> Private vulnerability reporting) before the
-> advisory link above will work.
-
 ## What is in scope
 
 A security report means a vulnerability **in PPA itself** - for example in its PowerShell

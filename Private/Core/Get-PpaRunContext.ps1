@@ -40,7 +40,7 @@ function Get-PpaRunContext {
 
     return [pscustomobject]@{
         reportTitle = 'PurviewPostureAnalyzer (PPA)'
-        version     = '2.0'
+        version     = '2.1.0'
         versionDate = 'July 2026'
         dateDisplay = ($now.ToString('dd-MMM-yyyy HH:mm') + ' UTC')
         organization = $org

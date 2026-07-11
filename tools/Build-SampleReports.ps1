@@ -219,6 +219,12 @@ $acmeRawMap = @{
 }
 $acmeCoverage = Get-PpaCoverageModel -RawMap $acmeRawMap
 $acme     = Read-PpaFixture 'Samples\acme-normalized.json'
+# F-015: the PUBLISHED page shows the CURRENT tool version. Display-only override,
+# applied at render time so the acme fixture itself stays frozen (the JSON fixtures
+# are regression baselines); keep these two values in lockstep with the manifest
+# ModuleVersion and Get-PpaRunContext.
+$acme.meta.version     = '2.1.0'
+$acme.meta.versionDate = 'July 2026'
 $acmeNorm = ConvertTo-PpaNormalized -Meta $acme.meta -Licensing $acme.licensing -Sections $acme.sections -Coverage $acmeCoverage
 $acmeLogo = ConvertTo-PpaLogoDataUri -Path (Join-Path $root 'docs\assets\acme-logo.png')
 $acmeHtml = Export-PpaHtmlReport -Normalized $acmeNorm -IsSample -LogoDataUri $acmeLogo `

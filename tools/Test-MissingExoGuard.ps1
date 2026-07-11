@@ -197,15 +197,26 @@ if (-not $exoOnDiskAtStart) {
         Assert-Ppa -Name 'counter-case: real EXO module was never imported (no session disturbance)' -Condition ($null -eq (Get-Module -Name ExchangeOnlineManagement))
     }
     finally {
+        # UNQUALIFIED function: paths only. Remove-Item 'function:global:<name>' is a
+        # silent no-op on both engines (no error raised, function left in place),
+        # while the unqualified form removes the global stub - same teardown form as
+        # Connect.Tests.ps1 AfterAll. Verified empirically on PS 5.1 and pwsh 7.
         foreach ($fn in @('Connect-IPPSSession', 'Connect-ExchangeOnline')) {
-            if (Test-Path "function:global:$fn") { Remove-Item "function:global:$fn" -Force -ErrorAction SilentlyContinue }
+            try {
+                if (Test-Path "function:$fn") { Remove-Item "function:$fn" -Force }
+            } catch {
+                Write-Host ('Cleanup warning: could not remove stub ' + $fn + ': ' + $_.Exception.Message)
+            }
         }
         Remove-Variable -Name PpaGuardCheckIppsCalled -Scope Global -ErrorAction SilentlyContinue
         Remove-Variable -Name PpaGuardCheckExoCalled -Scope Global -ErrorAction SilentlyContinue
         if ($autoExisted) { $global:PSModuleAutoloadingPreference = $autoPrev }
         else { Remove-Variable -Name PSModuleAutoloadingPreference -Scope Global -ErrorAction SilentlyContinue }
     }
-    $stubsGone = ((-not (Test-Path 'function:global:Connect-IPPSSession')) -and (-not (Test-Path 'function:global:Connect-ExchangeOnline')))
+    # (Deliberately NOT verified via Get-Command here: with EXO discoverable and
+    # autoloading back on, Get-Command would autoload the real module - the very
+    # thing this helper promises not to do.)
+    $stubsGone = ((-not (Test-Path 'function:Connect-IPPSSession')) -and (-not (Test-Path 'function:Connect-ExchangeOnline')))
     Assert-Ppa -Name 'cleanup: recording stubs removed' -Condition $stubsGone
 }
 

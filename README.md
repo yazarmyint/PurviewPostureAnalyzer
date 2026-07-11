@@ -144,8 +144,10 @@ unchanged counts as the confidence signal. Full guidance: [`docs/delta-report.md
 ## Requirements
 
 - **Windows PowerShell 5.1** or **PowerShell 7+** (7.5+ for the optional delta report).
-- The **ExchangeOnlineManagement** module (provides `Connect-IPPSSession` and
-  `Connect-ExchangeOnline`):
+- The **ExchangeOnlineManagement** module - PurviewPostureAnalyzer **requires** it and
+  uses it to connect to Microsoft Purview (it provides `Connect-IPPSSession` and
+  `Connect-ExchangeOnline`). Without it, PPA stops before connecting and prints this
+  install one-liner. Install it with:
 
   ```powershell
   Install-Module ExchangeOnlineManagement -Scope CurrentUser

@@ -17,15 +17,20 @@
 # the temp folders are all back exactly as found.
 #
 #   pwsh -File tools/Test-PublishPackage.ps1
+#   pwsh -File tools/Test-PublishPackage.ps1 -Backend PSResourceGet
 #     (requires PowerShellGet v2+ or Microsoft.PowerShell.PSResourceGet; the script
-#      STOPS and reports if neither is available - it never installs anything)
+#      STOPS and reports if neither is available - it never installs anything.
+#      Optional -Backend forces the backend so the rehearsal can mirror the real
+#      publish path; without it, auto-detect prefers PowerShellGet v2.)
 #
 # ASCII-only source (Windows PowerShell 5.1).
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
     [string]$StagedModule,
-    [string]$WorkRoot
+    [string]$WorkRoot,
+    [ValidateSet('PSResourceGet', 'PowerShellGetV2')]
+    [string]$Backend
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,11 +83,23 @@ Write-Host ('PowerShellGet v2+   : ' + $(if ($psgV2) { $psgV2.Version.ToString()
 Write-Host ('PSResourceGet       : ' + $(if ($prg)   { $prg.Version.ToString() }   else { 'not present' }))
 Write-Host ('NuGet provider      : ' + $(if ($nuget) { $nuget.Version.ToString() } else { 'not present' }))
 
-$backend = $null
-if ($psgV2 -and $nuget) {
-    $backend = 'PowerShellGetV2'
-} elseif ($prg) {
-    $backend = 'PSResourceGet'
+# -Backend forces the publish backend; otherwise auto-detect (PowerShellGet v2 preferred).
+# NOTE: $Backend/$backend are the same variable (PowerShell names are case-insensitive).
+$forcedBackend = -not [string]::IsNullOrWhiteSpace($Backend)
+if ($forcedBackend) {
+    $forcedAvailable = if ($Backend -eq 'PowerShellGetV2') { [bool]($psgV2 -and $nuget) } else { [bool]$prg }
+    if (-not $forcedAvailable) {
+        Write-Host ''
+        Write-Host ("STOP: -Backend {0} was requested but its components are not present on this engine." -f $Backend)
+        Write-Host 'This script never installs components.'
+        exit 2
+    }
+} else {
+    if ($psgV2 -and $nuget) {
+        $Backend = 'PowerShellGetV2'
+    } elseif ($prg) {
+        $Backend = 'PSResourceGet'
+    }
 }
 if (-not $backend) {
     Write-Host ''
@@ -93,7 +110,7 @@ if (-not $backend) {
     Write-Host 'engine that has one (pwsh 7 ships PowerShellGet 2.2.5 and PSResourceGet).'
     exit 2
 }
-Write-Host ('Backend selected    : ' + $backend)
+Write-Host ('Backend selected    : ' + $backend + $(if ($forcedBackend) { ' (forced via -Backend)' } else { ' (auto-detected)' }))
 Write-Host ('Staged module       : ' + $StagedModule)
 Write-Host ('Feed folder         : ' + $feedDir)
 Write-Host ('Install folder      : ' + $installDir)
